@@ -37,6 +37,8 @@ begin
     real nx, ny
     string areaglxy_img, centermodmask_img, areaglxy_cntrmsk_img, areacntr_img
     string areaglxy_cntrmsk_maxaper_img
+    real SNR_total[999]
+    real S_total, noise_total
 
 
     # DEFINICIÓN DE VARIABLES  ALPHA --------------------------
@@ -238,8 +240,8 @@ begin
 
     tmp_exit_distance = no
 
-    ri_ann = 2.05
-    ro_ann = 3.05
+    ri_ann = 2.00
+    ro_ann = 3.00
 
     petro_factor = 2.0
 
@@ -820,8 +822,6 @@ edit_task:
         meanpix = 0
         ttlpix = 0
 
-        # print("\n Acntr: ", inner_area[obj_pos], ", ID: ", id_obj[obj_pos])
-
         # Observed area frame without center:
         if(!imaccess(areaglxy_cntrmsk_img//id_obj[obj_pos])){
             # Save frames observed:
@@ -834,9 +834,8 @@ edit_task:
 
             imdelete(tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], >& "dev$null")
             expre = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1"
-            imexpr(expre, tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[27]*petro_r[obj_pos]*a_img[obj_pos], scale_r[27]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+            imexpr(expre, tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[26]*petro_r[obj_pos]*a_img[obj_pos], scale_r[26]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
 
-            # imdelete(areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], >& "dev$null")
             imexpr("a*b", areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], areaglxy_cntrmsk_img//id_obj[obj_pos], tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], verb-)
         }
         imstat(areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
@@ -844,16 +843,14 @@ edit_task:
         meanpix = 0
         ttlpix = 0
 
-        # print("\n N_ttl:", n_areattl[obj_pos], ", ID: ", id_obj[obj_pos])
-
-        # Extend asymmetrical pixels for measure index (source + noise annulus):
+        # Extended asymmetrical pixels for measure index:
         tmp_string = asymm_dir//"/"//"asymmpix_"//id_obj[obj_pos]
         if(!imaccess(tmp_string)){
             # From BACKGROUND_RMS:
             imexpr("a*b >= c*e && a*b <= d*e", asymm_dir//"/"//"asymmpix_"//id_obj[obj_pos], res_dir//"/"//"residmeasure_"//id_obj[obj_pos], centermodmask_img//id_obj[obj_pos], low_clip, hiout_clip, bg_dir//"/"//"bgrms_"//id_obj[obj_pos], verb-)
         }
 
-        # Extend rotated asymmetrical pixels for measure rot-index alpha
+        # Extended rotated asymmetrical pixels for measure rot-index alpha
         tmp_string = img_out_rot//id_obj[obj_pos]
         if(!imaccess(tmp_string)){
             # Save extended rotated asymmpix frames:
@@ -1155,6 +1152,29 @@ rotated_index:
             # Measurement apperture (binary area):
             imdelete(tmp_dir//"/"//"tmp_aperture", >& "dev$null")
             imexpr(expre1//" ? 1 : 0", tmp_dir//"/"//"tmp_aperture", side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[j]*petro_r[obj_pos]*a_img[obj_pos], scale_r[j]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+
+
+            # ---------------------- TO DEFINE
+            # real SNR_total[999]
+            # real S_total, noise_total
+
+            # SNR total: De acuerdo a Rodriguez-Gomez et al. (2019), comprobamos que SNR_Lotz+04 is aprox. SNR(1rp)=I/BGMRS_map
+            if(scale_r[j] == scale_r[26]){
+
+                imexpr("a*b", tmp_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], ver-)
+                imstat(tmp_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                S_total = (meanpix * ttlpix)
+
+                imexpr("a * (b**2)", tmp_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], ver-)
+                imstat(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                noise_total = sqrt(meanpix * ttlpix)
+
+                SNR_total[obj_pos] = S_total / noise_total
+                print("SNR total = ", SNR_total[obj_pos])
+            }
+            imdelete(tmp_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
+            imdelete(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
+
 
             # Asymmetrical pixel image in aperture[obj_pos]
             imdelete(tmp_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
