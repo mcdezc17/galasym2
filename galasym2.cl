@@ -533,26 +533,6 @@ begin
     if(!access(cat_dir)){mkdir(cat_dir)}           # catalogs_files:  ./alpha/files/catalogs
     if(!access(rot_cat_dir)){mkdir(rot_cat_dir)}   # rotational_cataloogs: ./alpha/files/rot_catalogs
 
-    # BACKGROUND RMS: mid-point of check_background_rms.fits from SEx
-    tmp_string = outsex_dir//"/"//"rms_bg.cat"
-    if(!access(tmp_string)){
-        imstat(bgrms_img, fields = "midpt", nclip = 0, format-) | scan(rms_bg)
-        print(" ", rms_bg, >> tmp_string)
-        print(" - RMS value from SEx = ", rms_bg)
-        #_______________________________________
-        #_______ borrar check_bgrms.fits ?______
-    }else{
-        list = tmp_string
-
-        while(fscan(list, line) != EOF){
-            line_info = substr(line, 1, 1)
-            if(line_info != "#"){
-                print(line) | scan(rms_bg)
-            }
-        }
-        print(" - RMS value from SEx = ", rms_bg)
-    }
-
     # Enviado para solo calcular otra distancia (center cluster):
     to_distance:
 
