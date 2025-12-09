@@ -37,8 +37,10 @@ begin
     real nx, ny
     string areaglxy_img, centermodmask_img, areaglxy_cntrmsk_img, areacntr_img
     string areaglxy_cntrmsk_maxaper_img
-    real SNR_total[999]
+    real SNR_total[999], SNR_ann_total[999]
     real S_total, noise_total
+    real average_SNR_aper, n_pixels_avrg_snr, sum_n_snr_pixels
+    real average_SNR_ann, n_ann_pixels_avrg_snr, sum_n_ann_snr_pixels
 
 
     # DEFINICIÓN DE VARIABLES  ALPHA --------------------------
@@ -881,6 +883,8 @@ edit_task:
         delete(cat_dir//"/"//"noisepix_set.cat", >& "dev$null")
         delete(cat_dir//"/"//"prfl_index_set.cat", >& "dev$null")
         delete(cat_dir//"/"//"cum_index_set.cat", >& "dev$null")
+        delete(cat_dir//"/"//"SNR_set.cat", >& "dev$null")
+        delete(cat_dir//"/"//"SNR_ann_set.cat", >& "dev$null")
 
         for(j=1; j<=57; j+=1){
             if(j == 1){
@@ -896,6 +900,13 @@ edit_task:
                 # IV. CUMULATIVE Asymmetry area SET: first
                 printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[j], >> cat_dir//"/"//"cum_index_set.cat")
 
+                # V. NORMAL SNR CATALOG
+                printf("#%31s ⟨SNR⟩_%4.2frp", "ID_OBJ", scale_r[j], >> cat_dir//"/"//"SNR_set.cat")
+
+                # VI. ANULLAR SNR CATALOG
+                print("# NOTE: SNR_set for annular if hicen(ter)_clip != 'off'", >> cat_dir//"/"//"SNR_ann_set.cat")
+                printf("#%31s ⟨SNR⟩_%4.2frp", "ID_OBJ", scale_r[j], >> cat_dir//"/"//"SNR_ann_set.cat")
+
             }else if(j == 57){
                 #        %Nasymm_last (I. N asymm. pixels SET: last)
                 printf(" N_%4.2frp\n", scale_r[j], >> cat_dir//"/"//"asymmpix_set.cat")
@@ -909,6 +920,12 @@ edit_task:
                 # IV. CUMULATIVE Asymmetry area SET: first
                 printf(" cum_%4.2frp\n", scale_r[j], >> cat_dir//"/"//"cum_index_set.cat")
 
+                # V. SNR CATALOG
+                printf(" ⟨SNR⟩_%4.2frp %11s\n", scale_r[j], "SNR_ttl_1rp", >> cat_dir//"/"//"SNR_set.cat")
+
+                # VI. ANULLAR SNR CATALOG
+                printf(" ⟨SNR⟩_%4.2frp %11s\n", scale_r[j], "SNR_ttl_1rp", >> cat_dir//"/"//"SNR_ann_set.cat")
+
             }else{
                 #        %Nasymm_i (All parameters catalog:)
                 printf(" N_%4.2frp", scale_r[j], >> cat_dir//"/"//"asymmpix_set.cat")
@@ -921,6 +938,12 @@ edit_task:
 
                 # IV. CUMULATIVE Asymmetry area SET: mid
                 printf(" cum_%4.2frp", scale_r[j], >> cat_dir//"/"//"cum_index_set.cat")
+
+                # V. SNR CATALOG
+                printf(" ⟨SNR⟩_%4.2frp", scale_r[j], >> cat_dir//"/"//"SNR_set.cat")
+
+                # VI. ANULLAR SNR CATALOG
+                printf(" ⟨SNR⟩_%4.2frp", scale_r[j], >> cat_dir//"/"//"SNR_ann_set.cat")
 
             }
         }
@@ -1142,7 +1165,7 @@ rotated_index:
             printf("%32s %8.5f %8.5f %8.2f %8d %8.5f %8.2f %8d %8.5f %8.2f %8d %8.5f %8.2f %8d %8.5f\n", id_obj[obj_pos], min_densitybg, ttl_rho, area_ann[1], n_noisepix[1], density_noise[1], area_ann[2], n_noisepix[2], density_noise[2], area_ann[3], n_noisepix[3], density_noise[3], area_ann[4], n_noisepix[4], density_noise[4], >> out_cat//"patch_bg_set.cat")
         }
         # END BG ESTIMATION -----------------------------------------------------------------------------
-
+        printf("\r")
         printf("\r - Analyzing object: %d / %d", i, obj_f)
 
 
@@ -1154,27 +1177,89 @@ rotated_index:
             imexpr(expre1//" ? 1 : 0", tmp_dir//"/"//"tmp_aperture", side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[j]*petro_r[obj_pos]*a_img[obj_pos], scale_r[j]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
 
 
-            # ---------------------- TO DEFINE
-            # real SNR_total[999]
+            # ******************* TO DEFINE SNR TOTAL ********************************************************
+            # real SNR_total[999], SNR_ann_total[999]
             # real S_total, noise_total
-
             # SNR total: De acuerdo a Rodriguez-Gomez et al. (2019), comprobamos que SNR_Lotz+04 is aprox. SNR(1rp)=I/BGMRS_map
-            if(scale_r[j] == scale_r[26]){
+            if(scale_r[j] == scale_r[16] && rot_alpha == no){
 
-                imexpr("a*b", tmp_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], ver-)
+                imexpr("(b > 0) && (c > 0) ? a : 0", tmp_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], ver-)
                 imstat(tmp_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                 S_total = (meanpix * ttlpix)
 
-                imexpr("a * (b**2)", tmp_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], ver-)
+                imexpr("(a > 0) && (b > 0) ? (a**2) : 0", tmp_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", ver-)
                 imstat(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                 noise_total = sqrt(meanpix * ttlpix)
 
                 SNR_total[obj_pos] = S_total / noise_total
-                print("SNR total = ", SNR_total[obj_pos])
-            }
-            imdelete(tmp_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
-            imdelete(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
+                # print("\n    SNR total = ", SNR_total[obj_pos])
 
+                imdelete(tmp_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
+                imdelete(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
+
+                # TOTAL SNR for annular aperture
+                if(strlwr(hicntr_clip) != "off"){
+
+                    imexpr("(b > 0) && (c > 0) && (d > 0) ? a : 0", tmp_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], centermodmask_img//id_obj[obj_pos], ver-)
+                    imstat(tmp_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                    S_total = (meanpix * ttlpix)
+
+                    imexpr("(a > 0) && (b > 0) && (c > 0) ? (a**2) : 0", tmp_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", centermodmask_img//id_obj[obj_pos], ver-)
+                    imstat(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                    noise_total = sqrt(meanpix * ttlpix)
+
+                    SNR_ann_total[obj_pos] = S_total / noise_total
+                    # print("\n    SNR annulus total = ", SNR_ann_total[obj_pos])
+
+                    imdelete(tmp_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
+                    imdelete(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
+                }
+            }
+            #
+            # *************** TO DEFINE AVERAGE SNR or ⟨SNR⟩ *************************************************
+            # real average_SNR_aper, n_pixels_avrg_snr, sum_n_snr_pixels
+            # real average_SNR_ann, n_ann_pixels_avrg_snr, sum_n_ann_snr_pixels
+            # Definir los RMS_i validos
+            if(rot_alpha == no){
+
+                imexpr("(a > 0) && (b > 0) ? 1 : 0", tmp_dir//"/"//"tmp_n_pixels", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", ver-)
+                imstat(tmp_dir//"/"//"tmp_n_pixels", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                n_pixels_avrg_snr = (meanpix * ttlpix)
+
+                imexpr("(c > 0) ? (a/b) : 0", tmp_dir//"/"//"tmp_snr_per_pixel", obs_dir//"/"//"observed_"//id_obj[obj_pos], bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_n_pixels", ver-)
+                imstat(tmp_dir//"/"//"tmp_snr_per_pixel", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                sum_n_snr_pixels = (meanpix * ttlpix)
+
+                average_SNR_aper = (sum_n_snr_pixels / n_pixels_avrg_snr)
+
+                imdelete(tmp_dir//"/"//"tmp_n_pixels", >& "dev$null")
+                imdelete(tmp_dir//"/"//"tmp_snr_per_pixel", >& "dev$null")
+
+                # AVERAGE SNR for annular aperture
+                if(strlwr(hicntr_clip) != "off"){
+
+                    imexpr("(a > 0) && (b > 0) && (c > 0) ? 1 : 0", tmp_dir//"/"//"tmp_n_ann_pixels", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", centermodmask_img//id_obj[obj_pos], ver-)
+                    imstat(tmp_dir//"/"//"tmp_n_ann_pixels", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                    n_ann_pixels_avrg_snr = (meanpix * ttlpix)
+
+                    if(n_ann_pixels_avrg_snr > 0){
+
+                        imexpr("(c > 0) ? (a/b) : 0", tmp_dir//"/"//"tmp_snr_ann_per_pixel", obs_dir//"/"//"observed_"//id_obj[obj_pos], bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_n_ann_pixels", ver-)
+                        imstat(tmp_dir//"/"//"tmp_snr_ann_per_pixel", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                        sum_n_ann_snr_pixels = (meanpix * ttlpix)
+
+                        average_SNR_ann = (sum_n_ann_snr_pixels / n_ann_pixels_avrg_snr)
+                        imdelete(tmp_dir//"/"//"tmp_snr_ann_per_pixel", >& "dev$null")
+
+                    }else{
+                        average_SNR_ann = 0
+                    }
+
+                    imdelete(tmp_dir//"/"//"tmp_n_ann_pixels", >& "dev$null")
+
+                }
+            }
+            # ************************************************************************************************
 
             # Asymmetrical pixel image in aperture[obj_pos]
             imdelete(tmp_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
@@ -1197,7 +1282,7 @@ rotated_index:
             # if(delta_area <= 0){ delta_area = 0 }
 
             # alpha Asymmetry index calculation:
-            if(scale_r[j]*petro_r[obj_pos] <= 0.0){  # --> If change 3.0 to 0.0, then uncomment the '# (<= 0.0)' lines:
+            if(scale_r[j] * petro_r[obj_pos] <= 0.0){  # --> If change 3.0 to 0.0, then uncomment the '# (<= 0.0)' lines:
                 delta_area = 0
                 if(ap_n_areattl <= 1){
                     prfl_index_alpha = 0
@@ -1215,7 +1300,11 @@ rotated_index:
                 # -> Comment the following line only #if uncomment past '# (<= 0.0)' lines.
                 # delta_area = const_pi * (a_img[obj_pos] * b_img[obj_pos]) * ((scale_r[j] * petro_r[obj_pos])**2 - 9.0)
 
-                prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / ap_n_areattl
+                if(ap_n_areattl <= 1){
+                    prfl_index_alpha = 0
+                }else{
+                    prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / ap_n_areattl
+                }
                 cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / n_areattl[obj_pos]
             }
 
@@ -1225,28 +1314,34 @@ rotated_index:
             #     # PROFILE:
             #     prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / ap_n_areattl
             # }
-
             # CUMULATIVE:
             # cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (iso_areaf[obj_pos] - inner_area[obj_pos])
             # cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / n_areattl[obj_pos]
-
             # ====================================================================================
 
-            # PRINT CATALOGS =====================================================================
+            # ====================================================================================
+            # PRINT CATALOGS
+            # ====================================================================================
+            #
             if(j == 1){
                 # Edit Mode = YES overwrite like "edit_ID_OBJT"
                 if(edit_mode != no){
-                    #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: first)
+                    # EDIT MODE       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: EDIT MODE)
                     printf("%32s %6.3f %6d %8d", "edit_"//id_obj[obj_pos], (3/petro_r[obj_pos]), iso_area[obj_pos], n_asymmpix, >> out_cat//"asymmpix_set.cat")
 
-                    #       %ID  %Nb %db   %fr   %Nt %Areacorr_1 (II. Noise pixel SET: first)
+                    # EDIT MODE      %ID  %Nb %db   %fr   %Nt %Areacorr_1 (II. Noise pixel SET: EDIT MODE)
                     printf("%32s %6d %7.4f %6.3f %6d %8.2f", "edit_"//id_obj[obj_pos], nbg_noisepix, min_densitybg, (3/petro_r[obj_pos]), iso_area[obj_pos], delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # III. PROFILE Asymmetry area SET: first
+                    # EDIT MODE III. PROFILE Asymmetry area SET: EDIT MODE
                     printf("%32s %11.4f", "edit_"//id_obj[obj_pos], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
 
-                    # IV. CUMULATIVE Asymmetry area SET: first
+                    # EDIT MODE IV. CUMULATIVE Asymmetry area SET: EDIT MODE
                     printf("%32s %11.4f", "edit_"//id_obj[obj_pos], cum_index_alpha, >> out_cat//"cum_index_set.cat")
+
+                    # EDIT MODE V. NORMAL SNR CATALOG: EDIT MODE
+
+                    # EDIT MODE VI. ANNULAR SNR CATALOG: EDIT MODE
+
                 }else{
                     #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: first)
                     printf("%32s %6.3f %6d %8d", id_obj[obj_pos], (3/petro_r[obj_pos]), iso_area[obj_pos], n_asymmpix, >> out_cat//"asymmpix_set.cat")
@@ -1257,8 +1352,21 @@ rotated_index:
                     # III. Asymmetry area SET: first
                     printf("%32s %11.4f", id_obj[obj_pos], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
 
-                    # III. Asymmetry area SET: first
+                    # IV. CUMULATIVE Asymmetry area SET: first
                     printf("%32s %11.4f", id_obj[obj_pos], cum_index_alpha, >> out_cat//"cum_index_set.cat")
+
+                    # SNR CATALOG's
+                    if(rot_alpha == no){
+
+                        # V. NORMAL SNR CATALOG
+                        printf("%32s %11.4f", id_obj[obj_pos], average_SNR_aper, >> cat_dir//"/"//"SNR_set.cat")
+
+                        if(strlwr(hicntr_clip) != "off"){
+                            # VI. ANNULAR SNR CATALOG
+                            printf("%32s %11.4f", id_obj[obj_pos], average_SNR_ann, >> cat_dir//"/"//"SNR_ann_set.cat")
+                        }
+                    }
+
                 }
 
             }else if(j == 57){
@@ -1274,6 +1382,18 @@ rotated_index:
                 # IV. CUMULATIVE Asymmetry area SET: last
                 printf(" %11.4f\n", cum_index_alpha, >> out_cat//"cum_index_set.cat")
 
+                # SNR CATALOG's
+                if(rot_alpha == no){
+
+                    # V. NORMAL SNR CATALOG
+                    printf(" %11.4f\n", SNR_total[obj_pos], >> cat_dir//"/"//"SNR_set.cat")
+
+                    if(strlwr(hicntr_clip) != "off"){
+                        # VI. ANNULAR SNR CATALOG
+                        printf(" %11.4f\n", SNR_ann_total[obj_pos], >> cat_dir//"/"//"SNR_ann_set.cat")
+                    }
+                }
+
             }else{
                 # I. Asymetrical pixel SET: mid
                 printf(" %8d", n_asymmpix, >> out_cat//"asymmpix_set.cat")
@@ -1286,10 +1406,26 @@ rotated_index:
 
                 # IV. CUMULATIVE Asymmetry area SET: mid
                 printf(" %11.4f", cum_index_alpha, >> out_cat//"cum_index_set.cat")
+
+                # SNR CATALOG's
+                if(rot_alpha == no){
+
+                    # V. NORMAL SNR CATALOG
+                    printf(" %11.4f", average_SNR_aper, >> cat_dir//"/"//"SNR_set.cat")
+
+                    if(strlwr(hicntr_clip) != "off"){
+                        # VI. ANNULAR SNR CATALOG
+                        printf(" %11.4f", average_SNR_ann, >> cat_dir//"/"//"SNR_ann_set.cat")
+                    }
+                }
             }
 
+            # ====================================================================================
+            # PRINT CATALOGS: Tree fixed apertures
+            # ====================================================================================
+            #
             # 1.05, 1.55 and 2.05 Petrosian radius output catalog (Fix apertures)
-            if(j == 17){
+            if(j == 16){
                 # MAIN CATALOG: 1.0xRp (Overwrite catalogs if edit_mode = yes)
                 if(edit_mode == yes){
                     # PROFILE Main catalog Asymetry
@@ -1314,7 +1450,7 @@ rotated_index:
                 expre = 'ellipse('//str(ra_j00[obj_pos])//','//str(dec_j00[obj_pos])//','//str(petro_r[obj_pos] * a_img[obj_pos] * pix_scale)//'",'//str(petro_r[obj_pos] * b_img[obj_pos] * pix_scale)//'",'//str(theta_img[obj_pos])//') # color=red dash=1 text={(1.05rp): '//str(cum_index_alpha)//'}'
                 print(expre, >> out_ds9_cat//"cum_index.reg")
 
-            }else if(j == 27){
+            }else if(j == 26){
 
                 # PROFILE MAIN catalog Asymmetry
                 printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_main.cat")
@@ -1330,7 +1466,7 @@ rotated_index:
                 expre = 'ellipse('//str(ra_j00[obj_pos])//','//str(dec_j00[obj_pos])//','//str(1.5 * petro_r[obj_pos] * a_img[obj_pos] * pix_scale)//'",'//str(1.5 * petro_r[obj_pos] * b_img[obj_pos] * pix_scale)//'",'//str(theta_img[obj_pos])//') # color=red dash=1 text={'//id_obj[obj_pos]//', (1.55rp): '//str(cum_index_alpha)//'}'
                 print(expre, >> out_ds9_cat//"cum_index.reg")
 
-            }else if(j == 37){
+            }else if(j == 36){
 
                 # PROFILE MAIN catalog Asymmetry
                 printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_main.cat")
