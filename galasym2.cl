@@ -129,7 +129,7 @@ begin
         # -
         if(hiout_clip > 0 && hiout_clip < 1.0e6){
             # lee directorio:
-            printf("alpha_%.1f_nn_%.1f", low_clip, hiout_clip) | scan(alpha_dir)
+            printf("alpha_%.1f_nn_%.1f\n", low_clip, hiout_clip) | scan(alpha_dir)
         }else{print("\n ERR: 'hioutr_clip' out of range!")}
 
     }else if(strlwr(hicntr_clip) != "off" && strlwr(hioutr_clip) == "off"){
@@ -139,7 +139,7 @@ begin
         # -
         if(hicen_clip > 0 && hicen_clip < 1.0e6){
             # lee directorio:
-            printf("alpha_%.1f_%.1f_nn", low_clip, hicen_clip) | scan(alpha_dir)
+            printf("alpha_%.1f_%.1f_nn\n", low_clip, hicen_clip) | scan(alpha_dir)
         }else{print("\n ERR: 'hicntr_clip' out of range!")}
 
     }else if(strlwr(hicntr_clip) == "off" && strlwr(hioutr_clip) == "off"){
@@ -147,7 +147,7 @@ begin
         hicen_clip = 1.0e6
         hiout_clip = 1.0e6
         # lee directorio:
-        printf("alpha_%.1f_nn_nn", low_clip) | scan(alpha_dir)
+        printf("alpha_%.1f_nn_nn\n", low_clip) | scan(alpha_dir)
         # -
     }else{
         # -
@@ -155,7 +155,7 @@ begin
         hiout_clip = real(hioutr_clip)
         #-
         # lee directorio:
-        printf("alpha_%.1f_%.1f_%.1f", low_clip, hicen_clip, hiout_clip) | scan(alpha_dir)
+        printf("alpha_%.1f_%.1f_%.1f\n", low_clip, hicen_clip, hiout_clip) | scan(alpha_dir)
     }
     #alpha_dir = "alpha_"//str(low_clip)
     # ./alpha/images:
@@ -470,6 +470,8 @@ begin
 
     }
 
+    print("SEX finished, do you want continue? (Press Enter)") | scan(tmp_wait)
+
     # FOLDER VERIFICATION OR CREATION ----------------------------
     if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
     if(!access(tmp_dir)){mkdir(tmp_dir)}     # temporal folder: ./alpha/temp:
@@ -731,16 +733,16 @@ edit_task:
     #____________________ CUT FRAMES: OBSERVED, MODEL, RESIDUAL ____________________|
     # -
     # Observed area frame for N total pixels:
-    printf(tmp_dir//"/"//"area_%.1f_obs_", low_clip) | scan(areaglxy_img)
+    printf(tmp_dir//"/"//"area_%.1f_obs_"//"\n", low_clip) | scan(areaglxy_img)
     # Extended CENTER MASK frame for measure index (source + noise annulus):
     centermodmask_img = tmp_dir//"/"//"centermodelmask_"
     # Center Areas:
     areacntr_img = tmp_dir//"/"//"areacenter_"
     # Observed area without center:
     if(strlwr(hicntr_clip) == "off"){
-        printf(tmp_dir//"/"//"area_%.1f_nn_obs_", low_clip) | scan(areaglxy_cntrmsk_img)
+        printf(tmp_dir//"/"//"area_%.1f_nn_obs_"//"\n", low_clip) | scan(areaglxy_cntrmsk_img)
     }else{
-        printf(tmp_dir//"/"//"area_%.1f_%.1f_obs_", low_clip, hicen_clip) | scan(areaglxy_cntrmsk_img)
+        printf(tmp_dir//"/"//"area_%.1f_%.1f_obs_"//"\n", low_clip, hicen_clip) | scan(areaglxy_cntrmsk_img)
     }
     # Observed maximum area (without center) for cumulative denominator index:
     areaglxy_cntrmsk_maxaper_img = areaglxy_cntrmsk_img//"maxaper_"
