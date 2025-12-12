@@ -42,6 +42,7 @@ begin
     real S_total, noise_total
     real average_SNR_aper, n_pixels_avrg_snr, sum_n_snr_pixels
     real average_SNR_ann, n_ann_pixels_avrg_snr, sum_n_ann_snr_pixels
+    int  seg_number[999]
 
 
     # DEFINICIÓN DE VARIABLES  ALPHA --------------------------
@@ -483,32 +484,45 @@ begin
     # MATCH BETWEEN RA-DEC_LIST & SEXtracted_OBJECTS: stilts app -------
     print("")
     print("--------------- START STILTS MATCH -------------------------\n")
-    print("stilts-tskymatch2 - Crossmatches 2 tables on sky position\n")
+    print(" First command:")
+    print(" stilts-tskymatch2 - Crossmatches 2 tables on sky position\n")
 
+    # Verifica que existan archivos
     tmp_string = alpha_dir//"/"//"sextracted_list.cat"
     if(!access(tmp_string)){
         copy(cat_sex, tmp_string)
     }
 
+    print(" - Table 1(in1): ", radec_list)
+    print(" - Table 2(in2): ", tmp_string)
+
+    # Ejecutar comando Join Match like Topcat
     delete(tmp_dir//"/"//"match_list.cat", ver-, >& "dev$null")
-    expre = "! stilts tskymatch2 in1=%s ifmt1=ascii in2=%s ifmt2=ascii ra1=RA dec1=DEC ra2=col2 dec2=col3 error=4 find=best ofmt=ascii out=%s/match_list.cat\n"
+    expre = "! stilts tskymatch2 in1=%s ifmt1=ascii in2=%s ifmt2=ascii ra1=RA dec1=DEC ra2=col2 dec2=col3 error=4 find=best ofmt=ascii out=%s/match_list.cat > /dev/null 2>&1\n"
     printf(expre, radec_list, tmp_string, tmp_dir) | cl
 
+    print(" >> Match table: ", tmp_dir//"/"//"match_list.cat")
     print("")
-    print("stilts-tpipe - Performs pipeline processing on a table")
-    print("")
+
+    # Borrar columnas repetidas
+    print(" Second command:")
+    print(" stilts-tpipe - Performs pipeline processing on a table\n")
+    print(" - Table in: Match table above")
+    print(" - Delete columns: |RA |DEC |")
+
     delete(alpha_dir//"/"//"inputlist.cat", ver-, >& "dev$null")
-    expre ="! stilts tpipe cmd='delcols \"RA DEC col1\"' in=%s/match_list.cat ifmt=ascii ofmt=ascii out=%s/inputlist.cat\n"
+    expre ="! stilts tpipe cmd='delcols \"RA DEC\"' in=%s/match_list.cat ifmt=ascii ofmt=ascii out=%s/inputlist.cat\n"
     printf(expre, tmp_dir, alpha_dir) | cl
     delete(tmp_dir//"/"//"match_list.cat", ver-, >& "dev$null")
 
+
     print("")
-    print("------------------ END STILTS MATCH -------------------------\n")
+    print("-------------------------------------------------------------")
     print("Output information")
     print("Table 1:", radec_list)
     print("Table 2: alpha_dir/sextracted_list.cat")
     print("Table 1&2 match: alpha_dir/inputlist.cat")
-    print("-------------------------------------------------------------")
+    print("------------------ END STILTS MATCH -------------------------\n")
 
     # inputlist for galasym2 process ----------------------------------
     input_list = alpha_dir//"/"//"inputlist.cat"
@@ -519,8 +533,8 @@ begin
         print("Enter correct filename with extension *.txt, *.ascii (etc) e.g. input_list.txt or input_list.ascii: ")
         scan(input_list)
         if(!access(input_list)){
-            print("ERR: Second verification for ", input_list, " failed!")
-            print("     Check the input list name and its existence in local directory.")
+            print("ERR: a.Second verification for ", input_list, " failed!")
+            print("     b.Check the input list name and its existence in local directory.")
             print("")
             print("Analysis task aborted. Verify and try again!")
             goto exit_task
@@ -562,7 +576,7 @@ begin
             # real ra_j00[999], dec_j00[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999], ellip[999], theta_j00[999], theta_img[999], iso_area[999], iso_areaf[999]
             #****************************************************************************************
 
-            print(line) | scan(id_obj[i], ra_j00[i], dec_j00[i], xwin_img[i], ywin_img[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i])
+            print(line) | scan(id_obj[i], seg_number[i], ra_j00[i], dec_j00[i], xwin_img[i], ywin_img[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i])
 
             petro_r[i] = petro_r[i] / 2
         }
@@ -891,6 +905,7 @@ edit_task:
 
     # To skyp index
     if(index_calc == no){
+        print("\n-------------------------------------------------------------")
         print("\n Skyp the index calculations!")
         goto exit_task
     }
