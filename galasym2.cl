@@ -22,6 +22,7 @@ bool   edit_mode   = no                             {prompt = "Edit objects to r
 string key_sex     = "sex"                          {prompt = "Keyword to run SExtractor"}
 string key_psfex   = "psfex"                        {prompt = "Keyword to run PSFEx"}
 string key_ds9     = "ds9"                          {prompt = "Keyword to run DS9 viewer"}
+bool   index_calc  = yes                            {prompt = "To skyp index calculation"}
 #string input_list  = "no"                          {prompt = "List of objects to analyze (ascii)"}
 #real   gbl_index  = 2.00                           {prompt = "Aperture for index (in petrosian radius)"}
 # bool   model_fit   = yes                          {prompt = "Run PSFEx + SExtractor?"}
@@ -57,9 +58,11 @@ begin
 
     bool scndimg_bool, objcenter_bool, tmp_bool, tmp_exit_distance
 
-    string alpha_dir, data_dir, alphaimg_dir, dataimg_dir, obs_dir, mod_dir, bg_dir, res_dir, asymm_dir, file_dir, ds9_dir, cat_dir, tmp_dir
+    string alpha_dir, data_dir, alphaimg_dir, dataimg_dir
+    string seg_dir, obs_dir, mod_dir, bg_dir, res_dir, asymm_dir
+    string file_dir, ds9_dir, cat_dir, tmp_dir
 
-    string mod_img, res_img, asymmpixel_img, bg_img, bgrms_img, psf_fit
+    string seg_img, mod_img, res_img, asymmpixel_img, bg_img, bgrms_img, psf_fit
 
     string my_date, my_time
 
@@ -189,6 +192,8 @@ begin
 
     # ./data/images:
     dataimg_dir = data_dir//"/"//"data_images"
+    #
+    seg_dir = dataimg_dir//"/"//"segmentation"
     # ./alpha/images/observed
     obs_dir = dataimg_dir//"/"//"observed"
     # ./alpha/images/model
@@ -223,6 +228,7 @@ begin
     param_sex = sex_dir//"/"//"default.param"
     conv_sex = sex_dir//"/"//"filter.conv"
 
+    seg_img = outsex_dir//"/"//"check_seg.fits"
     bgrms_img = outsex_dir//"/"//"check_bgrms.fits"
     bg_img = outsex_dir//"/"//"check_bg.fits"
     mod_img = outsex_dir//"/"//"check_mod.fits"
@@ -470,8 +476,6 @@ begin
 
     }
 
-    print("SEX finished, do you want continue? (Press Enter)") | scan(tmp_wait)
-
     # FOLDER VERIFICATION OR CREATION ----------------------------
     if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
     if(!access(tmp_dir)){mkdir(tmp_dir)}     # temporal folder: ./alpha/temp:
@@ -527,6 +531,7 @@ begin
     # FOLDER VERIFICATION OR CREATION ----------------------------
     if(!access(alphaimg_dir)){mkdir(alphaimg_dir)}     # images folder:      ./alpha/images:
     if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
+    if(!access(seg_dir)){mkdir(seg_dir)}
     if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./alpha/images/observed
     if(!access(mod_dir)){mkdir(mod_dir)}               # model images:       ./alpha/images/model
     if(!access(res_dir)){mkdir(res_dir)}               # residual images:    ./alpha/images/residual
@@ -803,6 +808,19 @@ edit_task:
             imcopy(bg_img//trimsection, bg_dir//"/"//"bg_"//id_obj[obj_pos], verb-)
         }
 
+        # TO DEFINE SEGMENTATION IMAGE CUTOUTS
+        # string seg_dir
+        # string seg_img
+        # seg_dir =
+        # seg_img =
+
+        # Extended SEGMENTATION image:
+        tmp_string = seg_dir//"/"//"seg_"//id_obj[obj_pos]
+        if(!imaccess(tmp_string)){
+            # Save extended residuals frames:
+            imcopy(seg_img//trimsection, seg_dir//"/"//"seg_"//id_obj[obj_pos], verb-)
+        }
+
         # Observed area frame for N total pixels:
         if(!imaccess(areaglxy_img//id_obj[obj_pos])){
             # Save frames observed:
@@ -871,7 +889,11 @@ edit_task:
     }
     #_____________________________ END CUT FRAMES __________________________________|
 
-
+    # To skyp index
+    if(index_calc == no){
+        print("\n Skyp the index calculations!")
+        goto exit_task
+    }
 
     #_______________________________________________________________________________
     #__________________________ AREA ASYMMETRICAL INDEX ____________________________|
