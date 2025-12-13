@@ -1,5 +1,7 @@
 procedure cas_index()
 
+# TO RUN FROM LOCAL DIRECTORY ./
+
     string input_list  = "no"        {prompt = "List of objects to analyze (ascii)"}
     real   pix_scale   = 0.2486      {prompt = "Pixel scale (arcsec/pixel)"}
     string key_ds9     = "ds9"       {prompt = "Keyword to run DS9 viewer"}

@@ -1,5 +1,6 @@
-procedure prfl_galasym2_96()
+procedure galasym2()
 
+# TO RUN FROM LOCAL DIRECTORY ./
 # FOR ABELL 496 TEST / default cl script name: galasym2_96_prf.cl
 # CUMULATIVE ALPHA INDEX PER APERTURES alpha(in r/rp) = N_asymm(in r) / N_ttl(in r)
 # Other forms are:
@@ -1315,12 +1316,6 @@ rotated_index:
             ap_n_areattl = meanpix * ttlpix
 
             # ALPHA ASYMETRRY INDEX CALCULATION: ==========================================
-            # area_delta: área donde se aplica o escala la (densidad) de correction
-            # delta_area = const_pi * (a_img[obj_pos] * b_img[obj_pos]) * (scale_r[j] * petro_r[obj_pos])**2
-            # delta_area = delta_area - inner_area[obj_pos]
-            # if(delta_area <= 0){ delta_area = 0 }
-
-            # alpha Asymmetry index calculation:
             if(scale_r[j] * petro_r[obj_pos] <= 0.0){  # --> If change 3.0 to 0.0, then uncomment the '# (<= 0.0)' lines:
                 delta_area = 0
                 if(ap_n_areattl <= 1){

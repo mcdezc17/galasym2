@@ -1,8 +1,10 @@
 alpha_*/
 cas_index/
 data/
-tables/
 *.fits
+*.png
+*.csv
 corr_prfl_galasym2_96.cl
 ._*
 .DS_Store
+.DS

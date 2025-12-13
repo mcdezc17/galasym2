@@ -1,4 +1,7 @@
-procedure select_alpha_96()
+procedure select()
+
+# TO RUN FROM LOCAL DIRECTORY ./
+# FOR ABELL 496 TEST
 
     int    start_obj   = 81       {prompt = "Object inputlist resume task"}
     real   low_clip    = 2.00     {prompt = "Low limit (relative to rms_bg)"}
