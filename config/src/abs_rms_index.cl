@@ -1,4 +1,4 @@
-procedure abs_rms_index()
+procedure galasym2()
 
 # TO RUN FROM LOCAL DIRECTORY ./
 # FOR ABELL 496 TEST / default cl script name: galasym2_96_prf.cl
@@ -13,7 +13,7 @@ procedure abs_rms_index()
 string measure_img = "A496J.fits"                   {prompt = "FITS observed data"}
 string radec_list  = "tables/members_A496J.ascii"   {prompt = "[deg] members list [ascii] to match"}
 string detect_img  = "no"                           {prompt = "Detection image for SExtractor"}
-real   low_clip    = 1.00                           {prompt = "Low limit (relative to rms_bg)"}
+real   low_clip    = 1.00                           {prompt = "Low limit (relative to rms_sky)"}
 string hicntr_clip = "10.0"                         {prompt = "Upper clip center (int or 'off')"}
 string hioutr_clip = "10.0"                         {prompt = "Upper clip outer (int or 'off')"}
 real   pix_scale   = 0.3                            {prompt = "Pixel scale (arcsec/pixel)"}
@@ -31,97 +31,94 @@ bool   index_calc  = yes                            {prompt = "To skyp index cal
 
 begin
 
-    # Movidas del prompt ultimamente / chechk the definitions later:
+    # DEFINICIÓN DE VARIABLES ==============================
 
-    string input_list
-    bool model_fit
-    real hicen_clip, hiout_clip
-    real nx, ny
-    string areaglxy_img, centermodmask_img, areaglxy_cntrmsk_img, areacntr_img
-    string areaglxy_cntrmsk_maxaper_img
-    real SNR_total[999], SNR_ann_total[999]
-    real S_total, noise_total
-    real average_SNR_aper, n_pixels_avrg_snr, sum_n_snr_pixels
-    real average_SNR_ann, n_ann_pixels_avrg_snr, sum_n_ann_snr_pixels
-    int  seg_number[999]
-
-
-    # DEFINICIÓN DE VARIABLES  ALPHA --------------------------
-
+    # ************* Global variables *************
+    # constants........
     real const_pi
-
-    string config_dir, psfex_dir, prepsfex_dir, outpsfex_dir, sex_dir, outsex_dir
-
-    string config_prepsfex, param_prepsfex, conv_prepsfex, cat_prepsfex
-
-    string config_psfex
-
-    string config_sex, param_sex, conv_sex, cat_sex
-
-    bool scndimg_bool, objcenter_bool, tmp_bool, tmp_exit_distance
-
-    string alpha_dir, data_dir, alphaimg_dir, dataimg_dir
-    string seg_dir, obs_dir, mod_dir, bg_dir, res_dir, asymm_dir
-    string file_dir, ds9_dir, cat_dir, tmp_dir
-
-    string seg_img, mod_img, res_img, asymmpixel_img, bg_img, bgrms_img, psf_fit
-
-    string my_date, my_time
-
-    struct line
-
-    string line_info
-    string id_obj[999]
-    real ra_j00[999], dec_j00[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999], ellip[999], theta_j00[999], theta_img[999], kron_r[999], petro_r[999], eff_r[999], iso_area[999], iso_areaf[999]
+    # paremeters ......
+    real hicen_clip, hiout_clip
+    real scale_r[100]
+    real petro_factor
+    real ri_ann, ro_ann
+    real nx, ny
+    # list of objects..
+    string input_list
+    int obj_i, obj_f, obj_pos
     int n_list, n_edit
-
+    string id_obj[999]
+    int  seg_number[999]
+    real ra_j00[999], dec_j00[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999]
+    real ellip[999], theta_j00[999], theta_img[999], kron_r[999], petro_r[999], eff_r[999]
+    real iso_area[999], iso_areaf[999]
+    int poss_edit[999]
+    # System variables
+    string my_date,out_cat my_time
+    real tmp_info[199]
+    struct line
+    string line_info
+    string expre, expre1, expre2
+    real meanpix, ttlpix
+    bool model_fit
+    # Temporal variables:
+    bool tmp_bool, tmp_exit_distance
     string tmp_string, tmp_wait
 
-    real rms_bg
+    # ************* Main folders variables *************
+    string config_dir
+    string src_dir
+    # -----------------------
+    string data_dir
+    string dataimg_dir
+    string seg_dir, obs_dir, mod_dir, res_dir, bg_dir
+    # -----------------------
+    string alpha_dir
+    string alphaimg_dir, asymm_dir, asymmpixel_img
+    string file_dir, ds9_dir, cat_dir, cache_dir
 
+    # ************* PRE-PSFEx variables *************
+    string prepsfex_dir
+    string config_prepsfex, param_prepsfex, conv_prepsfex, cat_prepsfex
+    # PSFEx variables:
+    string psfex_dir, config_psfex, outpsfex_dir, psf_fit
+    # SExtractor variables:
+    bool scndimg_bool
+    string sex_dir, config_sex, param_sex, conv_sex
+    string outsex_dir, cat_sex
+    string seg_img, mod_img, res_img, bg_img, bgrms_img
+
+    # ************* To distance variables *************
+    bool objcenter_bool
     int i_center
     real kp_DA
     real ccdistance[999], ccdistance_pix[999], ccdistance_arsec[999], ccdistance_Mpc[999]
 
-    string expre, expre1, expre2
-
-    real pseudo_r, petro_factor
-
-    int obj_i, obj_f, obj_pos
-
-    real inner_area[999]
-
-    int poss_edit[999]
-
-    real scale_r[100]
-
-    real ri_ann, ro_ann
-
+    # ************* Cutout images variables *************
     int px1, px2, py1, py2, l_frame, side_frame[999]
-
     string trimsection
+    real inner_area[999]
+    # output images..........
+    string areaglxy_img, centermodmask_img, areaglxy_cntrmsk_img, areacntr_img
+    string areaglxy_cntrmsk_maxaper_img
 
-    real meanpix, ttlpix
-
+    # ************* ALpha index variables *************
+    # background estimation...
     real min1_bgdensity, min2_bgdensity, min3_bgdensity, min4_bgdensity, tmp_current
-
     int min1_pos, min2_pos, min3_pos, min4_pos
-
     real min_densitybg, ttl_rho
-
     real area_ann[4], n_noisepix[4], density_noise[4]
-
-    real delta_area, nbg_noisepix, n_asymmpix, ap_n_areattl, n_areattl[999], prfl_index_alpha, cum_index_alpha
-
-    # LOCAL VARIABLES DEFINITION ROTATED-ALPHA
-
-    string rot_asymm_dir, img_to_rot, img_out_rot
-
+    # SNR calculations.....
+    real SNR_total[999], SNR_ann_total[999]
+    real S_total, noise_total
+    real average_SNR_aper, n_pixels_avrg_snr, sum_n_snr_pixels
+    real average_SNR_ann, n_ann_pixels_avrg_snr, sum_n_ann_snr_pixels
+    # index calculations......
     bool rot_alpha
-
+    string rot_asymm_dir, img_to_rot, img_out_rot
     string asymmpixel_head, rot_cat_dir, out_cat, out_ds9_cat
+    real delta_area, nbg_noisepix, n_asymmpix, ap_n_areattl, n_areattl[999]
+    real prfl_index_alpha, cum_index_alpha
 
-    real tmp_real, tmp_info[199]
 
 
     # Conversiones de tipos de variable (hicen_clip) ================================================
@@ -166,9 +163,9 @@ begin
     # ./alpha/images:
     alphaimg_dir = alpha_dir//"/"//"images"
     # ./alpha/images/asymmpix
-    asymm_dir = alphaimg_dir//"/"//"asymmpix"
+    asymm_dir = alphaimg_dir//"/"//"area_pixels"                    # before: "asymmpix"
     # ./alpha/images/rot_asymmpix
-    rot_asymm_dir = alphaimg_dir//"/"//"rot_asymmpix"
+    rot_asymm_dir = alphaimg_dir//"/"//"asymmetrical_area_pixels"   # before: "rot_asymmpix"
     # =================================================================================================
 
     # ASIGNACIÓN DE DIRECTORIOS -------------------------
@@ -177,6 +174,8 @@ begin
 
     # ./config
     config_dir = "config"
+    # ./config/src
+    src_dir = config_dir//"/"//"src"
 
     # ./config/psfex
     psfex_dir = config_dir//"/"//"psfex"
@@ -189,7 +188,6 @@ begin
     # ./config/sextractor
     sex_dir = config_dir//"/"//"sextractor"
     # ./config/sextractor/results_sex
-    #outsex_dir = sex_dir//"/"//"results_sex"
     outsex_dir = data_dir//"/"//"results_sex"
 
     # ./data/images:
@@ -215,7 +213,7 @@ begin
     rot_cat_dir = cat_dir//"/"//"rotated_alpha"
 
     # ./alpha/temporal:
-    tmp_dir = alpha_dir//"/"//"cache"
+    cache_dir = alpha_dir//"/"//"cache"
 
     # ASIGNACIÓN DE VARIABLES --------------------------
 
@@ -239,27 +237,21 @@ begin
     cat_sex = outsex_dir//"/"//"test.cat"
 
     const_pi = 3.1415926535897932385
-
+    petro_factor = 2.0
+    ri_ann = 2.00
+    ro_ann = 3.00
     scndimg_bool = no
-
     model_fit = yes
-
     objcenter_bool = no
 
     rot_alpha = no
-
     tmp_exit_distance = no
-
-    ri_ann = 2.00
-    ro_ann = 3.00
-
-    petro_factor = 2.0
 
     # vector of scale r/rp
     scale_r[1]=0.25
     scale_r[2]=0.30; scale_r[3]=0.35; scale_r[4]=0.40; scale_r[5]=0.45; scale_r[6]=0.50; scale_r[7]=0.55; scale_r[8]=0.60; scale_r[9]=0.65; scale_r[10]=0.70; scale_r[11]=0.75; scale_r[12]=0.80; scale_r[13]=0.85; scale_r[14]=0.90; scale_r[15]=0.95; scale_r[16]=1.00; scale_r[17]=1.05; scale_r[18]=1.10; scale_r[19]=1.15; scale_r[20]=1.20; scale_r[21]=1.25; scale_r[22]=1.30; scale_r[23]=1.35; scale_r[24]=1.40; scale_r[25]=1.45; scale_r[26]=1.50; scale_r[27]=1.55; scale_r[28]=1.60; scale_r[29]=1.65; scale_r[30]=1.70; scale_r[31]=1.75; scale_r[32]=1.80; scale_r[33]=1.85; scale_r[34]=1.90; scale_r[35]=1.95; scale_r[36]=2.00; scale_r[37]=2.05; scale_r[38]=2.10; scale_r[39]=2.15; scale_r[40]=2.20; scale_r[41]=2.25; scale_r[42]=2.30; scale_r[43]=2.35; scale_r[44]=2.40; scale_r[45]=2.45; scale_r[46]=2.50; scale_r[47]=2.55; scale_r[48]=2.60; scale_r[49]=2.65; scale_r[50]=2.70; scale_r[51]=2.75; scale_r[52]=2.80; scale_r[53]=2.85; scale_r[54]=2.90; scale_r[55]=2.95; scale_r[56]=3.00; scale_r[57]=3.05; scale_r[58]=3.10; scale_r[59]=3.15; scale_r[60]=3.20; scale_r[61]=3.25; scale_r[62]=3.30; scale_r[63]=3.35; scale_r[64]=3.40; scale_r[65]=3.45; scale_r[66]=3.50; scale_r[67]=3.55; scale_r[68]=3.60; scale_r[69]=3.65; scale_r[70]=3.70; scale_r[71]=3.75; scale_r[72]=3.80; scale_r[73]=3.85; scale_r[74]=3.90; scale_r[75]=3.95; scale_r[76]=4.00; scale_r[77]=4.05; scale_r[78]=4.10; scale_r[79]=4.15; scale_r[80]=4.20; scale_r[81]=4.25; scale_r[82]=4.30; scale_r[83]=4.35; scale_r[84]=4.40; scale_r[85]=4.45; scale_r[86]=4.50; scale_r[87]=4.55; scale_r[88]=4.60; scale_r[89]=4.65; scale_r[90]=4.70; scale_r[91]=4.75; scale_r[92]=4.80; scale_r[93]=4.85; scale_r[94]=4.90; scale_r[95]=4.95; scale_r[96]=5.00
 
-    tmp_string = tmp_dir//"/"//"tmp_info_process.txt"
+    tmp_string = cache_dir//"/"//"tmp_info_process.txt"
     if(access(tmp_string)){
 
         list = tmp_string
@@ -296,15 +288,15 @@ begin
                 input_list = alpha_dir//"/"//"inputlist.cat"
                 tmp_exit_distance = yes
 
-                delete(tmp_dir//"/"//"tmp_change_distance.cat", ver-, >& "dev$null" )
-                printf("#%31s %11s %11s %7s\n", "col1", "col2", "col3", "col4", >> tmp_dir//"/"//"tmp_change_distance.cat")
+                delete(cache_dir//"/"//"tmp_change_distance.cat", ver-, >& "dev$null" )
+                printf("#%31s %11s %11s %7s\n", "col1", "col2", "col3", "col4", >> cache_dir//"/"//"tmp_change_distance.cat")
 
                 goto to_distance
             }else{
                 print(" ERR: center object is the same!")
                 print(" If you want rerun galasym2, then")
                 print(" delete the following file:")
-                printf("  :%s\n", tmp_dir//"/"//"tmp_info_process.txt")
+                printf("  - %s\n", cache_dir//"/"//"tmp_info_process.txt")
                 goto exit_task
             }
         }else{
@@ -480,64 +472,74 @@ begin
 
     # FOLDER VERIFICATION OR CREATION ----------------------------
     if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
-    if(!access(tmp_dir)){mkdir(tmp_dir)}     # temporal folder: ./alpha/temp:
-
-    # MATCH BETWEEN RA-DEC_LIST & SEXtracted_OBJECTS: stilts app -------
-    print("")
-    print("--------------- START STILTS MATCH -------------------------\n")
-    print(" First command:")
-    print(" stilts-tskymatch2 - Crossmatches 2 tables on sky position\n")
-
-    # Verifica que existan archivos
-    tmp_string = alpha_dir//"/"//"sextracted_list.cat"
-    if(!access(tmp_string)){
-        copy(cat_sex, tmp_string)
-    }
-
-    print(" - Table 1(in1): ", radec_list)
-    print(" - Table 2(in2): ", tmp_string)
-
-    # Ejecutar comando Join Match like Topcat
-    delete(tmp_dir//"/"//"match_list.cat", ver-, >& "dev$null")
-    expre = "! stilts tskymatch2 in1=%s ifmt1=ascii in2=%s ifmt2=ascii ra1=RA dec1=DEC ra2=col2 dec2=col3 error=4 find=best ofmt=ascii out=%s/match_list.cat > /dev/null 2>&1\n"
-    printf(expre, radec_list, tmp_string, tmp_dir) | cl
-
-    print(" >> Match table: ", tmp_dir//"/"//"match_list.cat")
-    print("")
-
-    # Borrar columnas repetidas
-    print(" Second command:")
-    print(" stilts-tpipe - Performs pipeline processing on a table\n")
-    print(" - Table in: Match table above")
-    print(" - Delete columns: |RA |DEC |")
-
-    delete(alpha_dir//"/"//"inputlist.cat", ver-, >& "dev$null")
-    expre ="! stilts tpipe cmd='delcols \"RA DEC\"' in=%s/match_list.cat ifmt=ascii ofmt=ascii out=%s/inputlist.cat\n"
-    printf(expre, tmp_dir, alpha_dir) | cl
-    delete(tmp_dir//"/"//"match_list.cat", ver-, >& "dev$null")
-
-
-    print("")
-    print("-------------------------------------------------------------")
-    print("Output information")
-    print("Table 1:", radec_list)
-    print("Table 2: alpha_dir/sextracted_list.cat")
-    print("Table 1&2 match: alpha_dir/inputlist.cat")
-    print("------------------ END STILTS MATCH -------------------------\n")
+    if(!access(cache_dir)){mkdir(cache_dir)}     # temporal folder: ./alpha/temp:
 
     # inputlist for galasym2 process ----------------------------------
     input_list = alpha_dir//"/"//"inputlist.cat"
 
+    # MATCH BETWEEN RA-DEC_LIST & SEXtracted_OBJECTS: stilts app -------
+    if(!access(input_list)){
+
+        print("")
+        print("--------------- START STILTS MATCH -------------------------\n")
+        print(" First command:")
+        print(" stilts-tskymatch2 - Crossmatches 2 tables on sky position\n")
+
+        # Verifica que existan archivos
+        tmp_string = alpha_dir//"/"//"sextracted_list.cat"
+        if(!access(tmp_string)){
+            copy(cat_sex, tmp_string)
+        }
+
+        print(" - Table 1(in1): ", radec_list)
+        print(" - Table 2(in2): ", tmp_string)
+
+        # Ejecutar comando Join Match like Topcat
+        delete(cache_dir//"/"//"match_list.cat", ver-, >& "dev$null")
+        expre = "! stilts tskymatch2 in1=%s ifmt1=ascii in2=%s ifmt2=ascii ra1=RA dec1=DEC ra2=col2 dec2=col3 error=4 find=best ofmt=ascii out=%s/match_list.cat > /dev/null 2>&1\n"
+        printf(expre, radec_list, tmp_string, cache_dir) | cl
+
+        print(" >> Match table: ", cache_dir//"/"//"match_list.cat")
+        print("")
+
+        # Borrar columnas repetidas
+        print(" Second command:")
+        print(" stilts-tpipe - Performs pipeline processing on a table\n")
+        print(" - Table in: Match table above")
+        print(" - Delete columns: |RA |DEC |")
+
+        delete(alpha_dir//"/"//"inputlist.cat", ver-, >& "dev$null")
+        expre ="! stilts tpipe cmd='delcols \"RA DEC\"' in=%s/match_list.cat ifmt=ascii ofmt=ascii out=%s/inputlist.cat\n"
+        printf(expre, cache_dir, alpha_dir) | cl
+        # delete(cache_dir//"/"//"match_list.cat", ver-, >& "dev$null")
+
+
+        print("")
+        print("-------------------------------------------------------------")
+        print(" Output information")
+        print(" Table 1:", radec_list)
+        print(" Table 2: alpha_dir/sextracted_list.cat")
+        print(" Table 1&2 match: alpha_dir/inputlist.cat")
+        print("------------------ END STILTS MATCH -------------------------\n")
+    }else{
+
+        print("")
+        print("-------------------------------------------------------------")
+        print(" Exists 'sextracted_list.cat' file!")
+        print(" Exists 'inputlist.cat' file!")
+        print("-------------------------------------------------------------")
+    }
+
     # INPUT PARAMETER VERIFICATION ------------------------------
     if (!access(input_list)){
-        print("Warning: input list named ", input_list, " not found!")
-        print("Enter correct filename with extension *.txt, *.ascii (etc) e.g. input_list.txt or input_list.ascii: ")
+        print(" Warning: input list named ", input_list, " not found!")
+        print(" Enter correct filename with extension *.txt, *.ascii (etc) e.g. input_list.txt or input_list.ascii: ")
         scan(input_list)
         if(!access(input_list)){
-            print("ERR: a.Second verification for ", input_list, " failed!")
+            print(" ERR: a.Second verification for ", input_list, " failed!")
             print("     b.Check the input list name and its existence in local directory.")
             print("")
-            print("Analysis task aborted. Verify and try again!")
+            print(" Analysis task aborted. Verify and try again!")
             goto exit_task
         }
     }
@@ -574,6 +576,7 @@ begin
             # NOTE: The columns are readed in order to input.list
             #************************ USAR LAS SIGUIENTES VARIABLES ******************************
             # string id_obj[999]
+            # int seg_number[i]
             # real ra_j00[999], dec_j00[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999], ellip[999], theta_j00[999], theta_img[999], iso_area[999], iso_areaf[999]
             #****************************************************************************************
 
@@ -596,12 +599,11 @@ begin
             goto exit_task
         }
 
-        # objcenter_bool = yes           # line to delete?
 
-        if(access(config_dir//"/"//"ned_calc.py")){
-            print("! python3 "//config_dir//"/"//"ned_calc.py ", clredshift, " 70 0.3 0.7") | cl | scan(kp_DA)
+        if(access(src_dir//"/"//"ned_calc.py")){
+            print("! python3 "//src_dir//"/"//"ned_calc.py ", clredshift, " 70 0.3 0.7") | cl | scan(kp_DA)
         }else{
-            print(" erratum: center cluster in arseconds not in Mpc!")
+            print(" Erratum: center cluster distance in arseconds not in Mpc!")
         }
 
         for(i=1; i<=n_list; i+=1){
@@ -614,14 +616,14 @@ begin
                 ccdistance_arsec[i] = ccdistance_pix[i] * pix_scale
                 ccdistance[i] = ccdistance_arsec[i]
 
-                if(access(config_dir//"/"//"ned_calc.py")){
+                if(access(src_dir//"/"//"ned_calc.py")){
 
                     ccdistance_Mpc[i] = (ccdistance_arsec[i] * kp_DA) / 1000
                     ccdistance[i] = ccdistance_Mpc[i]
                 }
 
                 if(tmp_exit_distance == yes){
-                    printf("%32s %11.8f %11.8f %7.3f\n", id_obj[i], ra_j00[i], dec_j00[i], ccdistance[i], >> tmp_dir//"/"//"tmp_change_distance.cat")
+                    printf("%32s %11.8f %11.8f %7.3f\n", id_obj[i], ra_j00[i], dec_j00[i], ccdistance[i], >> cache_dir//"/"//"tmp_change_distance.cat")
                 }
             }
         }
@@ -699,11 +701,7 @@ begin
     }
     #____________________ END CREATE REGION DS9 FILES  _____________________________|
 
-
-
-
-edit_task:
-
+edit_task: # go-to------------------------------------------------------
 
     # Edit asymmetrical pixel image (?)
     if(edit_mode == yes){
@@ -753,16 +751,16 @@ edit_task:
     #____________________ CUT FRAMES: OBSERVED, MODEL, RESIDUAL ____________________|
     # -
     # Observed area frame for N total pixels:
-    printf(tmp_dir//"/"//"area_%.1f_obs_"//"\n", low_clip) | scan(areaglxy_img)
+    printf(cache_dir//"/"//"area_%.1f_obs_"//"\n", low_clip) | scan(areaglxy_img)
     # Extended CENTER MASK frame for measure index (source + noise annulus):
-    centermodmask_img = tmp_dir//"/"//"centermodelmask_"
+    centermodmask_img = cache_dir//"/"//"centermodelmask_"
     # Center Areas:
-    areacntr_img = tmp_dir//"/"//"areacenter_"
+    areacntr_img = cache_dir//"/"//"areacenter_"
     # Observed area without center:
     if(strlwr(hicntr_clip) == "off"){
-        printf(tmp_dir//"/"//"area_%.1f_nn_obs_"//"\n", low_clip) | scan(areaglxy_cntrmsk_img)
+        printf(cache_dir//"/"//"area_%.1f_nn_obs_"//"\n", low_clip) | scan(areaglxy_cntrmsk_img)
     }else{
-        printf(tmp_dir//"/"//"area_%.1f_%.1f_obs_"//"\n", low_clip, hicen_clip) | scan(areaglxy_cntrmsk_img)
+        printf(cache_dir//"/"//"area_%.1f_%.1f_obs_"//"\n", low_clip, hicen_clip) | scan(areaglxy_cntrmsk_img)
     }
     # Observed maximum area (without center) for cumulative denominator index:
     areaglxy_cntrmsk_maxaper_img = areaglxy_cntrmsk_img//"maxaper_"
@@ -869,11 +867,11 @@ edit_task:
         # Observed maximum area for cumulative denominator  alpha index:
         if(!imaccess(areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos])){
 
-            imdelete(tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], >& "dev$null")
+            imdelete(cache_dir//"/"//"max_aper_"//id_obj[obj_pos], >& "dev$null")
             expre = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1"
-            imexpr(expre, tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[26]*petro_r[obj_pos]*a_img[obj_pos], scale_r[26]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+            imexpr(expre, cache_dir//"/"//"max_aper_"//id_obj[obj_pos], side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[26]*petro_r[obj_pos]*a_img[obj_pos], scale_r[26]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
 
-            imexpr("a*b", areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], areaglxy_cntrmsk_img//id_obj[obj_pos], tmp_dir//"/"//"max_aper_"//id_obj[obj_pos], verb-)
+            imexpr("a*b", areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], areaglxy_cntrmsk_img//id_obj[obj_pos], cache_dir//"/"//"max_aper_"//id_obj[obj_pos], verb-)
         }
         imstat(areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         n_areattl[obj_pos] = meanpix * ttlpix
@@ -1043,7 +1041,7 @@ edit_task:
         # -------------------------------------------------------------------------- END OF HEADERS of catalogs
     }
 
-rotated_index:
+rotated_index: # go-to-------------------------------------------
 
     # Expression for annulus patch of bg estimation: outer
     expre1 = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1"
@@ -1087,56 +1085,56 @@ rotated_index:
 
         # BACKGROUND ESTIMATION -----------------------------------------------------------
         # Annulus 1
-        imdelete(tmp_dir//"/"//"tmp_ann_1", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) > (J-b) && (I-a) >= -(J-b) ? 1 : 0", tmp_dir//"/"//"tmp_ann_1", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imdelete(cache_dir//"/"//"tmp_ann_1", >& "dev$null")
+        imexpr(expre1//" && "//expre2//" && (I-a) > (J-b) && (I-a) >= -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_1", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 1
-        imstat(tmp_dir//"/"//"tmp_ann_1", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imstat(cache_dir//"/"//"tmp_ann_1", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[1] = meanpix * ttlpix
         # Asymmetrical pixel counting ann[1]
-        imdelete(tmp_dir//"/"//"tmp_bgpix_ann1", >& "dev$null")
-        imexpr("a*b", tmp_dir//"/"//"tmp_bgpix_ann1", asymmpixel_img, tmp_dir//"/"//"tmp_ann_1", verb-)
-        imstat(tmp_dir//"/"//"tmp_bgpix_ann1", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imdelete(cache_dir//"/"//"tmp_bgpix_ann1", >& "dev$null")
+        imexpr("a*b", cache_dir//"/"//"tmp_bgpix_ann1", asymmpixel_img, cache_dir//"/"//"tmp_ann_1", verb-)
+        imstat(cache_dir//"/"//"tmp_bgpix_ann1", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         n_noisepix[1] = meanpix * ttlpix
         # Noise density ann[1]
         density_noise[1] = n_noisepix[1] / area_ann[1]
 
         # Annulus 2
-        imdelete(tmp_dir//"/"//"tmp_ann_2", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) <= (J-b) && (I-a) > -(J-b) ? 1 : 0", tmp_dir//"/"//"tmp_ann_2", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imdelete(cache_dir//"/"//"tmp_ann_2", >& "dev$null")
+        imexpr(expre1//" && "//expre2//" && (I-a) <= (J-b) && (I-a) > -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_2", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 2
-        imstat(tmp_dir//"/"//"tmp_ann_2", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imstat(cache_dir//"/"//"tmp_ann_2", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[2] = meanpix * ttlpix
-        imdelete(tmp_dir//"/"//"tmp_bgpix_ann2", >& "dev$null")
-        imexpr("a*b", tmp_dir//"/"//"tmp_bgpix_ann2", asymmpixel_img, tmp_dir//"/"//"tmp_ann_2", verb-)
-        imstat(tmp_dir//"/"//"tmp_bgpix_ann2", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imdelete(cache_dir//"/"//"tmp_bgpix_ann2", >& "dev$null")
+        imexpr("a*b", cache_dir//"/"//"tmp_bgpix_ann2", asymmpixel_img, cache_dir//"/"//"tmp_ann_2", verb-)
+        imstat(cache_dir//"/"//"tmp_bgpix_ann2", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         n_noisepix[2] = meanpix * ttlpix
         # Noise density ann[1]
         density_noise[2] = n_noisepix[2] / area_ann[2]
 
         # Annulus 3
-        imdelete(tmp_dir//"/"//"tmp_ann_3", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) < (J-b) && (I-a) <= -(J-b) ? 1 : 0", tmp_dir//"/"//"tmp_ann_3", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imdelete(cache_dir//"/"//"tmp_ann_3", >& "dev$null")
+        imexpr(expre1//" && "//expre2//" && (I-a) < (J-b) && (I-a) <= -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_3", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 3
-        imstat(tmp_dir//"/"//"tmp_ann_3", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imstat(cache_dir//"/"//"tmp_ann_3", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[3] = meanpix * ttlpix
         # Asymmetrical pixel counting ann[1]
-        imdelete(tmp_dir//"/"//"tmp_bgpix_ann3", >& "dev$null")
-        imexpr("a*b", tmp_dir//"/"//"tmp_bgpix_ann3", asymmpixel_img, tmp_dir//"/"//"tmp_ann_3", verb-)
-        imstat(tmp_dir//"/"//"tmp_bgpix_ann3", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imdelete(cache_dir//"/"//"tmp_bgpix_ann3", >& "dev$null")
+        imexpr("a*b", cache_dir//"/"//"tmp_bgpix_ann3", asymmpixel_img, cache_dir//"/"//"tmp_ann_3", verb-)
+        imstat(cache_dir//"/"//"tmp_bgpix_ann3", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         n_noisepix[3] = meanpix * ttlpix
         # Noise density ann[3]
         density_noise[3] = n_noisepix[3] / area_ann[3]
 
         # Annulus 4
-        imdelete(tmp_dir//"/"//"tmp_ann_4", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) >= (J-b) && (I-a) < -(J-b) ? 1 : 0", tmp_dir//"/"//"tmp_ann_4", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imdelete(cache_dir//"/"//"tmp_ann_4", >& "dev$null")
+        imexpr(expre1//" && "//expre2//" && (I-a) >= (J-b) && (I-a) < -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_4", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 4
-        imstat(tmp_dir//"/"//"tmp_ann_4", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imstat(cache_dir//"/"//"tmp_ann_4", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[4] = meanpix * ttlpix
         # Asymmetrical pixel counting ann[1]
-        imdelete(tmp_dir//"/"//"tmp_bgpix_ann4", >& "dev$null")
-        imexpr("a*b", tmp_dir//"/"//"tmp_bgpix_ann4", asymmpixel_img, tmp_dir//"/"//"tmp_ann_4", verb-)
-        imstat(tmp_dir//"/"//"tmp_bgpix_ann4", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+        imdelete(cache_dir//"/"//"tmp_bgpix_ann4", >& "dev$null")
+        imexpr("a*b", cache_dir//"/"//"tmp_bgpix_ann4", asymmpixel_img, cache_dir//"/"//"tmp_ann_4", verb-)
+        imstat(cache_dir//"/"//"tmp_bgpix_ann4", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         n_noisepix[4] = meanpix * ttlpix
         # Noise density ann[4]
         density_noise[4] = n_noisepix[4] / area_ann[4]
@@ -1213,8 +1211,8 @@ rotated_index:
         for(j=1; j<=57; j+=1){
 
             # Measurement apperture (binary area):
-            imdelete(tmp_dir//"/"//"tmp_aperture", >& "dev$null")
-            imexpr(expre1//" ? 1 : 0", tmp_dir//"/"//"tmp_aperture", side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[j]*petro_r[obj_pos]*a_img[obj_pos], scale_r[j]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+            imdelete(cache_dir//"/"//"tmp_aperture", >& "dev$null")
+            imexpr(expre1//" ? 1 : 0", cache_dir//"/"//"tmp_aperture", side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[j]*petro_r[obj_pos]*a_img[obj_pos], scale_r[j]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
 
 
             # ******************* TO DEFINE SNR TOTAL ********************************************************
@@ -1223,36 +1221,36 @@ rotated_index:
             # SNR total: De acuerdo a Rodriguez-Gomez et al. (2019), comprobamos que SNR_Lotz+04 is aprox. SNR(1rp)=I/BGMRS_map
             if(scale_r[j] == scale_r[16] && rot_alpha == no){
 
-                imexpr("(b > 0) && (c > 0) ? a : 0", tmp_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], ver-)
-                imstat(tmp_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                imexpr("(b > 0) && (c > 0) ? a : 0", cache_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], ver-)
+                imstat(cache_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                 S_total = (meanpix * ttlpix)
 
-                imexpr("(a > 0) && (b > 0) ? (a**2) : 0", tmp_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", ver-)
-                imstat(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                imexpr("(a > 0) && (b > 0) ? (a**2) : 0", cache_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", ver-)
+                imstat(cache_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                 noise_total = sqrt(meanpix * ttlpix)
 
                 SNR_total[obj_pos] = S_total / noise_total
                 # print("\n    SNR total = ", SNR_total[obj_pos])
 
-                imdelete(tmp_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
-                imdelete(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
+                imdelete(cache_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
+                imdelete(cache_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
 
                 # TOTAL SNR for annular aperture
                 if(strlwr(hicntr_clip) != "off"){
 
-                    imexpr("(b > 0) && (c > 0) && (d > 0) ? a : 0", tmp_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], centermodmask_img//id_obj[obj_pos], ver-)
-                    imstat(tmp_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                    imexpr("(b > 0) && (c > 0) && (d > 0) ? a : 0", cache_dir//"/"//"tmp_obs_to_SNRttl", obs_dir//"/"//"observed_"//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], centermodmask_img//id_obj[obj_pos], ver-)
+                    imstat(cache_dir//"/"//"tmp_obs_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                     S_total = (meanpix * ttlpix)
 
-                    imexpr("(a > 0) && (b > 0) && (c > 0) ? (a**2) : 0", tmp_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", centermodmask_img//id_obj[obj_pos], ver-)
-                    imstat(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                    imexpr("(a > 0) && (b > 0) && (c > 0) ? (a**2) : 0", cache_dir//"/"//"tmp_bgrms_to_SNRttl", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", centermodmask_img//id_obj[obj_pos], ver-)
+                    imstat(cache_dir//"/"//"tmp_bgrms_to_SNRttl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                     noise_total = sqrt(meanpix * ttlpix)
 
                     SNR_ann_total[obj_pos] = S_total / noise_total
                     # print("\n    SNR annulus total = ", SNR_ann_total[obj_pos])
 
-                    imdelete(tmp_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
-                    imdelete(tmp_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
+                    imdelete(cache_dir//"/"//"tmp_obs_to_SNRttl", >& "dev$null")
+                    imdelete(cache_dir//"/"//"tmp_bgrms_to_SNRttl", >& "dev$null")
                 }
             }
             #
@@ -1262,57 +1260,57 @@ rotated_index:
             # Definir los RMS_i validos
             if(rot_alpha == no){
 
-                imexpr("(a > 0) && (b > 0) ? 1 : 0", tmp_dir//"/"//"tmp_n_pixels", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", ver-)
-                imstat(tmp_dir//"/"//"tmp_n_pixels", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                imexpr("(a > 0) && (b > 0) ? 1 : 0", cache_dir//"/"//"tmp_n_pixels", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", ver-)
+                imstat(cache_dir//"/"//"tmp_n_pixels", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                 n_pixels_avrg_snr = (meanpix * ttlpix)
 
-                imexpr("(c > 0) ? (a/b) : 0", tmp_dir//"/"//"tmp_snr_per_pixel", obs_dir//"/"//"observed_"//id_obj[obj_pos], bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_n_pixels", ver-)
-                imstat(tmp_dir//"/"//"tmp_snr_per_pixel", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                imexpr("(c > 0) ? (a/b) : 0", cache_dir//"/"//"tmp_snr_per_pixel", obs_dir//"/"//"observed_"//id_obj[obj_pos], bg_dir//"/"//"bgrms_"//id_obj[obj_pos], cache_dir//"/"//"tmp_n_pixels", ver-)
+                imstat(cache_dir//"/"//"tmp_snr_per_pixel", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                 sum_n_snr_pixels = (meanpix * ttlpix)
 
                 average_SNR_aper = (sum_n_snr_pixels / n_pixels_avrg_snr)
 
-                imdelete(tmp_dir//"/"//"tmp_n_pixels", >& "dev$null")
-                imdelete(tmp_dir//"/"//"tmp_snr_per_pixel", >& "dev$null")
+                imdelete(cache_dir//"/"//"tmp_n_pixels", >& "dev$null")
+                imdelete(cache_dir//"/"//"tmp_snr_per_pixel", >& "dev$null")
 
                 # AVERAGE SNR for annular aperture
                 if(strlwr(hicntr_clip) != "off"){
 
-                    imexpr("(a > 0) && (b > 0) && (c > 0) ? 1 : 0", tmp_dir//"/"//"tmp_n_ann_pixels", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", centermodmask_img//id_obj[obj_pos], ver-)
-                    imstat(tmp_dir//"/"//"tmp_n_ann_pixels", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                    imexpr("(a > 0) && (b > 0) && (c > 0) ? 1 : 0", cache_dir//"/"//"tmp_n_ann_pixels", bg_dir//"/"//"bgrms_"//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", centermodmask_img//id_obj[obj_pos], ver-)
+                    imstat(cache_dir//"/"//"tmp_n_ann_pixels", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                     n_ann_pixels_avrg_snr = (meanpix * ttlpix)
 
                     if(n_ann_pixels_avrg_snr > 0){
 
-                        imexpr("(c > 0) ? (a/b) : 0", tmp_dir//"/"//"tmp_snr_ann_per_pixel", obs_dir//"/"//"observed_"//id_obj[obj_pos], bg_dir//"/"//"bgrms_"//id_obj[obj_pos], tmp_dir//"/"//"tmp_n_ann_pixels", ver-)
-                        imstat(tmp_dir//"/"//"tmp_snr_ann_per_pixel", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+                        imexpr("(c > 0) ? (a/b) : 0", cache_dir//"/"//"tmp_snr_ann_per_pixel", obs_dir//"/"//"observed_"//id_obj[obj_pos], bg_dir//"/"//"bgrms_"//id_obj[obj_pos], cache_dir//"/"//"tmp_n_ann_pixels", ver-)
+                        imstat(cache_dir//"/"//"tmp_snr_ann_per_pixel", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
                         sum_n_ann_snr_pixels = (meanpix * ttlpix)
 
                         average_SNR_ann = (sum_n_ann_snr_pixels / n_ann_pixels_avrg_snr)
-                        imdelete(tmp_dir//"/"//"tmp_snr_ann_per_pixel", >& "dev$null")
+                        imdelete(cache_dir//"/"//"tmp_snr_ann_per_pixel", >& "dev$null")
 
                     }else{
                         average_SNR_ann = 0
                     }
 
-                    imdelete(tmp_dir//"/"//"tmp_n_ann_pixels", >& "dev$null")
+                    imdelete(cache_dir//"/"//"tmp_n_ann_pixels", >& "dev$null")
 
                 }
             }
             # ************************************************************************************************
 
             # Asymmetrical pixel image in aperture[obj_pos]
-            imdelete(tmp_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
-            imexpr("a*b", tmp_dir//"/"//"tmp_asymmpix_ap", asymmpixel_img, tmp_dir//"/"//"tmp_aperture", verb-)
+            imdelete(cache_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
+            imexpr("a*b", cache_dir//"/"//"tmp_asymmpix_ap", asymmpixel_img, cache_dir//"/"//"tmp_aperture", verb-)
             # Asymmetrical pixels counting:
-            imstat(tmp_dir//"/"//"tmp_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+            imstat(cache_dir//"/"//"tmp_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             n_asymmpix = meanpix * ttlpix
 
             # aper. Total pixels (N_tot) alpha = n_asymmpix / N_tot(in aperture)
-            imdelete(tmp_dir//"/"//"tmp_areattl_ap", >& "dev$null")
-            # imexpr("a*b", tmp_dir//"/"//"tmp_areattl_ap", areaglxy_cntrmsk_img//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", verb-)
-            imexpr("a*b", tmp_dir//"/"//"tmp_areattl_ap", areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], tmp_dir//"/"//"tmp_aperture", verb-)
-            imstat(tmp_dir//"/"//"tmp_areattl_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
+            imdelete(cache_dir//"/"//"tmp_areattl_ap", >& "dev$null")
+            # imexpr("a*b", cache_dir//"/"//"tmp_areattl_ap", areaglxy_cntrmsk_img//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", verb-)
+            imexpr("a*b", cache_dir//"/"//"tmp_areattl_ap", areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], cache_dir//"/"//"tmp_aperture", verb-)
+            imstat(cache_dir//"/"//"tmp_areattl_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             ap_n_areattl = meanpix * ttlpix
 
             # ALPHA ASYMETRRY INDEX CALCULATION: ==========================================
@@ -1519,15 +1517,15 @@ rotated_index:
             }
             # END PRINT CATALOGS ------------------------------------------------
 
-            imdelete(tmp_dir//"/"//"tmp_aperture", >& "dev$null")
-            imdelete(tmp_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
-            imdelete(tmp_dir//"/"//"tmp_areattl_ap", >& "dev$null")
+            imdelete(cache_dir//"/"//"tmp_aperture", >& "dev$null")
+            imdelete(cache_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
+            imdelete(cache_dir//"/"//"tmp_areattl_ap", >& "dev$null")
 
         }
 
         for(k=1;k <= 4; k += 1){
-            imdelete(tmp_dir//"/"//"tmp_ann_"//str(k), >& "dev$null")
-            imdelete(tmp_dir//"/"//"tmp_bgpix_ann"//str(k), >& "dev$null")
+            imdelete(cache_dir//"/"//"tmp_ann_"//str(k), >& "dev$null")
+            imdelete(cache_dir//"/"//"tmp_bgpix_ann"//str(k), >& "dev$null")
         }
 
     }
