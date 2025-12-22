@@ -1,4 +1,4 @@
-procedure galasym2()
+procedure main()
 
 # TO RUN FROM LOCAL DIRECTORY ./
 # FOR ABELL 496 TEST / default cl script name: galasym2_96_prf.cl
@@ -12,18 +12,18 @@ procedure galasym2()
 
 string measure_img = "A496J.fits"                   {prompt = "FITS observed data"}
 string radec_list  = "tables/members_A496J.ascii"   {prompt = "[deg] members list [ascii] to match"}
-string detect_img  = "no"                           {prompt = "Detection image for SExtractor"}
-real   low_clip    = 1.00                           {prompt = "Low limit (relative to rms_sky)"}
-string hicntr_clip = "10.0"                         {prompt = "Upper clip center (int or 'off')"}
-string hioutr_clip = "10.0"                         {prompt = "Upper clip outer (int or 'off')"}
+real   low_clip    = 1.00                           {prompt = "Low-clip (relative to rms_sky)"}
+string hicntr_clip = "10.0"                         {prompt = "Up-clip center/bulge (integer or 'off')"}
+string hioutr_clip = "10.0"                         {prompt = "Up-clip outer/disk (integer or 'off')"}
 real   pix_scale   = 0.3                            {prompt = "Pixel scale (arcsec/pixel)"}
-string obj_center  = "71"                           {prompt = "Center obj. (integer radeclist or string 'no','ch')"}
 real   clredshift  = 0.033                          {prompt = "Cluster redshift (e.g. 0.033"}
+string obj_center  = "71"                           {prompt = "BC-Glxy (integer in radeclist or 'no','ch')"}
+bool   index_calc  = no                             {prompt = "To skyp index calculation"}
 bool   edit_mode   = no                             {prompt = "Edit objects to recompute indexes"}
 string key_sex     = "sex"                          {prompt = "Keyword to run SExtractor"}
+string detect_img  = "no"                           {prompt = "Detection image for SExtractor"}
 string key_psfex   = "psfex"                        {prompt = "Keyword to run PSFEx"}
 string key_ds9     = "ds9"                          {prompt = "Keyword to run DS9 viewer"}
-bool   index_calc  = yes                            {prompt = "To skyp index calculation"}
 #string input_list  = "no"                          {prompt = "List of objects to analyze (ascii)"}
 #real   gbl_index  = 2.00                           {prompt = "Aperture for index (in petrosian radius)"}
 # bool   model_fit   = yes                          {prompt = "Run PSFEx + SExtractor?"}
@@ -37,32 +37,39 @@ begin
     # constants........
     real const_pi
     # paremeters ......
+    bool single_image
     real hicen_clip, hiout_clip
-    real scale_r[100]
+    real scale_r_offset, margen_offset
+    real scale_r[99]
     real petro_factor
     real ri_ann, ro_ann
-    real nx, ny
+    int lenght_nx, lenght_ny
     # list of objects..
-    string input_list
+    string input_list, xyimg_list, objs_in_img
     int obj_i, obj_f, obj_pos
     int n_list, n_edit
     string id_obj[999]
     int  seg_number[999]
-    real ra_j00[999], dec_j00[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999]
+    real ra_j00[999], dec_j00[999], ximg_pos[999], yimg_pos[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999]
     real ellip[999], theta_j00[999], theta_img[999], kron_r[999], petro_r[999], eff_r[999]
     real iso_area[999], iso_areaf[999]
+    real find_x[999], find_y[999]
     int poss_edit[999]
     # System variables
-    string my_date,out_cat my_time
+    string my_date, my_time
     real tmp_info[199]
     struct line
     string line_info
     string expre, expre1, expre2
     real meanpix, ttlpix
     bool model_fit
+    bool ds9_access
+    real tmp_xc[10], tmp_yc[10], tmp_xside[10], tmp_yside[10]
+    int x_limit[10], y_limit[10]
     # Temporal variables:
     bool tmp_bool, tmp_exit_distance
     string tmp_string, tmp_wait
+    real tmp_real
 
     # ************* Main folders variables *************
     string config_dir
@@ -71,6 +78,7 @@ begin
     string data_dir
     string dataimg_dir
     string seg_dir, obs_dir, mod_dir, res_dir, bg_dir
+    string datafiles_dir
     # -----------------------
     string alpha_dir
     string alphaimg_dir, asymm_dir, asymmpixel_img
@@ -171,6 +179,20 @@ begin
     # ASIGNACIÓN DE DIRECTORIOS -------------------------
     # ./data: main output cut frames
     data_dir = "data"
+    # ./data/images:
+    dataimg_dir = data_dir//"/"//"data_images"
+    #
+    seg_dir = dataimg_dir//"/"//"segmentation"
+    # ./data/data_images/observed
+    obs_dir = dataimg_dir//"/"//"observed"
+    # ./data/data_images/model
+    mod_dir = dataimg_dir//"/"//"model"
+    # ./data/data_images/residual
+    res_dir = dataimg_dir//"/"//"residual"
+    # ./data/data_images/background
+    bg_dir = dataimg_dir//"/"//"background"
+    # ./data/data_files
+    datafiles_dir = data_dir//"/"//"data_files"
 
     # ./config
     config_dir = "config"
@@ -189,19 +211,6 @@ begin
     sex_dir = config_dir//"/"//"sextractor"
     # ./config/sextractor/results_sex
     outsex_dir = data_dir//"/"//"results_sex"
-
-    # ./data/images:
-    dataimg_dir = data_dir//"/"//"data_images"
-    #
-    seg_dir = dataimg_dir//"/"//"segmentation"
-    # ./alpha/images/observed
-    obs_dir = dataimg_dir//"/"//"observed"
-    # ./alpha/images/model
-    mod_dir = dataimg_dir//"/"//"model"
-    # ./alpha/images/residual
-    res_dir = dataimg_dir//"/"//"residual"
-    #
-    bg_dir = dataimg_dir//"/"//"background"
 
     # ./alpha/files(catalogs o plain text):
     file_dir = alpha_dir//"/"//"files"
@@ -237,6 +246,8 @@ begin
     cat_sex = outsex_dir//"/"//"test.cat"
 
     const_pi = 3.1415926535897932385
+    margen_offset = 0.03
+    scale_r_offset = 0.25
     petro_factor = 2.0
     ri_ann = 2.00
     ro_ann = 3.00
@@ -247,10 +258,15 @@ begin
     rot_alpha = no
     tmp_exit_distance = no
 
-    # vector of scale r/rp
-    scale_r[1]=0.25
-    scale_r[2]=0.30; scale_r[3]=0.35; scale_r[4]=0.40; scale_r[5]=0.45; scale_r[6]=0.50; scale_r[7]=0.55; scale_r[8]=0.60; scale_r[9]=0.65; scale_r[10]=0.70; scale_r[11]=0.75; scale_r[12]=0.80; scale_r[13]=0.85; scale_r[14]=0.90; scale_r[15]=0.95; scale_r[16]=1.00; scale_r[17]=1.05; scale_r[18]=1.10; scale_r[19]=1.15; scale_r[20]=1.20; scale_r[21]=1.25; scale_r[22]=1.30; scale_r[23]=1.35; scale_r[24]=1.40; scale_r[25]=1.45; scale_r[26]=1.50; scale_r[27]=1.55; scale_r[28]=1.60; scale_r[29]=1.65; scale_r[30]=1.70; scale_r[31]=1.75; scale_r[32]=1.80; scale_r[33]=1.85; scale_r[34]=1.90; scale_r[35]=1.95; scale_r[36]=2.00; scale_r[37]=2.05; scale_r[38]=2.10; scale_r[39]=2.15; scale_r[40]=2.20; scale_r[41]=2.25; scale_r[42]=2.30; scale_r[43]=2.35; scale_r[44]=2.40; scale_r[45]=2.45; scale_r[46]=2.50; scale_r[47]=2.55; scale_r[48]=2.60; scale_r[49]=2.65; scale_r[50]=2.70; scale_r[51]=2.75; scale_r[52]=2.80; scale_r[53]=2.85; scale_r[54]=2.90; scale_r[55]=2.95; scale_r[56]=3.00; scale_r[57]=3.05; scale_r[58]=3.10; scale_r[59]=3.15; scale_r[60]=3.20; scale_r[61]=3.25; scale_r[62]=3.30; scale_r[63]=3.35; scale_r[64]=3.40; scale_r[65]=3.45; scale_r[66]=3.50; scale_r[67]=3.55; scale_r[68]=3.60; scale_r[69]=3.65; scale_r[70]=3.70; scale_r[71]=3.75; scale_r[72]=3.80; scale_r[73]=3.85; scale_r[74]=3.90; scale_r[75]=3.95; scale_r[76]=4.00; scale_r[77]=4.05; scale_r[78]=4.10; scale_r[79]=4.15; scale_r[80]=4.20; scale_r[81]=4.25; scale_r[82]=4.30; scale_r[83]=4.35; scale_r[84]=4.40; scale_r[85]=4.45; scale_r[86]=4.50; scale_r[87]=4.55; scale_r[88]=4.60; scale_r[89]=4.65; scale_r[90]=4.70; scale_r[91]=4.75; scale_r[92]=4.80; scale_r[93]=4.85; scale_r[94]=4.90; scale_r[95]=4.95; scale_r[96]=5.00
+    # DEFINIR RESTO DE TAREAS (FUNCIONES)
+    cl < src_dir//"/"//"task_definition.txt"
 
+    # VECTOR FOR ELLIPTICAL APERTURES in Petrosian radius
+    for(i=1; i<=96; i+=1){
+        scale_r[i] = scale_r_offset + (0.05 * (i-1))
+    }
+
+    # VERIFY GALASYM HISTORY ---------------------------
     tmp_string = cache_dir//"/"//"tmp_info_process.txt"
     if(access(tmp_string)){
 
@@ -277,7 +293,6 @@ begin
                 print(line) | scan(tmp_info[i])
             }
         }
-        list = ""
 
         if(strlwr(obj_center) != "no" && strlwr(obj_center) != "n"){
 
@@ -303,6 +318,7 @@ begin
             goto exit_task
         }
     }
+    # END  GALASYM2 HISTORY ----------------------------
 
     print("! date +\"%Y-%m-%d\"") | cl | scan(my_date)
     print("! date +\"%H:%M:%S\"") | cl | scan(my_time)
@@ -321,24 +337,48 @@ begin
     }
     # -----------------------------------------------------------
 
-    # Lee el tamaño de la imagen
-
-
     # Check that the input FITS observed image exists or is named correctly:
-    if(!access(measure_img)){
-        # print("Warning: FITS observed image: ", measure_img, " not found!")
-        # print("         Forgot it? --> Adding extension *.fits: ")
+    if(imaccess(measure_img)){
+        # Es una imagen.
+        # Tiene extension fits? Añadir ".fits"
         tmp_string = measure_img//".fits"
-        # print("New name: ", tmp_string, " ...check:")
         if(access(tmp_string)){
-            print(" Observed image name... correct")
-            measure_img = tmp_string
+            # Si existe, conservar la extension
+            measure_img = measure_img//".fits"
+        }
+        # Se casume que existe una sola imagen
+        single_image = yes
+
+        # tamaño de los ejes de la imagen
+        imgets(measure_img, "naxis1")
+        lenght_nx = int(imgets.value)
+        imgets(measure_img, "naxis2")
+        lenght_ny = int(imgets.value)
+
+        # Calcular el valor de
+        tmp_string = src_dir//"/"//"ned_calc.py"
+        if(access(tmp_string)){
+            print("! python3 "//src_dir//"/"//"ned_calc.py ", clredshift, " 70 0.3 0.7") | cl | scan(kp_DA)
         }else{
-            print(" ERR: Check the full file name of the observed image and try again!")
-            print("      e.g. 'cluster_a85.fits'")
+            # print(" Erratum: assume kp_DA = 1 kp/arsec!")
+            kp_DA = 1
+        }
+
+    }else{
+        # No es una imagen.
+        # Accede al directorio?
+        if(!access(measure_img)){
+            # No es una imagen, ni una carpeta
+            print(" WRNNG: ", measure_img, " is not a")
+            print("        image or directory.")
+            print(" Abort task! Try again.")
             goto exit_task
+
+        }else{
+            single_image = no
         }
     }
+
     # Check that input FITS detection image for SEx exists or is named correctly:
     if(strlwr(detect_img) != "no" && strlwr(detect_img) != "n"){
 
@@ -356,27 +396,191 @@ begin
             }
         }
     }
-
     # .........................
 
     # FOLDER VERIFICATION OR CREATION ----------------------------
-    if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
-    if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
+    # if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
+    # if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
     if(!access(data_dir)){mkdir(data_dir)}           # main output: ./data
+    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
+    if(!access(seg_dir)){mkdir(seg_dir)}
+    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
+    if(!access(mod_dir)){mkdir(mod_dir)}               # model images:       ./data/images/model
+    if(!access(res_dir)){mkdir(res_dir)}               # residual images:    ./data/images/residual
+    if(!access(bg_dir)){mkdir(bg_dir)}
+    if(!access(datafiles_dir)){mkdir(datafiles_dir)}
 
-    if(!access(psfex_dir)){mkdir(psfex_dir)}         # psfex folder: ./config/psfex
-    if(!access(prepsfex_dir)){mkdir(prepsfex_dir)}   # prepsfex fol: ./config/psfex/prepsfex
+    # if(!access(psfex_dir)){mkdir(psfex_dir)}         # psfex folder: ./config/psfex
+    # if(!access(prepsfex_dir)){mkdir(prepsfex_dir)}   # prepsfex fol: ./config/psfex/prepsfex
     if(!access(outpsfex_dir)){mkdir(outpsfex_dir)}   # outpsfex fol: ./"data"/psfex/results_psfex
 
-    if(!access(sex_dir)){mkdir(sex_dir)}             # sextrac. fol: ./config/sextractor
+    # if(!access(sex_dir)){mkdir(sex_dir)}             # sextrac. fol: ./config/sextractor
     if(!access(outsex_dir)){mkdir(outsex_dir)}       # outsext. fol: ./"data"/results_sex
     # END FOLDER VERIFICATION -----------------------------------
 
+    # IDENTIFICAR UNA O VARIAS IMAGENES: encontrar objetos en la imagen
+    if(single_image == yes){
+        # SI ES UNA SOLA IMAGEN ===================================================
+
+        # Crear el margen de imagen efectiva si no existe + objetos de 'radec_list'
+        tmp_string = datafiles_dir//"/"//"effective_image.reg"
+        if(!access(tmp_string)){
+
+            # cabecera de las siguientes regiones DS9 (version 4.1)
+            print('global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"effective_image.reg")
+            print("image", >> datafiles_dir//"/"//"effective_image.reg")
+
+            # CREAR APERTURA DE OBJETOS PELIGROSOS: fuera o en el borde de la imagen:
+            # string datafiles_dir
+            # string xyimg_list
+            # datafiles_dir = data_dir//"/"//"data_files"
+            # real find_x[999], find_y[999]
+            # real margen_offset
+            xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
+            # Convertir posiciones RA/DEC TO X/Y_IMAGE de la lista de entrada 'radec_list'
+            wcsctran(radec_list, xyimg_list, image = measure_img, inwcs="world", outwcs="logical", columns="2,3")
+            # Leer la lista anterior
+            list = xyimg_list
+            i = 0
+            while (fscan(list, line) != EOF) {
+                # Revisar que no sea comentario y que no esté vacía
+                if (line != "" && substr(line, 1, 1) != "#") {
+                    i = i + 1
+                    # Leer las primeras tres columnas
+                    print(line) | scan(id_obj[i], find_x[i], find_y[i])
+                    # Posiciones potencialmente peligrosas: fuera de imagen efectiva
+                    if(find_x[i] <= (lenght_nx * margen_offset) || find_x[i] >= (lenght_nx - (lenght_nx * margen_offset)) || find_y[i] <= (lenght_ny * margen_offset) || find_y[i] >= (lenght_nx - (lenght_ny * margen_offset))){
+                        # Crear rapertura en una region DS9
+                        expre = 'circle('//str(find_x[i])//','//str(find_y[i])//','//str(70 / (kp_DA * pix_scale))//') # color=red width=2 text={'//str(id_obj[i])//'}'
+                        print(expre, >> datafiles_dir//"/"//"effective_image.reg")
+                    }else{
+                        # Visualizar resto de objetos:
+                        expre = 'circle('//str(find_x[i])//','//str(find_y[i])//','//str(10 / (kp_DA * pix_scale))//') # color=green width=2 text={'//str(id_obj[i])//'}'
+                        print(expre, >> datafiles_dir//"/"//"effective_image.reg")
+                    }
+                }
+            }
+            # REGIONES RECTANGULARES ENCIMA:
+            # Region efcetiva 1
+            expre = "box("//str((lenght_nx + 1) / 2.0)//","//str((lenght_ny + 1) / 2.0)//","//str(lenght_nx - (margen_offset * 2.0 * lenght_nx))//","//str(lenght_ny - (margen_offset * 2.0 * lenght_ny))//",360) # widht=2"
+            print(expre, >> datafiles_dir//"/"//"effective_image.reg")
+            # Region efectiva 2
+            expre = "box("//str((lenght_nx + 1) / 2.0)//","//str((lenght_ny + 1) / 2.0)//","//str(lenght_nx - ((margen_offset + 0.01) * 2.0 * lenght_nx))//","//str(lenght_ny - ((margen_offset + 0.01) * 2.0 * lenght_ny))//",360) # color=magenta widht=2"
+            print(expre, >> datafiles_dir//"/"//"effective_image.reg")
+        }
+        # Termina crear la region DS9 <<effective image>> por primera vez.
+
+        # Se asume que <<effective image>> DS9 esta bien formateada y editada:
+        delete(datafiles_dir//"/"//"tmp_box_coords.ascii", ver-, >& "dev$null")
+
+        # Se puede introducir seccion de modo "interactivo"
+        # print("! xpaaccess ds9") | cl | scan(ds9_access)
+        # if(ds9_access == no){}
+        # Pausa para modificar la region d eimagen efectiva
+        print(" Step. 0.1. Pause to edit DS9 effective image region"
+        print("            (see instructions file!)")
+        tmp_bool = no
+        while(tmp_bool == no){
+            print("\n Are you ready? (y/n): ")
+            scan(tmp_bool)
+        }
+
+        # Hacer mathc entre posiciones dentro de la imagen efectiva y la lista 'radec_list'
+        # Si ya existe region de imagen efectiva:
+        # leer posiciones de la region DS9
+        xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
+        # obtiene centro (x,y) y lados (lx, ly):
+        expre = "! awk '/^box\\(/ {split($0,a,\"[(),]\"); print a[2],a[3],a[4],a[5]}' %s > %s\n"
+        printf(expre, datafiles_dir//"/"//"effective_image.reg", datafiles_dir//"/"//"tmp_box_coords.ascii") | cl
+        # lee variables
+        list = datafiles_dir//"/"//"tmp_box_coords.ascii"
+        i = 0
+        while(fscan(list, line) != EOF){
+            if (line != "" && substr(line, 1, 1) != "#") {
+                i = i + 1
+                print(line) | scan(tmp_xc[i], tmp_yc[i], tmp_xside[i], tmp_yside[i])
+            }
+        }
+
+        # corner inferior izquiera
+        x_limit[1] = tmp_xc[1] - (tmp_xside[1] / 2.0)
+        y_limit[1] = tmp_yc[1] - (tmp_yside[1] / 2.0)
+
+        x_limit[2] = tmp_xc[1] + (tmp_xside[1] / 2.0)
+        y_limit[2] = tmp_yc[1] + (tmp_yside[1] / 2.0)
+
+        x_limit[3] = tmp_xc[2] - (tmp_xside[2] / 2.0)
+        y_limit[3] = tmp_yc[2] - (tmp_yside[2] / 2.0)
+
+        x_limit[4] = tmp_xc[2] + (tmp_xside[2] / 2.0)
+        y_limit[4] = tmp_yc[2] + (tmp_yside[2] / 2.0)
+
+        # DE LA CONVERSIÓN DE COORDENADAS, CUÁLES ESTÁN DENTRO DE LA IMAGEN:
+        objs_in_img = datafiles_dir//"/"//"objs_in_eff_image.ascii"
+        delete(objs_in_img, ver-, >& "dev$null")
+        expre = "\"((RA > %g && RA < %g) && (DEC > %g && DEC < %g)) || ((RA > %g && RA < %g) && (DEC > %g && DEC < %g))\""
+        printf("! stilts tpipe in=%s ifmt=ascii cmd='select "//expre//"' ofmt=ascii out=%s", xyimg_list, x_limit[1], x_limit[2], y_limit[1], y_limit[2], x_limit[3], x_limit[4], y_limit[3], y_limit[4], objs_in_img) | cl
+
+        # RECORTAR IMAGENE, ver-, >& "dev$null"S
+        # leer objetos dentro de imagen effectiva:
+        list = objs_in_img
+        i = 0
+        while(fscan(list, line) != EOF){
+            if (line != "" && substr(line, 1, 1) != "#") {
+                i = i + 1
+                print(line) | scan(id_obj[i], ximg_pos[i], yimg_pos[i])
+            }
+        }
+        n_list = i
+
+        # Calcular tamaño y recortar:
+        delete(datafiles_dir//"/"//"list_of_imgs.ascii", ver-, >& "dev$null")
+        for(i = 1; i <= n_list; i += 1){
+            # Tamaño de la imagen: (100 kiloparsecs)
+            side_frame[i] = 100 / (kp_DA * pix_scale)
+            # Vertices del frame
+            px1 = int(ximg_pos[i] - (side_frame[i] / 2)) + 1
+            px2 = int(ximg_pos[i] + (side_frame[i] / 2))
+            py1 = int(yimg_pos[i] - (side_frame[i] / 2)) + 1
+            py2 = int(yimg_pos[i] + (side_frame[i] / 2))
+            # Seccion a recortar:
+            trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
+
+            # crear imagen:
+            tmp_string = obs_dir//"/"//"frame_obs_"//id_obj[i]
+            if(!imaccess(tmp_string)){
+                # Save frames observed:
+                imdelete(obs_dir//"/"//"frame_obs_"//id_obj[i], >& "dev$null")
+                imcopy(measure_img//trimsection, obs_dir//"/"//"frame_obs_"//id_obj[i], verb-)
+            }
+            print(obs_dir//"/"//"frame_obs_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"list_of_imgs.ascii")
+            printf("\r - Cutting images: %d%%", (i*100/n_list))
+        }
+
+    }else{
+        # SI LAS IMAGENES ESTAN SEPARADAS =======================
+
+        # Leer la lista de imagenes
+        files(measure_img//"/*.fits", sort+, > datafiles_dir//"/"//"list_of_imgs.ascii")
+        # leerla y verificar que imaccess tiene acceso (por ahora)
+        list = datafiles_dir//"/"//"list_of_imgs.ascii"
+        while(fscan(list, line) != EOF){
+            print(line) | scan(tmp_string)
+            if(!imaccess(tmp_string)){
+                print(" \n WRNNG: Can not access some images. Check the")
+                print("           following file: ")
+                print("           - ", datafiles_dir//"/"//"not_imaccess.ascii")
+                print(line, > datafiles_dir//"/"//"not_imaccess.ascii")
+            }
+        }
+    }
+
+    # RECORTAR IMAGENES DE ENTRADA
 
     # RUN PSFEx -------------------------------------------------
     if(model_fit == yes){
 
-        if(!access(bgrms_img) && !access(mod_img) && !access(res_img)){
+        if(!access(cat_sex) && !access(bgrms_img) && !access(res_img)){
 
             # If access to psf model (prepsfex.psf) omit PrePSFEx (SEx-prior) and PSFEx, if not:
             if(!access(psf_fit)){
@@ -455,13 +659,10 @@ begin
             print(" if yes: CHANGE prompt input 'model_fit = no' and run")
             print("        galasym2 again to compute indexes.")
 
-            delete(".alpha_dir/sextracted_list.cat", ver-, >& "dev$null")
-            copy(cat_sex, alpha_dir//"/"//"sextracted_list.cat")
-
-            # print("\n Output catalog from SEx has been copied in local directory:")
-            # print("   as ./'sextractor_to_inputlist'\n")
-
-            # print(" Please select input objects to compute indexes in an (e.g.) 'inputlist.cat'")
+            # delete(".alpha_dir/sextracted_list.cat", ver-, >& "dev$null")
+            # copy(cat_sex, alpha_dir//"/"//"sextracted_list.cat")
+            copy(cat_sex, outsex_dir//"/"//"test_copy.cat")
+            cat_sex = outsex_dir//"/"//"test_copy.cat"
 
         }
 
@@ -471,8 +672,15 @@ begin
     }
 
     # FOLDER VERIFICATION OR CREATION ----------------------------
-    if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
-    if(!access(cache_dir)){mkdir(cache_dir)}     # temporal folder: ./alpha/temp:
+    # if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
+    # if(!access(cache_dir)){mkdir(cache_dir)}     # temporal folder: ./alpha/temp:
+
+    # To skyp index
+    if(index_calc == no){
+        print("\n-------------------------------------------------------------")
+        print("\n Skyp the index calculations!")
+        goto exit_task
+    }
 
     # inputlist for galasym2 process ----------------------------------
     input_list = alpha_dir//"/"//"inputlist.cat"
@@ -547,12 +755,6 @@ begin
 
     # FOLDER VERIFICATION OR CREATION ----------------------------
     if(!access(alphaimg_dir)){mkdir(alphaimg_dir)}     # images folder:      ./alpha/images:
-    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
-    if(!access(seg_dir)){mkdir(seg_dir)}
-    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./alpha/images/observed
-    if(!access(mod_dir)){mkdir(mod_dir)}               # model images:       ./alpha/images/model
-    if(!access(res_dir)){mkdir(res_dir)}               # residual images:    ./alpha/images/residual
-    if(!access(bg_dir)){mkdir(bg_dir)}
     if(!access(asymm_dir)){mkdir(asymm_dir)}           # alpha asymm images: ./alpha/images/asymmpix
     if(!access(rot_asymm_dir)){mkdir(rot_asymm_dir)}   # alpha rot_asymm images: ./alpha/images/rot_asymmpix
 
@@ -659,11 +861,6 @@ begin
     print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> ds9_dir//"/"//"kron_petro_aper.reg")
     print("fk5", >> ds9_dir//"/"//"kron_petro_aper.reg")
 
-    # Header: file for apertures account:
-    delete(ds9_dir//"/"//"aper_sum.txt", ver-, >& "dev$null")
-    print("", >> ds9_dir//"/"//"aper_sum.txt")
-    print("# Sum of apertures: ", >> ds9_dir//"/"//"aper_sum.txt")
-    print("", >> ds9_dir//"/"//"aper_sum.txt")
 
     for(i=1; i<=n_list; i+=1){
         # refrence (3A,3B) aperture: eliptical
@@ -777,10 +974,10 @@ edit_task: # go-to------------------------------------------------------
         # Tamaño del cuadrado a recortar: measure
         side_frame[obj_pos] = 2 * (ro_ann + 1) * (petro_r[obj_pos] * a_img[obj_pos])
         # Vertices del cuadrado:
-        px1 = int(xwin_img[obj_pos] - (side_frame[obj_pos] / 2)) + 1
-        px2 = int(xwin_img[obj_pos] + (side_frame[obj_pos] / 2))
-        py1 = int(ywin_img[obj_pos] - (side_frame[obj_pos] / 2)) + 1
-        py2 = int(ywin_img[obj_pos] + (side_frame[obj_pos] / 2))
+        px1 = int(xwin_img[obj_pos] - (side_frame[obj_pos] / 2.0)) + 1
+        px2 = int(xwin_img[obj_pos] + (side_frame[obj_pos] / 2.0))
+        py1 = int(ywin_img[obj_pos] - (side_frame[obj_pos] / 2.0)) + 1
+        py2 = int(ywin_img[obj_pos] + (side_frame[obj_pos] / 2.0))
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
         #--------------------------------
@@ -850,7 +1047,7 @@ edit_task: # go-to------------------------------------------------------
         if(!imaccess(areacntr_img//id_obj[obj_pos])){
             # Center area count:
             expre = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1 && f == 0"
-            imexpr(expre, areacntr_img//id_obj[obj_pos], side_frame[obj_pos]/2, side_frame[obj_pos]/2, petro_r[obj_pos]*a_img[obj_pos], petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, centermodmask_img//id_obj[obj_pos], verb-)
+            imexpr(expre, areacntr_img//id_obj[obj_pos], (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, petro_r[obj_pos]*a_img[obj_pos], petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, centermodmask_img//id_obj[obj_pos], verb-)
         }
         imstat(areacntr_img//id_obj[obj_pos], fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         inner_area[obj_pos] = meanpix * ttlpix
@@ -869,7 +1066,7 @@ edit_task: # go-to------------------------------------------------------
 
             imdelete(cache_dir//"/"//"max_aper_"//id_obj[obj_pos], >& "dev$null")
             expre = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1"
-            imexpr(expre, cache_dir//"/"//"max_aper_"//id_obj[obj_pos], side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[26]*petro_r[obj_pos]*a_img[obj_pos], scale_r[26]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+            imexpr(expre, cache_dir//"/"//"max_aper_"//id_obj[obj_pos], (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, scale_r[26]*petro_r[obj_pos]*a_img[obj_pos], scale_r[26]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
 
             imexpr("a*b", areaglxy_cntrmsk_maxaper_img//id_obj[obj_pos], areaglxy_cntrmsk_img//id_obj[obj_pos], cache_dir//"/"//"max_aper_"//id_obj[obj_pos], verb-)
         }
@@ -1086,7 +1283,7 @@ rotated_index: # go-to-------------------------------------------
         # BACKGROUND ESTIMATION -----------------------------------------------------------
         # Annulus 1
         imdelete(cache_dir//"/"//"tmp_ann_1", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) > (J-b) && (I-a) >= -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_1", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imexpr(expre1//" && "//expre2//" && (I-a) > (J-b) && (I-a) >= -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_1", (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 1
         imstat(cache_dir//"/"//"tmp_ann_1", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[1] = meanpix * ttlpix
@@ -1100,7 +1297,7 @@ rotated_index: # go-to-------------------------------------------
 
         # Annulus 2
         imdelete(cache_dir//"/"//"tmp_ann_2", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) <= (J-b) && (I-a) > -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_2", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imexpr(expre1//" && "//expre2//" && (I-a) <= (J-b) && (I-a) > -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_2", (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 2
         imstat(cache_dir//"/"//"tmp_ann_2", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[2] = meanpix * ttlpix
@@ -1113,7 +1310,7 @@ rotated_index: # go-to-------------------------------------------
 
         # Annulus 3
         imdelete(cache_dir//"/"//"tmp_ann_3", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) < (J-b) && (I-a) <= -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_3", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imexpr(expre1//" && "//expre2//" && (I-a) < (J-b) && (I-a) <= -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_3", (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 3
         imstat(cache_dir//"/"//"tmp_ann_3", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[3] = meanpix * ttlpix
@@ -1127,7 +1324,7 @@ rotated_index: # go-to-------------------------------------------
 
         # Annulus 4
         imdelete(cache_dir//"/"//"tmp_ann_4", >& "dev$null")
-        imexpr(expre1//" && "//expre2//" && (I-a) >= (J-b) && (I-a) < -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_4", side_frame[obj_pos]/2, side_frame[obj_pos]/2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+        imexpr(expre1//" && "//expre2//" && (I-a) >= (J-b) && (I-a) < -(J-b) ? 1 : 0", cache_dir//"/"//"tmp_ann_4", (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, ro_ann*petro_r[obj_pos]*a_img[obj_pos], ro_ann*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, ri_ann*petro_r[obj_pos]*a_img[obj_pos], ri_ann*petro_r[obj_pos]*b_img[obj_pos], dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
         # Area annulus 4
         imstat(cache_dir//"/"//"tmp_ann_4", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
         area_ann[4] = meanpix * ttlpix
@@ -1212,7 +1409,7 @@ rotated_index: # go-to-------------------------------------------
 
             # Measurement apperture (binary area):
             imdelete(cache_dir//"/"//"tmp_aperture", >& "dev$null")
-            imexpr(expre1//" ? 1 : 0", cache_dir//"/"//"tmp_aperture", side_frame[obj_pos]/2, side_frame[obj_pos]/2, scale_r[j]*petro_r[obj_pos]*a_img[obj_pos], scale_r[j]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
+            imexpr(expre1//" ? 1 : 0", cache_dir//"/"//"tmp_aperture", (side_frame[obj_pos] + 1) / 2, (side_frame[obj_pos] + 1) / 2, scale_r[j]*petro_r[obj_pos]*a_img[obj_pos], scale_r[j]*petro_r[obj_pos]*b_img[obj_pos], theta_img[obj_pos]*const_pi/180, dims=str(side_frame[obj_pos])//","//str(side_frame[obj_pos]), verb-)
 
 
             # ******************* TO DEFINE SNR TOTAL ********************************************************

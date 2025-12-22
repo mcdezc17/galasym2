@@ -468,7 +468,7 @@ begin
             imdelete(uncert_img_dir//"/"//"area_cntrmask.fits", >& "dev$null")
             # Center area count:
             expre = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1 && f == 0"
-            imexpr(expre, uncert_img_dir//"/"//"area_cntrmask.fits", side_img/2, side_img/2, tmp_petro * tmp_aimg, tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), uncert_img_dir//"/"//"cntr_mask.fits", verb-)
+            imexpr(expre, uncert_img_dir//"/"//"area_cntrmask.fits", (side_img + 1)/2.0, (side_img + 1)/2.0, tmp_petro * tmp_aimg, tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), uncert_img_dir//"/"//"cntr_mask.fits", verb-)
             # Contar pixeles:
             imstat(uncert_img_dir//"/"//"area_cntrmask.fits", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             tmp_inner_area = meanpix * ttlpix
@@ -482,7 +482,7 @@ begin
             imdelete(uncert_img_dir//"/"//"max_aper.fits", >& "dev$null")
             # Observed maximum area for cumulative denominator  alpha index:
             expre = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)) <= 1"
-            imexpr(expre, uncert_img_dir//"/"//"max_aper.fits", side_img/2, side_img/2, scale_r[27] * tmp_petro * tmp_aimg, scale_r[27] * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), dims=str(side_img)//","//str(side_img), verb-)
+            imexpr(expre, uncert_img_dir//"/"//"max_aper.fits", (side_img + 1)/2.0, (side_img + 1)/2.0, scale_r[27] * tmp_petro * tmp_aimg, scale_r[27] * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), dims=str(side_img)//","//str(side_img), verb-)
             imdelete(uncert_img_dir//"/"//"area_glxy_maxaper.fits", >& "dev$null")
             imexpr("a*b", uncert_img_dir//"/"//"area_glxy_maxaper.fits", uncert_img_dir//"/"//"area_glxy_cntrmask.fits", uncert_img_dir//"/"//"max_aper.fits", verb-)
             # Conteo de pixeles:
@@ -512,7 +512,7 @@ begin
             # Estimar el fondo de la imagen (anillo o blank patch):
             # Annulus 1 ------------------------------------------------------------
             imdelete(uncert_img_dir//"/"//"tmp_ann_1", >& "dev$null")
-            imexpr(expre1//" && "//expre2//" && (I-a) > (J-b) && (I-a) >= -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_1", side_img/2, side_img/2, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
+            imexpr(expre1//" && "//expre2//" && (I-a) > (J-b) && (I-a) >= -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_1", (side_img + 1)/2.0, (side_img + 1)/2.0, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
             # Area annulus 1
             imstat(uncert_img_dir//"/"//"tmp_ann_1", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             area_ann[1] = meanpix * ttlpix
@@ -525,7 +525,7 @@ begin
             density_noise[1] = n_noisepix[1] / area_ann[1]
             # Annulus 2 ------------------------------------------------------------
             imdelete(uncert_img_dir//"/"//"tmp_ann_2", >& "dev$null")
-            imexpr(expre1//" && "//expre2//" && (I-a) <= (J-b) && (I-a) > -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_2", side_img/2, side_img/2, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
+            imexpr(expre1//" && "//expre2//" && (I-a) <= (J-b) && (I-a) > -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_2", (side_img + 1)/2.0, (side_img + 1)/2.0, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
             # Area annulus 2
             imstat(uncert_img_dir//"/"//"tmp_ann_2", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             area_ann[2] = meanpix * ttlpix
@@ -537,7 +537,7 @@ begin
             density_noise[2] = n_noisepix[2] / area_ann[2]
             # Annulus 3 ------------------------------------------------------------
             imdelete(uncert_img_dir//"/"//"tmp_ann_3", >& "dev$null")
-            imexpr(expre1//" && "//expre2//" && (I-a) < (J-b) && (I-a) <= -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_3", side_img/2, side_img/2, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
+            imexpr(expre1//" && "//expre2//" && (I-a) < (J-b) && (I-a) <= -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_3", (side_img + 1)/2.0, (side_img + 1)/2.0, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
             # Area annulus 3
             imstat(uncert_img_dir//"/"//"tmp_ann_3", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             area_ann[3] = meanpix * ttlpix
@@ -550,7 +550,7 @@ begin
             density_noise[3] = n_noisepix[3] / area_ann[3]
             # Annulus 4 ------------------------------------------------------------
             imdelete(uncert_img_dir//"/"//"tmp_ann_4", >& "dev$null")
-            imexpr(expre1//" && "//expre2//" && (I-a) >= (J-b) && (I-a) < -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_4", side_img/2, side_img/2, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
+            imexpr(expre1//" && "//expre2//" && (I-a) >= (J-b) && (I-a) < -(J-b) ? 1 : 0", uncert_img_dir//"/"//"tmp_ann_4", (side_img + 1)/2.0, (side_img + 1)/2.0, ro_ann * tmp_petro * tmp_aimg, ro_ann * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), ri_ann * tmp_petro * tmp_aimg, ri_ann * tmp_petro * tmp_bimg, dims=str(side_img)//","//str(side_img), verb-)
             # Area annulus 4
             imstat(uncert_img_dir//"/"//"tmp_ann_4", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(meanpix, ttlpix)
             area_ann[4] = meanpix * ttlpix
@@ -628,7 +628,7 @@ begin
 
                 # Measurement apperture (binary area):
                 imdelete(uncert_img_dir//"/"//"tmp_aperture", >& "dev$null")
-                imexpr(expre1//" ? 1 : 0", uncert_img_dir//"/"//"tmp_aperture", side_img/2, side_img/2, scale_r[r_aper] * tmp_petro * tmp_aimg, scale_r[r_aper] * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), dims=str(side_img)//","//str(side_img), verb-)
+                imexpr(expre1//" ? 1 : 0", uncert_img_dir//"/"//"tmp_aperture", (side_img + 1)/2.0, (side_img + 1)/2.0, scale_r[r_aper] * tmp_petro * tmp_aimg, scale_r[r_aper] * tmp_petro * tmp_bimg, tmp_theta * (const_pi / 180), dims=str(side_img)//","//str(side_img), verb-)
 
                 # Asymmetrical pixel image in aperture
                 imdelete(uncert_img_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")

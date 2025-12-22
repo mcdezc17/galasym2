@@ -53,7 +53,7 @@ begin
     real iso_area[999], iso_areaf[999]
     int poss_edit[999]
     # System variables
-    string my_date,out_cat my_time
+    string my_date, my_time
     real tmp_info[199]
     struct line
     string line_info
