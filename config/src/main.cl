@@ -258,9 +258,6 @@ begin
     rot_alpha = no
     tmp_exit_distance = no
 
-    # DEFINIR RESTO DE TAREAS (FUNCIONES)
-    cl < src_dir//"/"//"task_definition.txt"
-
     # VECTOR FOR ELLIPTICAL APERTURES in Petrosian radius
     for(i=1; i<=96; i+=1){
         scale_r[i] = scale_r_offset + (0.05 * (i-1))
@@ -327,13 +324,16 @@ begin
     print("")
 
     # If edit_mode=yes avoid model_fit mode and double image mode
+    clear
     if(edit_mode != no){
         model_fit = no
         detect_img = "no"
-        printf("--------- GALASYM2 started on %s at %s --------\n\n", my_date, my_time)
-        print(" Edit mode for recompute asymmetry index from edit_list.cat")
+        printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
+        print(" task: find_objs")
+          print(" mode: recompute edit images")
     }else{
-        printf("--------- GALASYM2 started on %s at %s --------\n\n", my_date, my_time)
+        printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
+        print(" task: find_objs")
     }
     # -----------------------------------------------------------
 
@@ -369,9 +369,8 @@ begin
         # Accede al directorio?
         if(!access(measure_img)){
             # No es una imagen, ni una carpeta
-            print(" WRNNG: ", measure_img, " is not a")
-            print("        image or directory.")
-            print(" Abort task! Try again.")
+            print(" WRNNG: check image directory.")
+            print("        Abort task! Try again.")
             goto exit_task
 
         }else{
@@ -385,13 +384,14 @@ begin
         if(!access(detect_img)){
             tmp_string = detect_img//".fits"
             if(access(tmp_string)){
-                print(" Detection image name... correct")
+                # print(" Detection image name... correct")
                 detect_img = tmp_string
                 print(" Double image mode...\n")
                 scndimg_bool = yes
             }else{
-                printf("WARNING: Second FITS image doesn't exist:  %s or %s", detect_img, tmp_string)
-                print("          Set prompt input 'detect_img = no' and try again!")
+                print("WRNNG: Second image doesn't exist!")
+                print("       Set input 'detect_img = no'")
+                print("       and try again!")
                 goto exit_task
             }
         }
@@ -425,6 +425,8 @@ begin
         # Crear el margen de imagen efectiva si no existe + objetos de 'radec_list'
         tmp_string = datafiles_dir//"/"//"effective_image.reg"
         if(!access(tmp_string)){
+
+            print(" Runing like first time...\n")
 
             # cabecera de las siguientes regiones DS9 (version 4.1)
             print('global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"effective_image.reg")
@@ -477,13 +479,15 @@ begin
         # print("! xpaaccess ds9") | cl | scan(ds9_access)
         # if(ds9_access == no){}
         # Pausa para modificar la region d eimagen efectiva
-        print(" Step. 0.1. Pause to edit DS9 effective image region"
-        print("            (see instructions file!)")
+
+        print("\n Pause to edit DS9 effective region"
+        print(" of image (see instructions file!)\n")
         tmp_bool = no
         while(tmp_bool == no){
-            print("\n Are you ready? (y/n): ")
+            printf("\r Are you ready? (y/n): ")
             scan(tmp_bool)
         }
+        print("")
 
         # Hacer mathc entre posiciones dentro de la imagen efectiva y la lista 'radec_list'
         # Si ya existe region de imagen efectiva:
@@ -535,6 +539,7 @@ begin
 
         # Calcular tamaño y recortar:
         delete(datafiles_dir//"/"//"list_of_imgs.ascii", ver-, >& "dev$null")
+        delete(datafiles_dir//"/"//"list_of_imgs_trimsection.ascii", ver-, >& "dev$null")
         for(i = 1; i <= n_list; i += 1){
             # Tamaño de la imagen: (100 kiloparsecs)
             side_frame[i] = 100 / (kp_DA * pix_scale)
@@ -554,26 +559,31 @@ begin
                 imcopy(measure_img//trimsection, obs_dir//"/"//"frame_obs_"//id_obj[i], verb-)
             }
             print(obs_dir//"/"//"frame_obs_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"list_of_imgs.ascii")
-            printf("\r - Cutting images: %d%%", (i*100/n_list))
+            print(measure_img//trimsection, >> datafiles_dir//"/"//"list_of_imgs_trimsection.ascii")
+            printf("\r Process (cutting images): %d%%", (i*100/n_list))
         }
 
     }else{
         # SI LAS IMAGENES ESTAN SEPARADAS =======================
 
-        # Leer la lista de imagenes
-        files(measure_img//"/*.fits", sort+, > datafiles_dir//"/"//"list_of_imgs.ascii")
-        # leerla y verificar que imaccess tiene acceso (por ahora)
+        # Enlistar los archivos:
+        files(measure_img//"/*.fits", sort+, >> datafiles_dir//"/"//"list_of_imgs.ascii")
+        # leer la lista anterior y verificar que imaccess tiene acceso (por ahora?):
         list = datafiles_dir//"/"//"list_of_imgs.ascii"
         while(fscan(list, line) != EOF){
             print(line) | scan(tmp_string)
             if(!imaccess(tmp_string)){
-                print(" \n WRNNG: Can not access some images. Check the")
-                print("           following file: ")
-                print("           - ", datafiles_dir//"/"//"not_imaccess.ascii")
-                print(line, > datafiles_dir//"/"//"not_imaccess.ascii")
+                print(" \n WRNNG: Can not access some images.")
+                print("           Check the following file:  ")
+                print("        - ", datafiles_dir//"/"//"not_imaccess.ascii")
+                print(line, >> datafiles_dir//"/"//"not_imaccess.ascii")
+            }else{
+                print(line, >> datafiles_dir//"/"//"list_of_imgs.ascii")
             }
         }
     }
+
+    print("\n------------------------------------------")
 
     # RECORTAR IMAGENES DE ENTRADA
 
@@ -596,6 +606,7 @@ begin
                         print("         - prepsfex.param   (in same dir)")
                         print("         - and default.conv (in same dir)")
                         print(" Verify and run again.")
+                        print(" Abort task!")
                         goto exit_task
                     }
 
@@ -666,7 +677,7 @@ begin
 
         }
 
-        print(" SExtractor results (check_images) exist!")
+        print("\n SExtractor results (check_images) exist!")
         print("")
 
     }
