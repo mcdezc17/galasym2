@@ -226,23 +226,23 @@ begin
 
     # ASIGNACIÓN DE VARIABLES --------------------------
 
+    config_sex = sex_dir//"/"//"default.sex"
+    param_sex = sex_dir//"/"//"default.param"
+    conv_sex = sex_dir//"/"//"filter.conv"
+
     config_prepsfex = prepsfex_dir//"/"//"prepsfex.sex"
     param_prepsfex = prepsfex_dir//"/"//"prepsfex.param"
     conv_prepsfex = prepsfex_dir//"/"//"default.conv"
     cat_prepsfex = outpsfex_dir//"/"//"prepsfex.cat"
 
     config_psfex = psfex_dir//"/"//"default.psfex"
-
-    config_sex = sex_dir//"/"//"default.sex"
-    param_sex = sex_dir//"/"//"default.param"
-    conv_sex = sex_dir//"/"//"filter.conv"
+    psf_fit = outpsfex_dir//"/"//"prepsfex.psf"
 
     seg_img = outsex_dir//"/"//"check_seg.fits"
     bgrms_img = outsex_dir//"/"//"check_bgrms.fits"
     bg_img = outsex_dir//"/"//"check_bg.fits"
     mod_img = outsex_dir//"/"//"check_mod.fits"
     res_img = outsex_dir//"/"//"check_res.fits"
-    psf_fit = outpsfex_dir//"/"//"prepsfex.psf"
     cat_sex = outsex_dir//"/"//"test.cat"
 
     const_pi = 3.1415926535897932385
@@ -402,20 +402,7 @@ begin
     # if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
     # if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
     if(!access(data_dir)){mkdir(data_dir)}           # main output: ./data
-    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
-    if(!access(seg_dir)){mkdir(seg_dir)}
-    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
-    if(!access(mod_dir)){mkdir(mod_dir)}               # model images:       ./data/images/model
-    if(!access(res_dir)){mkdir(res_dir)}               # residual images:    ./data/images/residual
-    if(!access(bg_dir)){mkdir(bg_dir)}
     if(!access(datafiles_dir)){mkdir(datafiles_dir)}
-
-    # if(!access(psfex_dir)){mkdir(psfex_dir)}         # psfex folder: ./config/psfex
-    # if(!access(prepsfex_dir)){mkdir(prepsfex_dir)}   # prepsfex fol: ./config/psfex/prepsfex
-    if(!access(outpsfex_dir)){mkdir(outpsfex_dir)}   # outpsfex fol: ./"data"/psfex/results_psfex
-
-    # if(!access(sex_dir)){mkdir(sex_dir)}             # sextrac. fol: ./config/sextractor
-    if(!access(outsex_dir)){mkdir(outsex_dir)}       # outsext. fol: ./"data"/results_sex
     # END FOLDER VERIFICATION -----------------------------------
 
     # IDENTIFICAR UNA O VARIAS IMAGENES: encontrar objetos en la imagen
@@ -585,7 +572,31 @@ begin
 
     print("\n------------------------------------------")
 
-    # RECORTAR IMAGENES DE ENTRADA
+    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
+    if(!access(seg_dir)){mkdir(seg_dir)}
+    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
+    if(!access(mod_dir)){mkdir(mod_dir)}               # model images:       ./data/images/model
+    if(!access(res_dir)){mkdir(res_dir)}               # residual images:    ./data/images/residual
+    if(!access(bg_dir)){mkdir(bg_dir)}
+    # if(!access(psfex_dir)){mkdir(psfex_dir)}         # psfex folder: ./config/psfex
+    # if(!access(prepsfex_dir)){mkdir(prepsfex_dir)}   # prepsfex fol: ./config/psfex/prepsfex
+    if(!access(outpsfex_dir)){mkdir(outpsfex_dir)}   # outpsfex fol: ./"data"/psfex/results_psfex
+
+    # if(!access(sex_dir)){mkdir(sex_dir)}             # sextrac. fol: ./config/sextractor
+    if(!access(outsex_dir)){mkdir(outsex_dir)}       # outsext. fol: ./"data"/results_sex
+
+
+    # PSF MODEL WITH PSFEx
+    psf_model(image_sample=measure_img, default_conv=no)
+
+    # To skyp index
+    if(index_calc == no){
+        print("\n------------------------------------------")
+        print("\n test: Skyp the index calculations!")
+        goto exit_task
+    }
+
+
 
     # RUN PSFEx -------------------------------------------------
     if(model_fit == yes){
@@ -627,6 +638,8 @@ begin
                     print("\n WARNING: config-files for running PSFEx are incomplete!")
                     print("         At least the following files must exist: ")
                     print("         - default.sex     (in ./config/psfex/)")
+                    print(" Abort task!")
+                    goto exit_task
                 }
                 # Running PSFEx
                 print("-------------------------------------------------------------")
@@ -1741,7 +1754,7 @@ rotated_index: # go-to-------------------------------------------
     if(rot_alpha == no){
 
         rot_alpha = yes
-        print("\n\n-------------------- ROTATED ALPHA INDEX --------------------\n")
+        print("\n\n---- ROTATED ALPHA INDEX ----\n")
 
         goto rotated_index
     }
@@ -1758,7 +1771,7 @@ rotated_index: # go-to-------------------------------------------
 exit_task:
 
     # print("Exit task.")
-    print("-------------------------------------------------------------")
+    print("\n------------------------------------------")
     print("")
     beep
 
