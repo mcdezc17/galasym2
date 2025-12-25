@@ -84,10 +84,13 @@ begin
 
     # SI LA TAREA ES EJECUTADA EN MODO DEFAULT:
     if(default_conv == no){
+
+        re_run_task:
+
         # Access to psf model (prepsfex.psf) omit PrePSFEx (SEx-prior) and PSFEx, if not:
         if(!access(psf_fit)){
 
-            re_run_task:
+            #re_run_task:
 
             # Access to prepsfex catalog (prepsfex.cat [FITS_LDAC]) omit PrePSFEx, if not:
             if(!access(cat_prepsfex)){
@@ -171,6 +174,7 @@ begin
     exit_task:
 
     # print("Exit task.")
+    print("\n End task: psf_model")
     print("\n------------------------------------------")
     print("")
     beep

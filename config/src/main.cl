@@ -545,29 +545,42 @@ begin
                 imdelete(obs_dir//"/"//"frame_obs_"//id_obj[i], >& "dev$null")
                 imcopy(measure_img//trimsection, obs_dir//"/"//"frame_obs_"//id_obj[i], verb-)
             }
-            print(obs_dir//"/"//"frame_obs_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"list_of_imgs.ascii")
-            print(measure_img//trimsection, >> datafiles_dir//"/"//"list_of_imgs_trimsection.ascii")
+            print(id_obj[i], " ", obs_dir//"/"//"frame_obs_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"list_of_imgs.ascii")
+            print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"list_of_imgs_trimsection.ascii")
             printf("\r Process (cutting images): %d%%", (i*100/n_list))
         }
 
     }else{
         # SI LAS IMAGENES ESTAN SEPARADAS =======================
+        delete(datafiles_dir//"/"//"list_of_imgs.ascii", ver-, >& "dev$null")
+        delete(datafiles_dir//"/"//"not_imaccess.ascii", ver-, >& "dev$null")
 
         # Enlistar los archivos:
         files(measure_img//"/*.fits", sort+, >> datafiles_dir//"/"//"list_of_imgs.ascii")
         # leer la lista anterior y verificar que imaccess tiene acceso (por ahora?):
         list = datafiles_dir//"/"//"list_of_imgs.ascii"
+        i = 0
+        j = 0
         while(fscan(list, line) != EOF){
-            print(line) | scan(tmp_string)
-            if(!imaccess(tmp_string)){
-                print(" \n WRNNG: Can not access some images.")
-                print("           Check the following file:  ")
-                print("        - ", datafiles_dir//"/"//"not_imaccess.ascii")
-                print(line, >> datafiles_dir//"/"//"not_imaccess.ascii")
-            }else{
-                print(line, >> datafiles_dir//"/"//"list_of_imgs.ascii")
+            if (line != "" && substr(line, 1, 1) != "#") {
+                i = i + 1
+                print(line) | scan(tmp_string)
+                if(!imaccess(tmp_string)){
+                    print(str(i), " ", tmp_string, >> datafiles_dir//"/"//"not_imaccess.ascii")
+                }else{
+                    j = j + 1
+                    print(str(j), " ", tmp_string, >> datafiles_dir//"/"//"list_of_imgs.ascii")
+                }
             }
         }
+
+        if(j < i){
+            print(" \n WRNNG: Can not access some images.")
+            print("           Check the following file:  ")
+            print("        - ", datafiles_dir//"/"//"not_imaccess.ascii")
+        }
+        printf("\n   - total lines: %d / accepted: %d ", i, j)
+
     }
 
     print("\n------------------------------------------")
@@ -587,7 +600,7 @@ begin
 
 
     # PSF MODEL WITH PSFEx
-    psf_model(image_sample=measure_img, default_conv=no)
+    # psf_model(image_sample=measure_img, default_conv=no)
 
     # To skyp index
     if(index_calc == no){
