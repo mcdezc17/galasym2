@@ -11,6 +11,7 @@ begin
     struct line
     # list of objects..
     int n_list, n_accepted
+    string measure_img
     string image_list[999], id_obj[999]
 
     # Temporal variables:
@@ -35,7 +36,7 @@ begin
     bool scndimg_bool
     string sex_dir, config_sex, param_sex, conv_sex
     string outsex_dir, cat_sex
-    string seg_img, mod_img, res_img, bg_img, bgrms_img
+    string seg_img, fil_img, bg_img, bgrms_img, mod_img, res_img
     string list_cat_sex, list_bgrms_img, list_res_img
 
     # ASIGNACIÓN DE DIRECTORIOS -------------------------
@@ -64,15 +65,16 @@ begin
 
     # ASIGNACIÓN DE VARIABLES -------------------------
     config_sex = sex_dir//"/"//"default.sex"
-    param_sex = sex_dir//"/"//"default.param"
-    conv_sex = sex_dir//"/"//"filter.conv"
+    param_sex  = sex_dir//"/"//"default.param"
+    conv_sex   = sex_dir//"/"//"filter.conv"
 
-    seg_img = outsex_dir//"/"//"check_seg.fits"
+    seg_img   = outsex_dir//"/"//"check_seg.fits"
+    bg_img    = outsex_dir//"/"//"check_bg.fits"
     bgrms_img = outsex_dir//"/"//"check_bgrms.fits"
-    bg_img = outsex_dir//"/"//"check_bg.fits"
-    mod_img = outsex_dir//"/"//"check_mod.fits"
-    res_img = outsex_dir//"/"//"check_res.fits"
-    cat_sex = outsex_dir//"/"//"test.cat"
+    fil_img   = outsex_dir//"/"//"check_fil.fits"
+    mod_img   = outsex_dir//"/"//"check_mod.fits"
+    res_img   = outsex_dir//"/"//"check_res.fits"
+    cat_sex   = outsex_dir//"/"//"test.cat"
 
     tmp_bool = no
 
@@ -169,18 +171,22 @@ begin
         # EJECUTAR SEXTRACTOR PARA CADA IMAGEN VERIFICADA:
         # Si falla una imagen, colapsa para el resto!
         print("! clear") | cl
-        print(" RUNNING SExtractor to model-fitting:\n")
-        print("\n------------------------------------------")
-
 
         for(i=1; i<=n_accepted; i+=1){
 
+            print("\n------------------------------------------")
+            print("\n RUNNING SExtractor to model-fitting:\n")
+
             printf(" Process (sextracted image): %d/%d \n\n", i, n_accepted)
+
+            measure_img = image_list[i]
 
             printf("! %s %s -c %s \n", key_sex, measure_img, config_sex) | cl
 
             sleep(1)
 
+            rename(seg_img, outsex_dir//"/"//id_obj[i]//"_check_seg.fits")
+            rename(bg_img, outsex_dir//"/"//id_obj[i]//"_check_bg.fits")
             rename(bgrms_img, outsex_dir//"/"//id_obj[i]//"_check_bgrms.fits")
             rename(fil_img, outsex_dir//"/"//id_obj[i]//"_check_fil.fits")
             rename(mod_img, outsex_dir//"/"//id_obj[i]//"_check_mod.fits")
