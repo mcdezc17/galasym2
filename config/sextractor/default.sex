@@ -83,7 +83,7 @@ BACK_VALUE       0.0            # Default background value in MANUAL mode
 BACK_PEARSON     2.5            # Pearson's factor alpha >= 1 with
                                 # (mode - mean) ~ alpha * (median - mean)
                                 # Legacy value is 2.5, but 3.5 is more accurate
-BACK_SIZE        64             # Background mesh: <size> or <width>,<height>
+BACK_SIZE        32             # Background mesh: <size> or <width>,<height>
 BACK_FILTERSIZE  3              # Background filter: <size> or <width>,<height>
 
 BACKPHOTO_TYPE   GLOBAL         # can be GLOBAL or LOCAL
@@ -100,7 +100,7 @@ CHECKIMAGE_TYPE  BACKGROUND, BACKGROUND_RMS, MODELS, -MODELS, SEGMENTATION, FILT
                                 # MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND,
                                 # FILTERED, OBJECTS, -OBJECTS, SEGMENTATION,
                                 # or APERTURES
-CHECKIMAGE_NAME  data/results_sex/check_bg.fits, data/results_sex/check_bgrms.fits, data/results_sex/check_mod.fits, data/results_sex/check_res.fits, data/results_sex/check_seg.fits, data/results_sex/check_fil.fits, data/results_sex/check_no_objects.fits
+CHECKIMAGE_NAME  data/results_sex/check_bg.fits, data/results_sex/check_bgrms.fits, data/results_sex/check_mod.fits, data/results_sex/check_res.fits, data/results_sex/check_seg.fits, data/results_sex/check_fil.fits, data/results_sex/check_no_objs.fits
                                 # data/results_sex/check_subbg.fits
                                 #, data/results_sex/check_subbg.fits, data/results_sex/check_obj.fits
                                 # Filename for the check-image

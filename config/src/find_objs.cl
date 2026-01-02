@@ -1,4 +1,4 @@
-procedure main()
+procedure find_objs()
 
 # TO RUN FROM LOCAL DIRECTORY ./
 # FOR ABELL 496 TEST / default cl script name: galasym2_96_prf.cl
@@ -45,9 +45,10 @@ begin
     real ri_ann, ro_ann
     int lenght_nx, lenght_ny
     # list of objects..
+    string folder_img
     string input_list, xyimg_list, objs_in_img
     int obj_i, obj_f, obj_pos
-    int n_list, n_edit
+    int n_list, n_accepted, n_edit
     string id_obj[999]
     int  seg_number[999]
     real ra_j00[999], dec_j00[999], ximg_pos[999], yimg_pos[999], xwin_img[999], ywin_img[999], a_img[999], b_img[999]
@@ -55,6 +56,8 @@ begin
     real iso_area[999], iso_areaf[999]
     real find_x[999], find_y[999]
     int poss_edit[999]
+    # to match:
+    real x0, y0
     # System variables
     string my_date, my_time
     real tmp_info[199]
@@ -67,8 +70,9 @@ begin
     real tmp_xc[10], tmp_yc[10], tmp_xside[10], tmp_yside[10]
     int x_limit[10], y_limit[10]
     # Temporal variables:
+    int tmp_int, tmp_int2
     bool tmp_bool, tmp_exit_distance
-    string tmp_string, tmp_wait
+    string tmp_string, tmp_string2, tmp_wait
     real tmp_real
 
     # ************* Main folders variables *************
@@ -329,25 +333,28 @@ begin
         model_fit = no
         detect_img = "no"
         printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-        print(" task: find_objs")
+        print(" TASK: find_objs")
           print(" mode: recompute edit images")
     }else{
         printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-        print(" task: find_objs")
+        print(" TASK: find_objs")
     }
     # -----------------------------------------------------------
 
     # Check that the input FITS observed image exists or is named correctly:
     if(imaccess(measure_img)){
         # Es una imagen.
+
+        # Se casume que existe una sola imagen
+        single_image = yes
+        print(" image: one")
+
         # Tiene extension fits? Añadir ".fits"
         tmp_string = measure_img//".fits"
         if(access(tmp_string)){
             # Si existe, conservar la extension
             measure_img = measure_img//".fits"
         }
-        # Se casume que existe una sola imagen
-        single_image = yes
 
         # tamaño de los ejes de la imagen
         imgets(measure_img, "naxis1")
@@ -374,7 +381,9 @@ begin
             goto exit_task
 
         }else{
+            print(" image: list")
             single_image = no
+            folder_img = measure_img
         }
     }
 
@@ -525,7 +534,7 @@ begin
         n_list = i
 
         # Calcular tamaño y recortar:
-        delete(datafiles_dir//"/"//"list_of_imgs.ascii", ver-, >& "dev$null")
+        delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
         delete(datafiles_dir//"/"//"list_of_imgs_trimsection.ascii", ver-, >& "dev$null")
         for(i = 1; i <= n_list; i += 1){
             # Tamaño de la imagen: (100 kiloparsecs)
@@ -539,48 +548,93 @@ begin
             trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
             # crear imagen:
-            tmp_string = obs_dir//"/"//"frame_obs_"//id_obj[i]
+            tmp_string = obs_dir//"/"//"frame_"//id_obj[i]
             if(!imaccess(tmp_string)){
                 # Save frames observed:
-                imdelete(obs_dir//"/"//"frame_obs_"//id_obj[i], >& "dev$null")
-                imcopy(measure_img//trimsection, obs_dir//"/"//"frame_obs_"//id_obj[i], verb-)
+                imdelete(obs_dir//"/"//"frame_"//id_obj[i], >& "dev$null")
+                imcopy(measure_img//trimsection, obs_dir//"/"//"frame_"//id_obj[i], verb-)
             }
-            print(id_obj[i], " ", obs_dir//"/"//"frame_obs_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"list_of_imgs.ascii")
-            print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"list_of_imgs_trimsection.ascii")
+            print(id_obj[i], " ", obs_dir//"/"//"frame_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"accepted_imgs.ascii")
+            print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"accept_imgs_trimsection.ascii")
             printf("\r Process (cutting images): %d%%", (i*100/n_list))
         }
 
     }else{
         # SI LAS IMAGENES ESTAN SEPARADAS =======================
-        delete(datafiles_dir//"/"//"list_of_imgs.ascii", ver-, >& "dev$null")
+
+        # Resetea archivos de salida (se concatenan!)
+        delete(datafiles_dir//"/"//"input_imgs.ascii", ver-, >& "dev$null")
+        delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
         delete(datafiles_dir//"/"//"not_imaccess.ascii", ver-, >& "dev$null")
+        delete(datafiles_dir//"/"//"tmp_imgcenters_accepted.ascii", ver-, >& "dev$null")
 
         # Enlistar los archivos:
-        files(measure_img//"/*.fits", sort+, >> datafiles_dir//"/"//"list_of_imgs.ascii")
+        files(folder_img//"/*.fits", sort+, >> datafiles_dir//"/"//"input_imgs.ascii")
+
         # leer la lista anterior y verificar que imaccess tiene acceso (por ahora?):
-        list = datafiles_dir//"/"//"list_of_imgs.ascii"
+        list = datafiles_dir//"/"//"input_imgs.ascii"
         i = 0
         j = 0
         while(fscan(list, line) != EOF){
             if (line != "" && substr(line, 1, 1) != "#") {
+
                 i = i + 1
-                print(line) | scan(tmp_string)
-                if(!imaccess(tmp_string)){
-                    print(str(i), " ", tmp_string, >> datafiles_dir//"/"//"not_imaccess.ascii")
+                print(line) | scan(tmp_string2)
+
+                # Extraer nombre del path. Carpeta contenedora:
+                tmp_int = strldx("/", tmp_string2)
+                if(tmp_int == 0){tmp_int = 1}
+                # Elimina extension:
+                tmp_int2 = stridx(".*", tmp_string2)
+                if(tmp_int2 == 0 || tmp_int2 <= tmp_int){tmp_int2 = strlen(s1)}
+                # Nombre de imagen:
+                tmp_string = substr(tmp_string2, (tmp_int + 1), (tmp_int2 - 1))
+                # No existe ni '/' ni '.' ?
+                if(tmp_int == 0 || tmp_int2 == 0){
+                    tmp_string = "ERR_NAME"
+                }
+
+                if(!imaccess(tmp_string2)){
+                    print(tmp_string, " ", tmp_string2, >> datafiles_dir//"/"//"not_imaccess.ascii")
                 }else{
                     j = j + 1
-                    print(str(j), " ", tmp_string, >> datafiles_dir//"/"//"list_of_imgs.ascii")
+                    print(tmp_string, " ", tmp_string2, >> datafiles_dir//"/"//"accepted_imgs.ascii")
                 }
             }
         }
+        n_list = i
+        n_accepted = j
 
-        if(j < i){
+        if(n_accepted < n_list){
             print(" \n WRNNG: Can not access some images.")
             print("           Check the following file:  ")
             print("        - ", datafiles_dir//"/"//"not_imaccess.ascii")
         }
-        printf("\n   - total lines: %d / accepted: %d ", i, j)
+        printf("\n   - total lines: %d / accepted: %d ", n_list, n_accepted)
 
+        # delete(datafiles_dir//"/"//"tmp_centers_frames.ascii", ver-, >& "dev$null")
+        print("# ID X_half Y_half", > datafiles_dir//"/"//"tmp_centers_frames.ascii")
+
+        # Se asume que los objetos estan centrados en la imagen
+        list = datafiles_dir//"/"//"accepted_imgs.ascii"
+        while(fscan(list, line) != EOF){
+            if (line != "" && substr(line, 1, 1) != "#") {
+
+                # tmp_string captura el nombre de la imagen
+                print(line) | scan(tmp_string, measure_img)
+
+                # captura el centro de la imagen:
+                imgets(measure_img, "naxis1")
+                x0 = (int(imgets.value) + 1) / 2
+                imgets(measure_img, "naxis2")
+                y0 = (int(imgets.value) + 1) / 2
+
+                print(tmp_string, " ", x0, " ", y0, >> datafiles_dir//"/"//"tmp_centers_frames.ascii")
+
+            }
+        }
+
+    # END ELSE single_image == no
     }
 
     print("\n------------------------------------------")
@@ -600,7 +654,11 @@ begin
 
 
     # PSF MODEL WITH PSFEx
-    # psf_model(image_sample=measure_img, default_conv=no)
+    # psf_model
+
+    # SExtracto model:
+    tmp_string = datafiles_dir//"/"//"accepted_imgs.ascii"
+    glxy_model(inputlist=tmp_string, match_list="none", err_sky=4.5, pix_scale=0.3, single_image=no)
 
     # To skyp index
     if(index_calc == no){

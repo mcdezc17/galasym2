@@ -6,7 +6,7 @@ set direc = "/home/sloan/galasym2/test/A496/J_band/config/src/"
 
 package galasym2
 
-task main         = "direc$main.cl"
+task find_objs     = "direc$find_objs.cl"
 task psf_model    = "direc$psf_model.cl"
 task glxy_model   = "direc$glxy_model.cl"
 task distance     = "direc$distance.cl"
