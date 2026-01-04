@@ -347,7 +347,7 @@ begin
 
         # Se casume que existe una sola imagen
         single_image = yes
-        print(" image: one")
+        print(" image: single")
 
         # Tiene extension fits? Añadir ".fits"
         tmp_string = measure_img//".fits"
@@ -412,11 +412,18 @@ begin
     # if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
     if(!access(data_dir)){mkdir(data_dir)}           # main output: ./data
     if(!access(datafiles_dir)){mkdir(datafiles_dir)}
+    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
+    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
     # END FOLDER VERIFICATION -----------------------------------
 
     # IDENTIFICAR UNA O VARIAS IMAGENES: encontrar objetos en la imagen
     if(single_image == yes){
         # SI ES UNA SOLA IMAGEN ===================================================
+
+        # leer posiciones de la region DS9
+        xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
+        # Convertir posiciones RA/DEC TO X/Y_IMAGE de la lista de entrada 'radec_list'
+        wcsctran(radec_list, xyimg_list, image = measure_img, inwcs="world", outwcs="logical", columns="2,3")
 
         # Crear el margen de imagen efectiva si no existe + objetos de 'radec_list'
         tmp_string = datafiles_dir//"/"//"effective_image.reg"
@@ -429,15 +436,7 @@ begin
             print("image", >> datafiles_dir//"/"//"effective_image.reg")
 
             # CREAR APERTURA DE OBJETOS PELIGROSOS: fuera o en el borde de la imagen:
-            # string datafiles_dir
-            # string xyimg_list
-            # datafiles_dir = data_dir//"/"//"data_files"
-            # real find_x[999], find_y[999]
-            # real margen_offset
-            xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
-            # Convertir posiciones RA/DEC TO X/Y_IMAGE de la lista de entrada 'radec_list'
-            wcsctran(radec_list, xyimg_list, image = measure_img, inwcs="world", outwcs="logical", columns="2,3")
-            # Leer la lista anterior
+            # crear regiones graficas (*.reg) para los objetos:
             list = xyimg_list
             i = 0
             while (fscan(list, line) != EOF) {
@@ -448,7 +447,7 @@ begin
                     print(line) | scan(id_obj[i], find_x[i], find_y[i])
                     # Posiciones potencialmente peligrosas: fuera de imagen efectiva
                     if(find_x[i] <= (lenght_nx * margen_offset) || find_x[i] >= (lenght_nx - (lenght_nx * margen_offset)) || find_y[i] <= (lenght_ny * margen_offset) || find_y[i] >= (lenght_nx - (lenght_ny * margen_offset))){
-                        # Crear rapertura en una region DS9
+                        # Crear apertura en una region DS9
                         expre = 'circle('//str(find_x[i])//','//str(find_y[i])//','//str(70 / (kp_DA * pix_scale))//') # color=red width=2 text={'//str(id_obj[i])//'}'
                         print(expre, >> datafiles_dir//"/"//"effective_image.reg")
                     }else{
@@ -487,8 +486,7 @@ begin
 
         # Hacer mathc entre posiciones dentro de la imagen efectiva y la lista 'radec_list'
         # Si ya existe region de imagen efectiva:
-        # leer posiciones de la region DS9
-        xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
+
         # obtiene centro (x,y) y lados (lx, ly):
         expre = "! awk '/^box\\(/ {split($0,a,\"[(),]\"); print a[2],a[3],a[4],a[5]}' %s > %s\n"
         printf(expre, datafiles_dir//"/"//"effective_image.reg", datafiles_dir//"/"//"tmp_box_coords.ascii") | cl
@@ -518,7 +516,7 @@ begin
         # DE LA CONVERSIÓN DE COORDENADAS, CUÁLES ESTÁN DENTRO DE LA IMAGEN:
         objs_in_img = datafiles_dir//"/"//"objs_in_eff_image.ascii"
         delete(objs_in_img, ver-, >& "dev$null")
-        expre = "\"((RA > %g && RA < %g) && (DEC > %g && DEC < %g)) || ((RA > %g && RA < %g) && (DEC > %g && DEC < %g))\""
+        expre = "\"(($2 > %g && $2 < %g) && ($3 > %g && $3 < %g)) || (($2 > %g && $2 < %g) && ($3 > %g && $3 < %g))\""
         printf("! stilts tpipe in=%s ifmt=ascii cmd='select "//expre//"' ofmt=ascii out=%s", xyimg_list, x_limit[1], x_limit[2], y_limit[1], y_limit[2], x_limit[3], x_limit[4], y_limit[3], y_limit[4], objs_in_img) | cl
 
         # RECORTAR IMAGENE, ver-, >& "dev$null"S
@@ -548,13 +546,13 @@ begin
             trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
             # crear imagen:
-            tmp_string = obs_dir//"/"//"frame_"//id_obj[i]
+            tmp_string = obs_dir//"/"//id_obj[i]
             if(!imaccess(tmp_string)){
                 # Save frames observed:
-                imdelete(obs_dir//"/"//"frame_"//id_obj[i], >& "dev$null")
-                imcopy(measure_img//trimsection, obs_dir//"/"//"frame_"//id_obj[i], verb-)
+                imdelete(obs_dir//"/"//id_obj[i], >& "dev$null")
+                imcopy(measure_img//trimsection, obs_dir//"/"//id_obj[i], verb-)
             }
-            print(id_obj[i], " ", obs_dir//"/"//"frame_"//id_obj[i]//".fits", >> datafiles_dir//"/"//"accepted_imgs.ascii")
+            print(id_obj[i], " ", obs_dir//"/"//id_obj[i]//".fits", >> datafiles_dir//"/"//"accepted_imgs.ascii")
             print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"accept_imgs_trimsection.ascii")
             printf("\r Process (cutting images): %d%%", (i*100/n_list))
         }
@@ -566,7 +564,6 @@ begin
         delete(datafiles_dir//"/"//"input_imgs.ascii", ver-, >& "dev$null")
         delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
         delete(datafiles_dir//"/"//"not_imaccess.ascii", ver-, >& "dev$null")
-        delete(datafiles_dir//"/"//"tmp_imgcenters_accepted.ascii", ver-, >& "dev$null")
 
         # Enlistar los archivos:
         files(folder_img//"/*.fits", sort+, >> datafiles_dir//"/"//"input_imgs.ascii")
@@ -612,28 +609,6 @@ begin
         }
         printf("\n   - total lines: %d / accepted: %d ", n_list, n_accepted)
 
-        # delete(datafiles_dir//"/"//"tmp_centers_frames.ascii", ver-, >& "dev$null")
-        print("# ID X_half Y_half", > datafiles_dir//"/"//"tmp_centers_frames.ascii")
-
-        # Se asume que los objetos estan centrados en la imagen
-        list = datafiles_dir//"/"//"accepted_imgs.ascii"
-        while(fscan(list, line) != EOF){
-            if (line != "" && substr(line, 1, 1) != "#") {
-
-                # tmp_string captura el nombre de la imagen
-                print(line) | scan(tmp_string, measure_img)
-
-                # captura el centro de la imagen:
-                imgets(measure_img, "naxis1")
-                x0 = (int(imgets.value) + 1) / 2
-                imgets(measure_img, "naxis2")
-                y0 = (int(imgets.value) + 1) / 2
-
-                print(tmp_string, " ", x0, " ", y0, >> datafiles_dir//"/"//"tmp_centers_frames.ascii")
-
-            }
-        }
-
     # END ELSE single_image == no
     }
 
@@ -658,7 +633,8 @@ begin
 
     # SExtracto model:
     tmp_string = datafiles_dir//"/"//"accepted_imgs.ascii"
-    glxy_model(inputlist=tmp_string, match_list="none", err_sky=4.5, pix_scale=0.3, single_image=no)
+    tmp_bool = single_image
+    glxy_model(inputlist=tmp_string, single_image=tmp_bool)
 
     # To skyp index
     if(index_calc == no){
