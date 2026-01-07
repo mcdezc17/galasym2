@@ -185,7 +185,7 @@ begin
     data_dir = "data"
     # ./data/images:
     dataimg_dir = data_dir//"/"//"data_images"
-    #
+    # ./data/data_images/segmentation
     seg_dir = dataimg_dir//"/"//"segmentation"
     # ./data/data_images/observed
     obs_dir = dataimg_dir//"/"//"observed"

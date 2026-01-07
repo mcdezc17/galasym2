@@ -6,9 +6,15 @@ bool   single_image = yes           {prompt = "one image?"}
 
 begin
     # ************* Global variables *************
+    # constants........
+    real const_pi
     # Parameters:
-    real ri_ann, ro_ann
+    real scale_r_offset
+    real scale_r[99]
+    int r_measure, ri_ann, ro_ann
     int lenght_nx, lenght_ny
+    real xlen_min, ylen_min
+    real A_outer, B_outer
     # System variables
     string my_date, my_time
     string expre
@@ -18,6 +24,13 @@ begin
     int n_list, n_accepted
     string observed_img, measure_img
     string image_list[999], id_obj[999]
+    string id_obj[999]
+    int  seg_number[999]
+    real ra_j00[999], dec_j00[999], ximg_pos[999], yimg_pos[999]
+    real xwin_img[999], ywin_img[999], a_img[999], b_img[999]
+    real ellip[999], theta_j00[999], theta_img[999], theta_rad[999]
+    real petro_r[999], eff_r[999], kron_r[999]
+    real iso_area[999], iso_areaf[999]
     # match list:
     real x0, y0
 
@@ -54,7 +67,19 @@ begin
     # ./data: main output cut frames
     data_dir = "data"
 
-    # ./data/data_files
+    # ./data/images:
+    dataimg_dir = data_dir//"/"//"data_images"
+    # ./data/data_images/segmentation
+    seg_dir = dataimg_dir//"/"//"segmentation"
+    # ./data/data_images/observed
+    obs_dir = dataimg_dir//"/"//"observed"
+    # ./data/data_images/model
+    mod_dir = dataimg_dir//"/"//"model"
+    # ./data/data_images/residual
+    res_dir = dataimg_dir//"/"//"residual"
+    # ./data/data_images/background
+    bg_dir = dataimg_dir//"/"//"background"
+    # ./data/data_files:
     datafiles_dir = data_dir//"/"//"data_files"
 
     # ./config
@@ -75,7 +100,14 @@ begin
     outsex_dir = data_dir//"/"//"results_sex"
 
     # ASIGNACIÓN DE VARIABLES -------------------------
+    const_pi = 3.1415926535897932385
     ro_ann = 3.0
+    scale_r_offset = 0.25
+
+    # VECTOR FOR ELLIPTICAL APERTURES in Petrosian radius
+    for(i=1; i<=96; i+=1){
+        scale_r[i] = scale_r_offset + (0.05 * (i-1))
+    }
 
     config_sex = sex_dir//"/"//"default.sex"
     param_sex  = sex_dir//"/"//"default.param"
@@ -93,6 +125,7 @@ begin
     tmp_bool = no
 
     print(" TASK: galaxy_model")
+
     if(single_image == yes){print(" image: list from single image")}
     else{print(" image: list from list of images")}
 
@@ -158,7 +191,16 @@ begin
 
     # VERIFICAR EXISTENCIA DE CARPETAS
     if(!access(data_dir)){mkdir(data_dir)}           # main output: ./data
+    # ------------------------------------
+    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
+    if(!access(seg_dir)){mkdir(seg_dir)}
+    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
+    if(!access(mod_dir)){mkdir(mod_dir)}               # model images:       ./data/images/model
+    if(!access(res_dir)){mkdir(res_dir)}               # residual images:    ./data/images/residual
+    if(!access(bg_dir)){mkdir(bg_dir)}
+    # ------------------------------------
     if(!access(datafiles_dir)){mkdir(datafiles_dir)}
+    # ------------------------------------
     if(!access(outsex_dir)){mkdir(outsex_dir)}
 
     re_run_sex:
@@ -245,6 +287,7 @@ begin
 
     # ========================================================================
     # Ejecutar match y concatenacion de lista a pesar de no correr SExtractor:
+    # ========================================================================
     print("\n------------------------------------------\n")
     re_run_match:
 
@@ -313,6 +356,7 @@ begin
         if(tmp_bool == yes){
 
             delete(list_models, ver-, >& "dev$null")
+            print("")
 
             goto re_run_match
 
@@ -322,66 +366,124 @@ begin
     }
 
     # ========================================================================
-    # :
-    print("")
+    # Verificar tamaño de imagen (i.e. de las que ya vienen cortadas)
+    # ========================================================================
 
-    # lectura de parametros ajustados por SEx:
+    # leer resultados de SEx:
     list = outsex_dir//"/"//"sextracted.cat"
     i = 0
-    while(fscan(list, line) != EOF){
-        if(line != "" && substr(line, 1, 1) != "#"){
+    while(fscan(list,line) != EOF){
+        if(line != "" && substr(line,1,1) != "#" ){
+
             i = i + 1
 
             print(line) | scan(id_obj[i], seg_number[i], ra_j00[i], dec_j00[i], xwin_img[i], ywin_img[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i])
 
-            petro_r[i] = petro_r[i] / 2 # By default for SEx
+            petro_r[i] = petro_r[i] / 2
+            # theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
+            theta_rad[i] = theta_img[i] * const_pi / 180
         }
     }
     n_list = i
 
-    # ciclo para verificar tamaños de imagenes:
-    for(i=1; i<=n_list; i+=1){
+    # catalog
+    printf("#%31s  %9s  %6s  %6s\n", "ID", "r_measure", "ri_ann", "ro_ann", > outsex_dir//"/"//"images_to_index.ascii")
 
-        # directorio de check-images:
-        observed_img = obs_dir//"/"//id_obj[i]//".fits"
-        smooth_img   = obs_dir//"/"//id_obj[i]//"_smooth.fits"
-        segmen_img   = seg_dir//"/"//id_obj[i]//"_segmen.fits"
-        bg_img       = bg_dir//"/"//id_obj[i]//"_bg.fits"
-        no_objs_img  = bg_dir//"/"//id_obj[i]//"_no_objs.fits"
-        bgrms_img    = bg_dir//"/"//id_obj[i]//"_bgrms.fits"
-        model_img    = mod_dir//"/"//id_obj[i]//"_mod.fits"
-        residual_img = res_dir//"/"//id_obj[i]//"_res.fits"
+    for(i=1;i<=n_list;i+=1){
 
-        # Todas tienen el mismo tamaño que 'observed_img'.
-        # - Vienen de una sola imagen: el mismo tamaño
-        # - Viene de imagenes separadas, precaucion!
+        tmp_bool = no
+
+        # Todas las imagenes derivan el tamaño de observacion:
+        observed_img = image_list[i]
+
+        if(!imaccess(observed_img)){
+            printf("\n Not access!\n -img: '%s'\n", observed_img)
+            # continue ?
+            tmp_string = " "
+            while(tmp_string != "s" && tmp_string != "q"){
+                print("\n Program is in PAUSE.")
+                print(" Press 's' to skyp object,")
+                printf(" or 'q' to exit task: ")
+                scan(tmp_string)
+                tmp_string = strlwr(tmp_string)
+                if(tmp_string == "s"){
+                    tmp_bool = yes
+                    break
+                }else{
+                    goto exit_task
+                }
+            }
+        }
+
+        if(tmp_bool == yes){
+            next
+        }
+
+        # Tamaño de la imagen:
         imgets(observed_img, "naxis1")
         lenght_nx = int(imgets.value)
         imgets(observed_img, "naxis2")
         lenght_ny = int(imgets.value)
 
-        # Lado del cuadrado a recortar (L = 2*4*1r/rp pix.)
-        side_frame[i] = 2 * (ro_ann) * (petro_r[i] * a_img[i])
+        # Tamaño minimo aceptado para extraer cielo:
+        A_outer = scale_r[46] * petro_r[i] * a_img[i]
+        B_outer = scale_r[46] * petro_r[i] * b_img[i]
+        # imagen que circunscribe la elipse rotada:
+        xlen_min = 2 * sqrt((A_outer * cos(theta_rad[i]))**2 + (B_outer * sin(theta_rad[i]))**2)
+        ylen_min = 2 * sqrt((A_outer * sin(theta_rad[i]))**2 + (B_outer * cos(theta_rad[i]))**2)
 
-        if(lenght_nx < side_frame[i] && lenght_ny < side_frame[i]){
+        # Cumple tamaño minimo:
+        if(lenght_nx >= xlen_min && lenght_ny >= ylen_min){
 
+            # Puede cumplir el tamaño esperado:
+            A_outer = scale_r[56] * petro_r[i] * a_img[i]
+            B_outer = scale_r[56] * petro_r[i] * b_img[i]
+            xlen_min = 2 * sqrt((A_outer * cos(theta_rad[i]))**2 + (B_outer * sin(theta_rad[i]))**2)
+            ylen_min = 2 * sqrt((A_outer * sin(theta_rad[i]))**2 + (B_outer * cos(theta_rad[i]))**2)
+            # Asignar valores por defecto:
+            if(lenght_nx >= xlen_min && lenght_ny >= ylen_min){
+                r_measure = 26
+                ri_ann = 36
+                ro_ann = 56
+            }else{
+                # reduce el cielo
+                r_measure = 26
+                ri_ann = 30
+                ro_ann = 46
+            }
 
+        # Requere una imagen para extraer cielo
+        }else{
 
+            # Tamaño minimo para medida:
+            A_outer = scale_r[26] * petro_r[i] * a_img[i]
+            B_outer = scale_r[26] * petro_r[i] * b_img[i]
+            xlen_min = 2 * sqrt((A_outer * cos(theta_rad[i]))**2 + (B_outer * sin(theta_rad[i]))**2)
+            ylen_min = 2 * sqrt((A_outer * sin(theta_rad[i]))**2 + (B_outer * cos(theta_rad[i]))**2)
+
+            # Tamaño menor a medida:
+            if(lenght_nx >= xlen_min && lenght_ny >= ylen_min){
+                # requiere imagen aparte del cielo:
+                r_measure = 26
+                ri_ann = -1
+                ro_ann = -1
+
+            # No es posible medir
+            }else{
+                r_measure = -1
+                ri_ann = -1
+                ro_ann = -1
+            }
         }
 
-
-        # Vertices del cuadrado:
-        px1 = int(xwin_img[i] - (side_frame[i] / 2.0)) + 1
-        px2 = int(xwin_img[i] + (side_frame[i] / 2.0))
-        py1 = int(ywin_img[i] - (side_frame[i] / 2.0)) + 1
-        py2 = int(ywin_img[i] + (side_frame[i] / 2.0))
-        # Seccion a recortar:
-        trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
-        #--------------------------------
+        # Lista de imagenes a calcular indice
+        tmp_string = outsex_dir//"/"//"images_to_index.ascii"
+        printf("%32s  %9d  %6d  %6d\n", id_obj[i], r_measure, ri_ann, ro_ann, >> tmp_string)
     }
 
-
-
+    # Copiar para visualizar por usuario
+    tmp_string = outsex_dir//"/"//"images_to_index.ascii"
+    copy(tmp_string, data_dir//"/"//"images_to_index.ascii")
 
 
     exit_task:
