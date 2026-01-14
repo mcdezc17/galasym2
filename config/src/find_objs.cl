@@ -11,19 +11,24 @@ procedure find_objs()
 # GALASYM2 (MAC OS) ALL COMMENTS IHERITED
 
 string measure_img = "A496J.fits"                   {prompt = "FITS observed data"}
-string radec_list  = "tables/members_A496J.ascii"   {prompt = "[deg] members list [ascii] to match"}
+string inputlist  = "tables/members_A496J.ascii"   {prompt = "Or xy-image positions."}
+real   pix_scale   = 0.3                            {prompt = "Pixel scale (arcsec/pixel)"}
+real   clredshift  = 0.033                          {prompt = "Redshift cluster (e.g. 0.033"}
+string obj_center  = "71"                            {prompt = "Center (or 'no','ch')"}
+string key_sex     = "sex"                          {prompt = "Keyword to run SExtractor"}
+string key_psfex   = "psfex"                        {prompt = "Keyword to run PSFEx"}
+string key_ds9     = "ds9"                          {prompt = "Keyword to run DS9 viewer"}
+bool   index_calc  = no                             {prompt = "To skyp index calculation"}
+# --------------------------------------------------------------------------------------------
+string detect_img  = "no"                           {prompt = "Detection image for SExtractor"}
 real   low_clip    = 1.00                           {prompt = "Low-clip (relative to rms_sky)"}
 string hicntr_clip = "10.0"                         {prompt = "Up-clip center/bulge (integer or 'off')"}
 string hioutr_clip = "10.0"                         {prompt = "Up-clip outer/disk (integer or 'off')"}
-real   pix_scale   = 0.3                            {prompt = "Pixel scale (arcsec/pixel)"}
-real   clredshift  = 0.033                          {prompt = "Cluster redshift (e.g. 0.033"}
-string obj_center  = "71"                           {prompt = "BC-Glxy (integer in radeclist or 'no','ch')"}
-bool   index_calc  = no                             {prompt = "To skyp index calculation"}
 bool   edit_mode   = no                             {prompt = "Edit objects to recompute indexes"}
-string key_sex     = "sex"                          {prompt = "Keyword to run SExtractor"}
-string detect_img  = "no"                           {prompt = "Detection image for SExtractor"}
-string key_psfex   = "psfex"                        {prompt = "Keyword to run PSFEx"}
-string key_ds9     = "ds9"                          {prompt = "Keyword to run DS9 viewer"}
+struct *list
+
+
+
 #string input_list  = "no"                          {prompt = "List of objects to analyze (ascii)"}
 #real   gbl_index  = 2.00                           {prompt = "Aperture for index (in petrosian radius)"}
 # bool   model_fit   = yes                          {prompt = "Run PSFEx + SExtractor?"}
@@ -31,9 +36,19 @@ string key_ds9     = "ds9"                          {prompt = "Keyword to run DS
 
 begin
 
-    # DEFINICIÓN DE VARIABLES ==============================
-
-    # ************* Global variables *************
+    # ************* DEFINICIÓN DE VARIABLES *************
+    # System variables
+    int i, j, k
+    struct line
+    string my_date, my_time
+    real tmp_info[199]
+    string line_info
+    string expre, expre1, expre2
+    real meanpix, ttlpix
+    bool model_fit
+    bool ds9_access
+    real tmp_xc[10], tmp_yc[10], tmp_xside[10], tmp_yside[10]
+    int x_limit[10], y_limit[10]
     # constants........
     real const_pi
     # paremeters ......
@@ -44,6 +59,7 @@ begin
     real petro_factor
     real ri_ann, ro_ann
     int lenght_nx, lenght_ny
+    int xc, yc
     # list of objects..
     string folder_img
     string input_list, xyimg_list, objs_in_img
@@ -58,21 +74,11 @@ begin
     int poss_edit[999]
     # to match:
     real x0, y0
-    # System variables
-    string my_date, my_time
-    real tmp_info[199]
-    struct line
-    string line_info
-    string expre, expre1, expre2
-    real meanpix, ttlpix
-    bool model_fit
-    bool ds9_access
-    real tmp_xc[10], tmp_yc[10], tmp_xside[10], tmp_yside[10]
-    int x_limit[10], y_limit[10]
     # Temporal variables:
     int tmp_int, tmp_int2
     bool tmp_bool, tmp_exit_distance
     string tmp_string, tmp_string2, tmp_wait
+    string tmp_file, tmp_outfile
     real tmp_real
 
     # ************* Main folders variables *************
@@ -279,7 +285,7 @@ begin
                 i = i + 1
 
                 # measure_img (prompt) = tmp_info[1]
-                # radec_list  (prompt) = tmp_info[2]
+                # inputlist  (prompt) = tmp_info[2]
                 # detect_img  (prompt) = tmp_info[3]
                 # low_clip    (prompt) = tmp_info[4]
                 # hicen_clip  (prompt) = tmp_info[5]
@@ -321,33 +327,13 @@ begin
     }
     # END  GALASYM2 HISTORY ----------------------------
 
-    print("! date +\"%Y-%m-%d\"") | cl | scan(my_date)
-    print("! date +\"%H:%M:%S\"") | cl | scan(my_time)
-
-    # First terminal output
-    print("")
-
-    # If edit_mode=yes avoid model_fit mode and double image mode
-    clear
-    if(edit_mode != no){
-        model_fit = no
-        detect_img = "no"
-        printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-        print(" TASK: find_objs")
-          print(" mode: recompute edit images")
-    }else{
-        printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-        print(" TASK: find_objs")
-    }
-    # -----------------------------------------------------------
-
+    # No ejecuta la tarea si no existen archivos de entrada:
     # Check that the input FITS observed image exists or is named correctly:
     if(imaccess(measure_img)){
         # Es una imagen.
 
         # Se casume que existe una sola imagen
         single_image = yes
-        print(" image: single")
 
         # Tiene extension fits? Añadir ".fits"
         tmp_string = measure_img//".fits"
@@ -376,14 +362,45 @@ begin
         # Accede al directorio?
         if(!access(measure_img)){
             # No es una imagen, ni una carpeta
-            print(" WRNNG: check image directory.")
+            print("\n ERR: check image directory")
+            print("        i.e. 'eparam find_objs'\n")
             print("        Abort task! Try again.")
             goto exit_task
 
         }else{
-            print(" image: list")
             single_image = no
             folder_img = measure_img
+        }
+    }
+
+    # Si es una sola imagen, requiere lista de objetos:
+    if(single_image == yes){
+        if(!access(inputlist)){
+            # No accede a lista de objetos en la imagen
+            print("\n ERR: object's list in image")
+            print("        must exists!\n")
+            print("        Abort task! Try again.")
+            goto exit_task
+
+        }else{
+            # Se requieren coord-pixels. Si es RA/DEC, hacer:
+            # delete(datafiles_dir//"/"//"valid_inputlist.ascii", ver-, >& "dev$null")
+            # list = inputlist
+            # i = 0
+            # while(fscan(list,line) != EOF){
+            #     if(line != "" && substr(line,1,1) != "#"){
+            #         i = i + 1
+            #         print(line, >> datafiles_dir//"/"//"valid_inputlist.ascii")
+            #     }
+            # }
+
+            # solo entradas validas (no vacias ni numeral)
+            # tmp_string = datafiles_dir//"/"//"valid_inputlist.ascii"
+            tmp_string = inputlist
+            # leer posiciones de la region DS9
+            xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
+            # Convertir posiciones RA/DEC TO X/Y_IMAGE de la lista de entrada 'inputlist'
+            wcsctran(tmp_string, xyimg_list, image=measure_img, inwcs="world", outwcs="logical", columns="2,3")
         }
     }
 
@@ -407,6 +424,28 @@ begin
     }
     # .........................
 
+    print("! date +\"%Y-%m-%d\"") | cl | scan(my_date)
+    print("! date +\"%H:%M:%S\"") | cl | scan(my_time)
+
+    # First terminal output
+    print("")
+
+    # If edit_mode=yes avoid model_fit mode and double image mode
+    clear
+    if(edit_mode != no){
+        model_fit = no
+        detect_img = "no"
+        printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
+        print(" TASK: find_objs")
+          print(" mode: recompute edit images")
+    }else{
+        printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
+        print(" TASK: find_objs")
+    }
+    if(single_image == yes){print(" image: single")}
+    else{print(" image: list")}
+    # -----------------------------------------------------------
+
     # FOLDER VERIFICATION OR CREATION ----------------------------
     # if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
     # if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
@@ -418,14 +457,11 @@ begin
 
     # IDENTIFICAR UNA O VARIAS IMAGENES: encontrar objetos en la imagen
     if(single_image == yes){
+
         # SI ES UNA SOLA IMAGEN ===================================================
+        # Ya se transformo la lista de posiciones a pixeles (wcsctran task):
 
-        # leer posiciones de la region DS9
-        xyimg_list = datafiles_dir//"/"//"xyimg_list.ascii"
-        # Convertir posiciones RA/DEC TO X/Y_IMAGE de la lista de entrada 'radec_list'
-        wcsctran(radec_list, xyimg_list, image = measure_img, inwcs="world", outwcs="logical", columns="2,3")
-
-        # Crear el margen de imagen efectiva si no existe + objetos de 'radec_list'
+        # Crear el margen de imagen efectiva si no existe + objetos de 'inputlist'
         tmp_string = datafiles_dir//"/"//"effective_image.reg"
         if(!access(tmp_string)){
 
@@ -484,7 +520,7 @@ begin
         }
         print("")
 
-        # Hacer mathc entre posiciones dentro de la imagen efectiva y la lista 'radec_list'
+        # Hacer mathc entre posiciones dentro de la imagen efectiva y la lista 'inputlist'
         # Si ya existe region de imagen efectiva:
 
         # obtiene centro (x,y) y lados (lx, ly):
@@ -531,38 +567,72 @@ begin
         }
         n_list = i
 
+        # =========================================
         # Calcular tamaño y recortar:
-        delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
-        delete(datafiles_dir//"/"//"list_of_imgs_trimsection.ascii", ver-, >& "dev$null")
+        # =========================================
+        # Encabezado de catalogo $accepted_imgs.ascii:
+        # delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
+        printf("#%31s %s\n", "ID", "PATH_IMAGE", > datafiles_dir//"/"//"accepted_imgs.ascii")
+        # Encabezado de catalogo trimsections de imagen de entrada:
+        # delete(datafiles_dir//"/"//"list_of_imgs_trimsection.ascii", ver-, >& "dev$null")
+        printf("#%31s %s\n", "ID", "PATHIMG_TRIM", > datafiles_dir//"/"//"list_of_imgs_trimsection.ascii")
+
         for(i = 1; i <= n_list; i += 1){
+
             # Tamaño de la imagen: (100 kiloparsecs)
             side_frame[i] = 100 / (kp_DA * pix_scale)
+
+            # Asgurar 'side_frame' entero positivo impar:
+            if(side_frame[i] % 2 == 0){
+                side_frame[i] = side_frame[i] + 1
+            }
+
+            # Centro entero más cercano al sub-pixel estimado
+            xc = ximg_pos[i]
+            if((ximg_pos[i] - xc) >= 0.5){
+                xc = xc + 1
+            }
+            # para y:
+            yc = yimg_pos[i]
+            if((yimg_pos[i] - yc) >= 0.5){
+                yc = yc + 1
+            }
+
             # Vertices del frame
-            px1 = int(ximg_pos[i] - (side_frame[i] / 2)) + 1
-            px2 = int(ximg_pos[i] + (side_frame[i] / 2))
-            py1 = int(yimg_pos[i] - (side_frame[i] / 2)) + 1
-            py2 = int(yimg_pos[i] + (side_frame[i] / 2))
+            px1 = xc - int((side_frame[i] - 1) / 2)
+            px2 = xc + int((side_frame[i] - 1) / 2)
+            py1 = yc - int((side_frame[i] - 1) / 2)
+            py2 = yc + int((side_frame[i] - 1) / 2)
+
             # Seccion a recortar:
             trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
-            # crear imagen:
-            tmp_string = obs_dir//"/"//id_obj[i]
-            if(!imaccess(tmp_string)){
-                # Save frames observed:
-                imdelete(obs_dir//"/"//id_obj[i], >& "dev$null")
-                imcopy(measure_img//trimsection, obs_dir//"/"//id_obj[i], verb-)
-            }
-            print(id_obj[i], " ", obs_dir//"/"//id_obj[i]//".fits", >> datafiles_dir//"/"//"accepted_imgs.ascii")
-            print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"accept_imgs_trimsection.ascii")
+            # Save frames observed:
+            imdelete(obs_dir//"/"//id_obj[i], >& "dev$null")
+            imcopy(measure_img//trimsection, obs_dir//"/"//id_obj[i], verb-)
+
+            # print(id_obj[i], " ", obs_dir//"/"//id_obj[i]//".fits", >> datafiles_dir//"/"//"accepted_imgs.ascii")
+            tmp_file = obs_dir//"/"//id_obj[i]//".fits"
+            tmp_outfile = datafiles_dir//"/"//"accepted_imgs.ascii"
+            printf("%32s %s\n", id_obj[i], tmp_file, >> tmp_outfile)
+
+            # print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"accept_imgs_trimsection.ascii")
+            tmp_file = measure_img//trimsection
+            tmp_outfile = datafiles_dir//"/"//"accept_imgs_trimsection.ascii"
+            printf("%32s %s\n", id_obj[i], tmp_file, >> tmp_outfile)
+
+            # Progress bar proccess:
             printf("\r Process (cutting images): %d%%", (i*100/n_list))
         }
 
     }else{
         # SI LAS IMAGENES ESTAN SEPARADAS =======================
 
-        # Resetea archivos de salida (se concatenan!)
+        # Archivo para enlistar imagenes separadas en 'folder' path:
         delete(datafiles_dir//"/"//"input_imgs.ascii", ver-, >& "dev$null")
-        delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
+        # Encabezado de catalogo $accepted_imgs.ascii:
+        # delete(datafiles_dir//"/"//"accepted_imgs.ascii", ver-, >& "dev$null")
+        printf("#%31s %s\n", "ID", "PATH_IMAGE", > datafiles_dir//"/"//"accepted_imgs.ascii")
         delete(datafiles_dir//"/"//"not_imaccess.ascii", ver-, >& "dev$null")
 
         # Enlistar los archivos:
@@ -592,10 +662,16 @@ begin
                 }
 
                 if(!imaccess(tmp_string2)){
-                    print(tmp_string, " ", tmp_string2, >> datafiles_dir//"/"//"not_imaccess.ascii")
+                    # print(tmp_string, " ", tmp_string2, >> datafiles_dir//"/"//"not_imaccess.ascii")
+                    tmp_outfile = datafiles_dir//"/"//"not_imaccess.ascii"
+                    printf("%32s %s\n", tmp_string, tmp_string2, >> tmp_outfile)
+
                 }else{
+                    # contador de imagenes aceptadas en la carpeta:
                     j = j + 1
-                    print(tmp_string, " ", tmp_string2, >> datafiles_dir//"/"//"accepted_imgs.ascii")
+                    # print(tmp_string, " ", tmp_string2, >> datafiles_dir//"/"//"accepted_imgs.ascii")
+                    tmp_outfile = datafiles_dir//"/"//"accepted_imgs.ascii"
+                    printf("%32s %s\n", tmp_string, tmp_string2, >> tmp_outfile)
                 }
             }
         }
@@ -770,13 +846,13 @@ begin
             copy(cat_sex, tmp_string)
         }
 
-        print(" - Table 1(in1): ", radec_list)
+        print(" - Table 1(in1): ", inputlist)
         print(" - Table 2(in2): ", tmp_string)
 
         # Ejecutar comando Join Match like Topcat
         delete(cache_dir//"/"//"match_list.cat", ver-, >& "dev$null")
         expre = "! stilts tskymatch2 in1=%s ifmt1=ascii in2=%s ifmt2=ascii ra1=RA dec1=DEC ra2=col2 dec2=col3 error=4 find=best ofmt=ascii out=%s/match_list.cat > /dev/null 2>&1\n"
-        printf(expre, radec_list, tmp_string, cache_dir) | cl
+        printf(expre, inputlist, tmp_string, cache_dir) | cl
 
         print(" >> Match table: ", cache_dir//"/"//"match_list.cat")
         print("")
@@ -796,7 +872,7 @@ begin
         print("")
         print("-------------------------------------------------------------")
         print(" Output information")
-        print(" Table 1:", radec_list)
+        print(" Table 1:", inputlist)
         print(" Table 2: alpha_dir/sextracted_list.cat")
         print(" Table 1&2 match: alpha_dir/inputlist.cat")
         print("------------------ END STILTS MATCH -------------------------\n")

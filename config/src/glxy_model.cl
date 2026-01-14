@@ -2,29 +2,33 @@ procedure glxy_model(inputlist, single_image)
 
 string inputlist    = "objs_list"   {prompt = "list of objects"}
 string key_sex      = "sex"         {prompt = "Keyword to run SExtractor"}
-bool   single_image = yes           {prompt = "one image?"}
+bool   single_image = yes           #{prompt = "one image?"}
 
 begin
-    # ************* Global variables *************
+    # ************* Variables Definition *************
+    # System variables
+    int i, j, k
+    struct line
+    string my_date, my_time
+    string expre
+    bool re_run_bool
     # constants........
     real const_pi
     # Parameters:
     real scale_r_offset
     real scale_r[99]
-    int r_measure, ri_ann, ro_ann
+    int r_measure
+    int ri_ann[999], ro_ann[999]
     int lenght_nx, lenght_ny
-    real xlen_min, ylen_min
+    int xc[999], yc[999], xlen_min[999], ylen_min[999]
     real A_outer, B_outer
-    # System variables
-    string my_date, my_time
-    string expre
-    bool re_run_bool
-    struct line
+    string flag_size
+    real pix_scale
+    real tmp_ra[999], tmp_dec[999]
     # list of objects..
     int n_list, n_accepted
     string observed_img, measure_img
     string image_list[999], id_obj[999]
-    string id_obj[999]
     int  seg_number[999]
     real ra_j00[999], dec_j00[999], ximg_pos[999], yimg_pos[999]
     real xwin_img[999], ywin_img[999], a_img[999], b_img[999]
@@ -36,7 +40,7 @@ begin
 
     # Temporal variables:
     int tmp_int
-    string tmp_string, tmp_id_obj
+    string tmp_string, tmp_string2, tmp_string3, tmp_id_obj, tmp_image, tmp_infile, tmp_outfile, tmp_wait
     bool tmp_bool
 
     # ************* Main folders variables *************
@@ -101,8 +105,9 @@ begin
 
     # ASIGNACIÓN DE VARIABLES -------------------------
     const_pi = 3.1415926535897932385
-    ro_ann = 3.0
+    # ro_ann[k] = 3.0
     scale_r_offset = 0.25
+    pix_scale = 0.3
 
     # VECTOR FOR ELLIPTICAL APERTURES in Petrosian radius
     for(i=1; i<=96; i+=1){
@@ -169,6 +174,7 @@ begin
     }
     n_list = i
     n_accepted = j
+    list = ""
 
     # AVISO SI NO SE ACCEDE A ALGUNAS IMAGENES
     if(n_accepted < n_list){
@@ -206,6 +212,7 @@ begin
     re_run_sex:
 
     list_cat_sex   = outsex_dir//"/"//"inlist.lis"
+    list_models = data_dir//"/"//"sextracted.cat"
     # list_bgrms_img = datafiles_dir//"/"//"data_list_rms_img.ascii"
     # list_residual_img   = datafiles_dir//"/"//"data_list_residl_imgs.ascii"
 
@@ -339,7 +346,11 @@ begin
         expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/inlist.lis) > %s/sextracted.cat"
         printf(expre, outsex_dir, outsex_dir) | cl
 
-        copy(outsex_dir//"/"//"sextracted.cat", data_dir//"/"//"sextracted.cat")
+        # Copiar para visualizar catalogo de modelos SEx:
+        tmp_infile = outsex_dir//"/"//"sextracted.cat"
+        tmp_outfile = data_dir//"/"//"sextracted.cat"
+        delete(tmp_outfile, ver-, >& "dev$null")
+        copy(tmp_infile, tmp_outfile)
 
         print("\n - Process (concat.): Ok.")
 
@@ -362,129 +373,226 @@ begin
 
         }else{
             print("\n - No match & concat!")
+            # goto exit_task
         }
     }
 
     # ========================================================================
     # Verificar tamaño de imagen (i.e. de las que ya vienen cortadas)
     # ========================================================================
+    # input/output de wcsctran:
+    # delete(outsex_dir//"/"//"list_wcstran.ascii", ver-, >& "dev$null")
+    printf("#%31s %5d %5d\n", "ID", "Xc", "Yc", > outsex_dir//"/"//"xycenter_images.ascii")
+    #delete(outsex_dir//"/"//"list_images.ascii", ver-, >& "dev$null")
+
+    # cabecera regiones ds9:
+    print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"glxys_in_image.reg")
+    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"glxys_in_image.reg")
+    print("fk5", >> datafiles_dir//"/"//"glxys_in_image.reg")
 
     # leer resultados de SEx:
     list = outsex_dir//"/"//"sextracted.cat"
-    i = 0
+    k = 0
     while(fscan(list,line) != EOF){
+
         if(line != "" && substr(line,1,1) != "#" ){
 
-            i = i + 1
+            k = k + 1
 
-            print(line) | scan(id_obj[i], seg_number[i], ra_j00[i], dec_j00[i], xwin_img[i], ywin_img[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i])
+            # Todas las imagenes derivan el tamaño de observacion:
+            observed_img = image_list[k]
 
-            petro_r[i] = petro_r[i] / 2
+            # Tamaño de la imagen:
+            imgets(observed_img, "naxis1")
+            lenght_nx = int(imgets.value)
+            imgets(observed_img, "naxis2")
+            lenght_ny = int(imgets.value)
+
+            # Los SEx-parametros de cada objeto [k]:
+            # Se ajustara x/ywin_img -> x/yc ==> tmp_ra/dec[] -> ra/dec_j00[]
+            print(line) | scan(id_obj[k], seg_number[k], tmp_ra[k], tmp_dec[k], xwin_img[k], ywin_img[k], a_img[k], b_img[k], ellip[k], theta_j00[k], theta_img[k], kron_r[k], petro_r[k], eff_r[k], iso_area[k], iso_areaf[k])
+
+            # correcciones:
+            petro_r[k] = petro_r[k] / 2
             # theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
-            theta_rad[i] = theta_img[i] * const_pi / 180
-        }
-    }
-    n_list = i
+            theta_rad[k] = theta_img[k] * const_pi / 180
 
-    # catalog
-    printf("#%31s  %9s  %6s  %6s\n", "ID", "r_measure", "ri_ann", "ro_ann", > outsex_dir//"/"//"images_to_index.ascii")
+            # el pixel mas cercano al SEx-centro:
+            xc[k] = xwin_img[k]
+            if((xwin_img[k] - xc[k]) >= 0.5){
+                xc[k] = xc[k] + 1
+            }
+            # para y:
+            yc[k] = ywin_img[k]
+            if((ywin_img[k] - yc[k]) >= 0.5){
+                yc[k] = yc[k] + 1
+            }
 
-    for(i=1;i<=n_list;i+=1){
+            # Tamaño minimo aceptado para extraer cielo:
+            A_outer = scale_r[46] * petro_r[k] * a_img[k] + 0.5
+            B_outer = scale_r[46] * petro_r[k] * b_img[k] + 0.5
+            # imagen que circunscribe la elipse rotada:
+            xlen_min[k] = 2 * sqrt((A_outer * cos(theta_rad[k]))**2 + (B_outer * sin(theta_rad[k]))**2)
+            ylen_min[k] = 2 * sqrt((A_outer * sin(theta_rad[k]))**2 + (B_outer * cos(theta_rad[k]))**2)
+            # asegurar len_min entero impar:
+            if(xlen_min[k] % 2 == 0){xlen_min[k] = xlen_min[k] + 1}
+            if(ylen_min[k] % 2 == 0){ylen_min[k] = ylen_min[k] + 1}
 
-        tmp_bool = no
+            # Cumple tamaño minimo:
+            if(lenght_nx >= xlen_min[k] && lenght_ny >= ylen_min[k]){
 
-        # Todas las imagenes derivan el tamaño de observacion:
-        observed_img = image_list[i]
+                # Puede cumplir el tamaño esperado:
+                A_outer = scale_r[56] * petro_r[k] * a_img[k] + 0.5
+                B_outer = scale_r[56] * petro_r[k] * b_img[k] + 0.5
+                xlen_min[k] = 2 * sqrt((A_outer * cos(theta_rad[k]))**2 + (B_outer * sin(theta_rad[k]))**2)
+                ylen_min[k] = 2 * sqrt((A_outer * sin(theta_rad[k]))**2 + (B_outer * cos(theta_rad[k]))**2)
+                # asegurar len_min entero impar:
+                if(xlen_min[k] % 2 == 0){xlen_min[k] = xlen_min[k] + 1}
+                if(ylen_min[k] % 2 == 0){ylen_min[k] = ylen_min[k] + 1}
 
-        if(!imaccess(observed_img)){
-            printf("\n Not access!\n -img: '%s'\n", observed_img)
-            # continue ?
-            tmp_string = " "
-            while(tmp_string != "s" && tmp_string != "q"){
-                print("\n Program is in PAUSE.")
-                print(" Press 's' to skyp object,")
-                printf(" or 'q' to exit task: ")
-                scan(tmp_string)
-                tmp_string = strlwr(tmp_string)
-                if(tmp_string == "s"){
-                    tmp_bool = yes
-                    break
+                # Asignar valores por defecto:
+                if(lenght_nx >= xlen_min[k] && lenght_ny >= ylen_min[k]){
+                    ri_ann[k] = 36
+                    ro_ann[k] = 56
                 }else{
-                    goto exit_task
+                    # reduce el cielo
+                    ri_ann[k] = 30
+                    ro_ann[k] = 46
                 }
-            }
-        }
 
-        if(tmp_bool == yes){
-            next
-        }
-
-        # Tamaño de la imagen:
-        imgets(observed_img, "naxis1")
-        lenght_nx = int(imgets.value)
-        imgets(observed_img, "naxis2")
-        lenght_ny = int(imgets.value)
-
-        # Tamaño minimo aceptado para extraer cielo:
-        A_outer = scale_r[46] * petro_r[i] * a_img[i]
-        B_outer = scale_r[46] * petro_r[i] * b_img[i]
-        # imagen que circunscribe la elipse rotada:
-        xlen_min = 2 * sqrt((A_outer * cos(theta_rad[i]))**2 + (B_outer * sin(theta_rad[i]))**2)
-        ylen_min = 2 * sqrt((A_outer * sin(theta_rad[i]))**2 + (B_outer * cos(theta_rad[i]))**2)
-
-        # Cumple tamaño minimo:
-        if(lenght_nx >= xlen_min && lenght_ny >= ylen_min){
-
-            # Puede cumplir el tamaño esperado:
-            A_outer = scale_r[56] * petro_r[i] * a_img[i]
-            B_outer = scale_r[56] * petro_r[i] * b_img[i]
-            xlen_min = 2 * sqrt((A_outer * cos(theta_rad[i]))**2 + (B_outer * sin(theta_rad[i]))**2)
-            ylen_min = 2 * sqrt((A_outer * sin(theta_rad[i]))**2 + (B_outer * cos(theta_rad[i]))**2)
-            # Asignar valores por defecto:
-            if(lenght_nx >= xlen_min && lenght_ny >= ylen_min){
-                r_measure = 26
-                ri_ann = 36
-                ro_ann = 56
+            # Requere una imagen para extraer cielo
             }else{
-                # reduce el cielo
-                r_measure = 26
-                ri_ann = 30
-                ro_ann = 46
+
+                # Tamaño minimo para medida:
+                A_outer = scale_r[26] * petro_r[k] * a_img[k] + 0.5
+                B_outer = scale_r[26] * petro_r[k] * b_img[k] + 0.5
+                xlen_min[k] = 2 * sqrt((A_outer * cos(theta_rad[k]))**2 + (B_outer * sin(theta_rad[k]))**2)
+                ylen_min[k] = 2 * sqrt((A_outer * sin(theta_rad[k]))**2 + (B_outer * cos(theta_rad[k]))**2)
+                # asegurar len_min entero impar:
+                if(xlen_min[k] % 2 == 0){xlen_min[k] = xlen_min[k] + 1}
+                if(ylen_min[k] % 2 == 0){ylen_min[k] = ylen_min[k] + 1}
+
+                # Tamaño menor a medida:
+                if(lenght_nx >= xlen_min[k] && lenght_ny >= ylen_min[k]){
+                    # requiere imagen aparte del cielo:
+                    ri_ann[k] = -1
+                    ro_ann[k] = -1
+                # No es posible medir
+                }else{
+                    ri_ann[k] = -1
+                    ro_ann[k] = -1
+                }
+            #END condicional: verificacion de tamaño
             }
 
-        # Requere una imagen para extraer cielo
-        }else{
+            # Tamaño minimo aceptado para extraer cielo:
+            A_outer = scale_r[ro_ann[k]] * petro_r[k] * a_img[k] + 0.5
+            B_outer = scale_r[ro_ann[k]] * petro_r[k] * b_img[k] + 0.5
+            # imagen que circunscribe la elipse rotada:
+            xlen_min[k] = 2 * sqrt((A_outer * cos(theta_rad[k]))**2 + (B_outer * sin(theta_rad[k]))**2)
+            ylen_min[k] = 2 * sqrt((A_outer * sin(theta_rad[k]))**2 + (B_outer * cos(theta_rad[k]))**2)
+            # asegurar len_min entero impar:
+            if(xlen_min[k] % 2 == 0){xlen_min[k] = xlen_min[k] + 1}
+            if(ylen_min[k] % 2 == 0){ylen_min[k] = ylen_min[k] + 1}
 
-            # Tamaño minimo para medida:
-            A_outer = scale_r[26] * petro_r[i] * a_img[i]
-            B_outer = scale_r[26] * petro_r[i] * b_img[i]
-            xlen_min = 2 * sqrt((A_outer * cos(theta_rad[i]))**2 + (B_outer * sin(theta_rad[i]))**2)
-            ylen_min = 2 * sqrt((A_outer * sin(theta_rad[i]))**2 + (B_outer * cos(theta_rad[i]))**2)
+            # Centros de la imagen a transformar:
+            # lista para wcstran:
+            printf("%32s %5d %5d\n", id_obj[k], xc[k], yc[k], > outsex_dir//"/"//k//"_xycenter.ascii")
+            # y para verificar (seguimiento):
+            printf("%32s %5d %5d\n", id_obj[k], xc[k], yc[k], >> outsex_dir//"/"//"xycenter_images.ascii")
 
-            # Tamaño menor a medida:
-            if(lenght_nx >= xlen_min && lenght_ny >= ylen_min){
-                # requiere imagen aparte del cielo:
-                r_measure = 26
-                ri_ann = -1
-                ro_ann = -1
+            # ============================================
+            # WCSCTRAN: Transformar coordenadas X,Y -> RA,DEC
+            # ============================================
+            # CRÍTICO: Copiar imagen del array a variable simple ANTES de llamar wcsctran
+            tmp_infile = outsex_dir//"/"//k//"_xycenter.ascii"
+            tmp_outfile = outsex_dir//"/"//k//"_sky.ascii"
 
-            # No es posible medir
-            }else{
-                r_measure = -1
-                ri_ann = -1
-                ro_ann = -1
-            }
+            # Escribir comando en script temporal
+            printf("wcsctran(input='%s', output='%s', image='%s', inwcs='logical', outwcs='world', columns='2,3')\n", tmp_infile, tmp_outfile, observed_img) | cl
+
+        # END if: lines no comentadas no vacias
         }
+    #ENd WHILE: Lectura lista SEx
+    }
+    list = ""
+    if(k != n_accepted){
+        print(" WRNNG: the number of k-wcsctrans-")
+        print("      formation is not as expected!")
+        print("\n Pause process...")
+        scan(tmp_wait)
+    }
 
-        # Lista de imagenes a calcular indice
-        tmp_string = outsex_dir//"/"//"images_to_index.ascii"
-        printf("%32s  %9d  %6d  %6d\n", id_obj[i], r_measure, ri_ann, ro_ann, >> tmp_string)
+    # ============================================
+    # Lectura de posiciones ajustadas:
+    # ============================================
+    # Cabecera de SKYcoord ajustadas
+    printf("#%31s %12d %12d\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.ascii")
+    # Cabecera de parametros (ajustados) del modelo
+    expre = "# ID SEG_ID RA DEC XCNTR_IMG YCNTR_IMG A_IMG B_IMG ELLIP PA THET_IMG KRON_R PETRO_R EFF_R ISO_A ISO_AF RI_ANN RO_ANN XMIN_LENG YMIN_LENG"
+    print(expre, > outsex_dir//"/"//"params_to_index.ascii")
+
+    for(i=1;i<=n_accepted;i+=1){
+
+        list = outsex_dir//"/"//i//"_sky.ascii"
+
+        while(fscan(list,line) != EOF){
+            if(line != "" && substr(line,1,1) != "#"){
+
+                print(line) | scan (id_obj[i], ra_j00[i], dec_j00[i])
+                printf("%32s %12f %12f\n", id_obj[i], ra_j00[i], dec_j00[i], >> outsex_dir//"/"//"skycenter_images.ascii")
+
+            # END IF: lineas validas
+            }
+        # END WHILE: lectura lista
+        }
+        list = ""
+
+        # ----------------------------------------------
+        # Imprimir catalogo de parametros del modelo (ajustados)
+        # ----------------------------------------------
+        print(id_obj[i], " ", seg_number[i], " ", ra_j00[i], " ", dec_j00[i], " ", xc[i], " ", yc[i], " ", a_img[i], " ", b_img[i], " ", ellip[i], " ", theta_j00[i], " ", theta_img[i], " ", kron_r[i], " ", petro_r[i], " ", eff_r[i], " ", iso_area[i], " ", iso_areaf[i], " ", ri_ann[i], " ", ro_ann[i], " ", xlen_min[i], " ", ylen_min[i], >> outsex_dir//"/"//"params_to_index.ascii")
+
+        # ----------------------------------------------
+        # Crear regiones DS9:
+        # ----------------------------------------------
+        # caja que inscribe la elipse rotada:
+        expre = 'box('//ra_j00[i]//','//dec_j00[i]//','//(xlen_min[i] * pix_scale)//'",'//(ylen_min[i] * pix_scale)//'",360) # color=green  text={'//id_obj[i]//'}'
+        print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
+        # refrence (3A,3B) aperture: eliptical
+        expre = 'ellipse('//ra_j00[i]//','//dec_j00[i]//','//str(3 * a_img[i] * pix_scale)//'",'//str(3 * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=green dash=1 text={SEx fit}'
+        print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
+        # elipse de un radio Petrosian (1 rp):
+        expre = 'ellipse('//ra_j00[i]//','//dec_j00[i]//','//str(petro_r[i] * a_img[i] * pix_scale)//'",'//str(petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={1}'
+        print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
+        # elipse de 1.5 rp:
+        expre = 'ellipse('//ra_j00[i]//','//dec_j00[i]//','//str(1.5 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={1.5}'
+        print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
+        # elipse cielo int (ro_ann[k] = 2 rp):
+        expre = 'ellipse('//ra_j00[i]//','//dec_j00[i]//','//str(2 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=blue text={2}'
+        print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
+        # elipse cielo ext (ro_ann[k] = 3 rp)
+        expre = 'ellipse('//ra_j00[i]//','//dec_j00[i]//','//str(3 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(3 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=blue text={3rp}'
+        print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
+
+        # Eliminar listas de transformacion WCSTRAN:
+        delete(outsex_dir//"/"//i//"_xycenter.ascii", ver-, >& "dev$null")
+        delete(outsex_dir//"/"//i//"_sky.ascii", ver-, >& "dev$null")
+
+    # END FOR: recorrido de listas
     }
 
     # Copiar para visualizar por usuario
-    tmp_string = outsex_dir//"/"//"images_to_index.ascii"
-    copy(tmp_string, data_dir//"/"//"images_to_index.ascii")
+    tmp_infile = outsex_dir//"/"//"params_to_index.ascii"
+    tmp_outfile = data_dir//"/"//"params_to_index.ascii"
+    delete(tmp_outfile, ver-, >& "dev$null")
+    copy(tmp_infile, tmp_outfile)
 
+    # Copiar catalogo de regiones para visualizar:
+    tmp_infile = datafiles_dir//"/"//"glxys_in_image.reg"
+    tmp_outfile = data_dir//"/"//"glxys_in_image.reg"
+    delete(tmp_outfile, ver-, >& "dev$null")
+    copy(tmp_infile, tmp_outfile)
 
     exit_task:
 
@@ -495,99 +603,3 @@ begin
     beep
 
 end
-#
-# procedure glxy_model(inputlist, match_list, err_sky, pix_scale, single_image)
-#    # ========================================================================
-#    # Ejecutar match y concatenacion de lista a pesar de no correr SExtractor:
-#    print("\n------------------------------------------\n")
-#    re_run_match:
-#
-#    list_models = outsex_dir//"/"//"sextracted.cat"
-#
-#    if(!access(list_models)){
-#
-#        # verificar si exista la salida ya, para no rehacer!
-#        # MATHC ENTRE OBJETOS DEL 'id_obj[i]_test.cat'
-#        if(single_image == yes){
-#
-#            # salida:
-#            delete(outsex_dir//"/"//"inlist.lis", ver-, >& "dev$null")
-#
-#            for(i=1; i<=n_accepted; i+=1){
-#
-#                cat_sex = outsex_dir//"/"//id_obj[i]//"_test.cat"
-#
-#                # STILTS > match RA/DEC inciales - SExtracted objs:
-#                expre = "! stilts tskymatch2 in1=%s ifmt1=ascii in2=%s ifmt2=ascii ra1=RA dec1=DEC ra2=col2 dec2=col3 error=%.2f find=best ofmt=ascii out=%s/match_list.cat > /dev/null 2>&1\n"
-#                printf(expre, match_list, cat_sex, err_sky, outsex_dir) | cl
-#
-#                # STILTS > se eliminan los RA/DEC iniciales - se asumen los SE-stimados:
-#                expre ="! stilts tpipe cmd='delcols \"RA DEC\"' in=%s/match_list.cat ifmt=ascii ofmt=ascii out=%s/line_%s.cat"
-#                printf(expre, outsex_dir, outsex_dir, id_obj[i]) | cl
-#
-#                # verificar que tenga una sola fila:
-#                list = outsex_dir//"/"//"line_"//id_obj[i]//".cat"
-#                j = 0
-#                while(fscan(list, line)!= EOF){
-#                    if (line != "" && substr(line, 1, 1) != "#"){
-#                        j = j + 1
-#                    }
-#                }
-#                if(j > 1){
-#                    expre = "! stilts tpipe cmd='sorthead 1 Separation' ifmt=ascii ofmt=ascii in=%s > %s/tmp_one_line.ascii"
-#                    printf(expre, list, outsex_dir)
-#                    rename(outsex_dir//"/"//"tmp_one_line.ascii", list)
-#                }
-#
-#                # imprime archivo que contiene la linea en una lista de (directorios) archivos
-#                printf("%s/line_%s.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"inlist.lis")
-#
-#                printf("\r - Process (skymatch stilts): %d%%", (i*100/n_accepted))
-#
-#            # END FOR
-#            }
-#
-#        # single_image == NO:
-#        }else{
-#
-#            # salida:
-#            delete(outsex_dir//"/"//"inlist.lis", ver-, >& "dev$null")
-#
-#            for(i=1; i<=n_accepted; i+=1){
-#
-#                # entrada:
-#                cat_sex = outsex_dir//"/"//id_obj[i]//"_test.cat"
-#                measure_img = image_list[i]
-#
-#                # columna para identificador (# ID):
-#                printf("# ID\n %s\n", id_obj[i], > outsex_dir//"/"//"tmp_col_id.cat")
-#
-#                # Radio de match entre objeto y modelo:
-#                err_sky = err_sky / pix_scale
-#
-#                # Calcula la mitad d ela imagen
-#                # captura el centro de la imagen:
-#                imgets(measure_img, "naxis1")
-#                x0 = (int(imgets.value) + 1) / 2
-#                imgets(measure_img, "naxis2")
-#                y0 = (int(imgets.value) + 1) / 2
-#
-#                # STILTS > obj in center of image:
-#                expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='addcol dist \"sqrt(($4-%.2f)*($4-%.2f) + ($5-%.2f)*($5-%.2f))\"; sorthead 1 dist' in=%s > %s/tmp_line.cat"
-#                printf(expre, x0, x0, y0, y0, cat_sex, outsex_dir, id_obj[i]) | cl
-#
-#                # Agrega columna ID(col1_1):
-#                expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/line_%s.cat"
-#                printf(expre, outsex_dir, outsex_dir, outsex_dir, id_obj[i]) | cl
-#
-#                # imprime archivo que contiene la linea en una lista de (directorios) archivos
-#                printf("%s/line_%s.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"inlist.lis")
-#
-#                delete(outsex_dir//"/"//"tmp_col_id.cat", ver-, >& "dev$null")
-#                delete(outsex_dir//"/"//"tmp_line.cat", ver-, >& "dev$null")
-#
-#                printf("\r - Process (center obj. match): %d%%", (i*100/n_accepted))
-#
-#            # END FOR
-#            }
-#        }
