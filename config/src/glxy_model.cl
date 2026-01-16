@@ -27,7 +27,7 @@ begin
     real tmp_ra[999], tmp_dec[999]
     # list of objects..
     int n_list, n_accepted
-    string observed_img, measure_img
+    string observed_img, setmask_img, measure_img
     string image_list[999], id_obj[999]
     int  seg_number[999]
     real ra_j00[999], dec_j00[999], ximg_pos[999], yimg_pos[999]
@@ -417,6 +417,12 @@ begin
             # theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
             theta_rad[k] = theta_img[k] * const_pi / 180
 
+            # Realizar masking a la observacion:
+            segmen_img = seg_dir//"/"//id_obj[k]//"_segmen.fits"
+            setmask_img = obs_dir//"/"//id_obj[k]//"_setmask.fits"
+            imdelete(setmask_img, ver-, >& "dev$null")
+            imexpr("a == b || a == 0 ? c : 0", setmask_img, segmen_img, seg_number[k], observed_img, verb-)
+
             # el pixel mas cercano al SEx-centro:
             xc[k] = xwin_img[k]
             if((xwin_img[k] - xc[k]) >= 0.5){
@@ -527,7 +533,7 @@ begin
     # Lectura de posiciones ajustadas:
     # ============================================
     # Cabecera de SKYcoord ajustadas
-    printf("#%31s %12d %12d\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.ascii")
+    printf("#%31s %14d %14d\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.ascii")
     # Cabecera de parametros (ajustados) del modelo
     expre = "# ID SEG_ID RA DEC XCNTR_IMG YCNTR_IMG A_IMG B_IMG ELLIP PA THET_IMG KRON_R PETRO_R EFF_R ISO_A ISO_AF RI_ANN RO_ANN XMIN_LENG YMIN_LENG"
     print(expre, > outsex_dir//"/"//"params_to_index.ascii")
@@ -540,7 +546,7 @@ begin
             if(line != "" && substr(line,1,1) != "#"){
 
                 print(line) | scan (id_obj[i], ra_j00[i], dec_j00[i])
-                printf("%32s %12f %12f\n", id_obj[i], ra_j00[i], dec_j00[i], >> outsex_dir//"/"//"skycenter_images.ascii")
+                printf("%32s %14f %14f\n", id_obj[i], ra_j00[i], dec_j00[i], >> outsex_dir//"/"//"skycenter_images.ascii")
 
             # END IF: lineas validas
             }
