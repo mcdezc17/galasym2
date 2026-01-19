@@ -19,11 +19,7 @@ begin
     int x0_grid[100], y0_grid[100]
     real tmp_xc, tmp_yc
     int tmp_x0, tmp_y0
-    int min_i_abs, min_j_abs
-    int min_x0_abs, min_y0_abs
     real min_sum_abs
-    int min_i_rms, min_j_rms
-    int min_x0_rms, min_y0_rms
     real min_sum_rms
     real scale_r_offset
     real scale_r[99]
@@ -31,6 +27,13 @@ begin
     int px1, px2, py1, py2
     string trimsection
     string ellip_expr
+    # output parameters:
+    int min_i_abs, min_j_abs
+    int min_x0_abs[999], min_y0_abs[999]
+    real min_ra_abs, min_dec_abs
+    int min_i_rms, min_j_rms
+    int min_x0_rms[999], min_y0_rms[999]
+    real min_ra_rms, min_dec_rms
     real sum_abs[100], sum_rms[100]
     # list of objects:
     string params_list, images_list
@@ -281,7 +284,7 @@ begin
                 # SEGUIMIENTO:
                 printf(" %6d %4d %4d %10f %10f\n", n_grid, tmp_x0, tmp_y0, sum_abs[n_grid], sum_rms[n_grid], >> datafiles_dir//"/"//"history_center_corr.txt")
 
-                # Liberar memoria (?):
+                # Liberar espacio (?):
                 imdelete(measure_img[k], ver-, >& "dev$null")
                 imdelete(measure_img_180, ver-, >& "dev$null")
                 tmp_infile = cache_dir//"/"//id_obj[k]//"_"//i//j//"_rot_abs_res.fits"
@@ -305,15 +308,15 @@ begin
         min_abs_ngrid = 1
         min_i_abs = i_grid[1]
         min_j_abs = j_grid[1]
-        min_x0_abs = x0_grid[1]
-        min_y0_abs = y0_grid[1]
+        min_x0_abs[k] = x0_grid[1]
+        min_y0_abs[k] = y0_grid[1]
         min_sum_abs = sum_abs[1]
         # Iniciar valores minimos rms():
         min_rms_ngrid = 1
         min_i_rms = i_grid[1]
         min_j_rms = j_grid[1]
-        min_x0_rms = x0_grid[1]
-        min_y0_rms = y0_grid[1]
+        min_x0_rms[k] = x0_grid[1]
+        min_y0_rms[k] = y0_grid[1]
         min_sum_rms = sum_rms[1]
 
         # tomar minimo:
@@ -323,8 +326,8 @@ begin
                 min_sum_abs = sum_abs[i_aux]
                 min_i_abs = i_grid[i_aux]
                 min_j_abs = j_grid[i_aux]
-                min_x0_abs = x0_grid[i_aux]
-                min_y0_abs = y0_grid[i_aux]
+                min_x0_abs[k] = x0_grid[i_aux]
+                min_y0_abs[k] = y0_grid[i_aux]
                 min_abs_ngrid = i_aux
             }
             # Para rms():
@@ -332,17 +335,18 @@ begin
                 min_sum_rms = sum_rms[i_aux]
                 min_i_rms = i_grid[i_aux]
                 min_j_rms = j_grid[i_aux]
-                min_x0_rms = x0_grid[i_aux]
-                min_y0_rms = y0_grid[i_aux]
+                min_x0_rms[k] = x0_grid[i_aux]
+                min_y0_rms[k] = y0_grid[i_aux]
                 min_rms_ngrid = i_aux
             }
         # END FOR: tomar minimo
         }
 
         # lista abs() para wcstran:
-        printf("%32s %5d %5d\n", id_obj[k], min_x0_abs, min_y0_abs, > cache_dir//"/"//k//"_abs_pixmincenter.ascii")
+        printf("%32s %5d %5d\n", id_obj[k], min_x0_abs[k], min_y0_abs[k], > cache_dir//"/"//k//"_abs_pixmincenter.ascii")
+
         # lista rms() para wcstran:
-        printf("%32s %5d %5d\n", id_obj[k], min_x0_rms, min_y0_rms, > cache_dir//"/"//k//"_rms_pixmincenter.ascii")
+        printf("%32s %5d %5d\n", id_obj[k], min_x0_rms[k], min_y0_rms[k], > cache_dir//"/"//k//"_rms_pixmincenter.ascii")
 
         # SEGUIMIENTO:
         print("\n ABS center correction:", >> datafiles_dir//"/"//"history_center_corr.txt")
@@ -381,7 +385,55 @@ begin
 
     }
 
+    # ===================================================
+    # Leer la lista de coordenadas transformadas:
+    # ===================================================
 
+    # Cabecera: lista de centros que minimizan abs():
+    print("# Lista de centros (en pixeles) que minimizan la suma de ABS(I-I_180)", > datafiles_dir//"/"//"abs_mincenter.ascii")
+    printf("#%31s %14s %14s %5s %5s\n", "ID", "RAmin", "DECmin", "Xmin", "Ymin", >> datafiles_dir//"/"//"abs_mincenter.ascii")
+
+    # Cabecera: lista de centros que minimizan rms():
+    print("# Lista de centros (en pixeles) que minimizan la suma de RMS(I-I_180)", > datafiles_dir//"/"//"rms_mincenter.ascii")
+    printf("#%31s %14s %14s %5s %5s\n", "ID", "RAmin", "DECmin", "Xmin", "Ymin", >> datafiles_dir//"/"//"rms_mincenter.ascii")
+
+    for(k=1;k<=n_list;k+=1){
+
+        # lectura de lista mincenter abs() en pixeles objeto-k:
+        list = cache_dir//"/"//k//"_abs_skymincenter.ascii"
+        while(fscan(list,line) != EOF){
+            if(line != "" && substr(line,1,1) != "#"){
+                print(line) | scan(tmp_id_obj, min_ra_abs, min_dec_abs)
+            }
+        }
+        list = ""
+
+        # lista de centros que minimizan abs():
+        printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_abs, min_dec_abs, min_x0_abs[k], min_y0_abs[k], >> datafiles_dir//"/"//"abs_mincenter.ascii")
+
+        # lectura de lista mincenter rms() en pixeles objeto-k:
+        list = cache_dir//"/"//k//"_rms_skymincenter.ascii"
+        while(fscan(list,line) != EOF){
+            if(line != "" && substr(line,1,1) != "#"){
+                print(line) | scan(tmp_id_obj, min_ra_rms, min_dec_rms)
+            }
+        }
+        list = ""
+
+        # lista de centros que minimizan rms():
+        printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_rms, min_dec_rms, min_x0_rms[k], min_y0_rms[k], >> datafiles_dir//"/"//"rms_mincenter.ascii")
+
+        # Liberar espacio:
+        tmp_infile = cache_dir//"/"//k//"_abs_skymincenter.ascii"
+        delete(tmp_infile, ver-, >& "dev$null")
+        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.ascii"
+        delete(tmp_infile, ver-, >& "dev$null")
+        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.ascii"
+        delete(tmp_infile, ver-, >& "dev$null")
+        tmp_infile = cache_dir//"/"//k//"_rms_skymincenter.ascii"
+        delete(tmp_infile, ver-, >& "dev$null")
+
+    }
 
     exit_task:
 
@@ -392,40 +444,3 @@ begin
     beep
 
 end
-
-    #   # ==================================================
-    #   # Leer la lista de imagenes (aceptadas-existentes?):
-    #   # ==================================================
-    #   list = images_list
-    #   i = 0
-    #   while(fscan(list, line) != EOF){
-    #       if(line !="" && substr(line,1,1)!="#"){
-    #           i = i + 1
-    #
-    #           print(line) | scan(tmp_id_obj, setmask_img[i])
-    #
-    #           # comprobacion (SEGUIMIENTO):
-    #           if(id_obj[i] != tmp_id_obj){
-    #               print(" ERR: there  is no correlation")
-    #               print("      in reading  images  list")
-    #               print("      and SEx-parameters list!")
-    #               print(" - ", images_list)
-    #               print(" - ", params_list)
-    #               print("\n Abort task!")
-    #               list = ""
-    #               goto exit_task
-    #           }
-    #       # END IF: lineas validas
-    #       }
-    #   # END WHILE: lectura de lista
-    #   }
-    #   list = ""
-    #   # comprobacion de tamaños de listas:
-    #   if(n_list != i){
-    #       print(" ERR: the lists must be of equal")
-    #       print("      size:")
-    #       print(" - ", images_list)
-    #       print(" - ", params_list)
-    #       print("\n Abort task!")
-    #       goto exit_task
-    #   }

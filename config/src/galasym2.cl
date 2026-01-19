@@ -9,9 +9,11 @@ package galasym2
 task find_objs      = "direc$find_objs.cl"
 task psf_model      = "direc$psf_model.cl"
 task glxy_model     = "direc$glxy_model.cl"
+task $find_center   = "direc$find_center.cl"
+task alpha_index    = "direc$alpha_index.cl"
+# -------------------------------------------
 task distance       = "direc$distance.cl"
 task select         = "direc$select.cl"
 task uncertainty    = "direc$uncertainty.cl"
-task $find_center   = "direc$find_center.cl"
 
 clbye()

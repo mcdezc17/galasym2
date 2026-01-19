@@ -347,10 +347,10 @@ begin
         printf(expre, outsex_dir, outsex_dir) | cl
 
         # Copiar para visualizar catalogo de modelos SEx:
-        tmp_infile = outsex_dir//"/"//"sextracted.cat"
-        tmp_outfile = data_dir//"/"//"sextracted.cat"
-        delete(tmp_outfile, ver-, >& "dev$null")
-        copy(tmp_infile, tmp_outfile)
+        # tmp_infile = outsex_dir//"/"//"sextracted.cat"
+        # tmp_outfile = data_dir//"/"//"sextracted.cat"
+        # delete(tmp_outfile, ver-, >& "dev$null")
+        # copy(tmp_infile, tmp_outfile)
 
         print("\n - Process (concat.): Ok.")
 
@@ -533,7 +533,7 @@ begin
     # Lectura de posiciones ajustadas:
     # ============================================
     # Cabecera de SKYcoord ajustadas
-    printf("#%31s %14d %14d\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.ascii")
+    printf("#%31s %14s %14s\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.ascii")
     # Cabecera de parametros (ajustados) del modelo
     expre = "# ID SEG_ID RA DEC XCNTR_IMG YCNTR_IMG A_IMG B_IMG ELLIP PA THET_IMG KRON_R PETRO_R EFF_R ISO_A ISO_AF RI_ANN RO_ANN XMIN_LENG YMIN_LENG"
     print(expre, > outsex_dir//"/"//"params_to_index.ascii")
