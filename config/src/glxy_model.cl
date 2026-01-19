@@ -412,7 +412,7 @@ begin
             # Se ajustara x/ywin_img -> x/yc ==> tmp_ra/dec[] -> ra/dec_j00[]
             print(line) | scan(id_obj[k], seg_number[k], tmp_ra[k], tmp_dec[k], xwin_img[k], ywin_img[k], a_img[k], b_img[k], ellip[k], theta_j00[k], theta_img[k], kron_r[k], petro_r[k], eff_r[k], iso_area[k], iso_areaf[k])
 
-            # correcciones:
+            # correcciones (i). radio Petrosian:
             petro_r[k] = petro_r[k] / 2
             # theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
             theta_rad[k] = theta_img[k] * const_pi / 180

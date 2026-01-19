@@ -590,12 +590,12 @@ begin
             # Centro entero más cercano al sub-pixel estimado
             xc = ximg_pos[i]
             if((ximg_pos[i] - xc) >= 0.5){
-                xc = xc + 1
+                xc += 1
             }
             # para y:
             yc = yimg_pos[i]
             if((yimg_pos[i] - yc) >= 0.5){
-                yc = yc + 1
+                yc += 1
             }
 
             # Vertices del frame
