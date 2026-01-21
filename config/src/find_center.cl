@@ -1,5 +1,7 @@
 procedure find_center()
 
+struct *list
+
 begin
 
     # ************* Variables Definition *************
@@ -38,7 +40,7 @@ begin
     # list of objects:
     string params_list, images_list
     int n_list
-    string observed_img[999], segmen_img[999], setmask_img[999]
+    string observed_img[999], obs_setmask_img[999]
     string id_obj[999]
     int  seg_number[999]
     real ra_j00[999], dec_j00[999]
@@ -79,7 +81,7 @@ begin
     # carpeta de uso temporal para este tarea:
     if(!access(cache_dir)){mkdir(cache_dir)}
 
-    print("\n TASK: center_min")
+    print("\n START TASK: center_min")
 
     # listas heredadas exactamente de 'find_objs' y 'glxy_model' task:
     params_list = outsex_dir//"/"//"params_to_index.ascii"
@@ -87,7 +89,7 @@ begin
 
     # No existe archivo de entrada esperado:
     if(!access(params_list) || !access(images_list)){
-        print(" ERR(fatal): mandatory that it exist:")
+        print("\n ERR(fatal): mandatory that it exist:")
         print(" - ", images_list)
         print(" - ", params_list)
         print("\n HINT: best run over again.")
@@ -112,7 +114,7 @@ begin
             theta_rad[i] = theta_img[i] * const_pi / 180
 
             # La imagen de partida es la observada con MASKING!
-            setmask_img[i] = observed_dir//"/"//id_obj[i]//"_setmask.fits"
+            obs_setmask_img[i] = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
 
         # END IF: lineas validas
         }
@@ -228,7 +230,7 @@ begin
                 trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
                 # recortar la imagen:
-                tmp_infile = setmask_img[k]//trimsection
+                tmp_infile = obs_setmask_img[k]//trimsection
                 tmp_outfile = cache_dir//"/"//id_obj[k]//"_"//i//j//"_measurebox"
                 imdelete(tmp_outfile, ver-, >& "dev$null")
                 imcopy(tmp_infile, tmp_outfile, ver-)

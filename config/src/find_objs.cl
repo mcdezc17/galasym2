@@ -415,7 +415,7 @@ begin
                 print(" Double image mode...\n")
                 scndimg_bool = yes
             }else{
-                print("WRNNG: Second image doesn't exist!")
+                print("\n WRNNG: Second image doesn't exist!")
                 print("       Set input 'detect_img = no'")
                 print("       and try again!")
                 goto exit_task
@@ -436,11 +436,11 @@ begin
         model_fit = no
         detect_img = "no"
         printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-        print(" TASK: find_objs")
+        print(" START TASK: find_objs")
           print(" mode: recompute edit images")
     }else{
         printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-        print(" TASK: find_objs")
+        print(" START TASK: find_objs")
     }
     if(single_image == yes){print(" image: single")}
     else{print(" image: list")}
@@ -575,7 +575,7 @@ begin
         printf("#%31s %s\n", "ID", "PATH_IMAGE", > datafiles_dir//"/"//"accepted_imgs.ascii")
         # Encabezado de catalogo trimsections de imagen de entrada:
         # delete(datafiles_dir//"/"//"list_of_imgs_trimsection.ascii", ver-, >& "dev$null")
-        printf("#%31s %s\n", "ID", "PATHIMG_TRIM", > datafiles_dir//"/"//"list_of_imgs_trimsection.ascii")
+        printf("#%31s %s\n", "ID", "TRIMSECTION", > datafiles_dir//"/"//"trimsections.ascii")
 
         for(i = 1; i <= n_list; i += 1){
 
@@ -617,8 +617,8 @@ begin
             printf("%32s %s\n", id_obj[i], tmp_file, >> tmp_outfile)
 
             # print(id_obj[i], " ", measure_img//trimsection, >> datafiles_dir//"/"//"accept_imgs_trimsection.ascii")
-            tmp_file = measure_img//trimsection
-            tmp_outfile = datafiles_dir//"/"//"accept_imgs_trimsection.ascii"
+            tmp_file = trimsection
+            tmp_outfile = datafiles_dir//"/"//"trimsections.ascii"
             printf("%32s %s\n", id_obj[i], tmp_file, >> tmp_outfile)
 
             # Progress bar proccess:
@@ -887,11 +887,11 @@ begin
 
     # INPUT PARAMETER VERIFICATION ------------------------------
     if (!access(input_list)){
-        print(" Warning: input list named ", input_list, " not found!")
+        print("\n Warning: input list named ", input_list, " not found!")
         print(" Enter correct filename with extension *.txt, *.ascii (etc) e.g. input_list.txt or input_list.ascii: ")
         scan(input_list)
         if(!access(input_list)){
-            print(" ERR: a.Second verification for ", input_list, " failed!")
+            print("\n ERR: a.Second verification for ", input_list, " failed!")
             print("     b.Check the input list name and its existence in local directory.")
             print("")
             print(" Analysis task aborted. Verify and try again!")
@@ -943,7 +943,7 @@ begin
         i_center = int(obj_center)
 
         if(i_center < 1 || i_center > n_list){
-            print(" ERR: Parameter value is out of range must be an integer (within the inputlist)")
+            print("\n ERR: Parameter value is out of range must be an integer (within the inputlist)")
             print("      OR a string 'no'")
             goto exit_task
         }

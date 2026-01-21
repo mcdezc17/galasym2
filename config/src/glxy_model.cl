@@ -27,7 +27,6 @@ begin
     real tmp_ra[999], tmp_dec[999]
     # list of objects..
     int n_list, n_accepted
-    string observed_img, setmask_img, measure_img
     string image_list[999], id_obj[999]
     int  seg_number[999]
     real ra_j00[999], dec_j00[999], ximg_pos[999], yimg_pos[999]
@@ -35,6 +34,7 @@ begin
     real ellip[999], theta_j00[999], theta_img[999], theta_rad[999]
     real petro_r[999], eff_r[999], kron_r[999]
     real iso_area[999], iso_areaf[999]
+
     # match list:
     real x0, y0
 
@@ -61,7 +61,13 @@ begin
     bool scndimg_bool
     string sex_dir, config_sex, param_sex, conv_sex
     string outsex_dir, cat_sex
-    string segmen_img, smooth_img, bg_img, bgrms_img, model_img, residual_img, no_objs_img
+    # nombre de imagenes:
+    string observed_img, obs_setmask_img
+    string measure_img
+    # imagenes de sextractor:
+    string segmen_img, smooth_img, bg_img, bgrms_img, model_img
+    string residual_img, res_setmask_img
+    string no_objs_img
     string list_cat_sex, list_models, list_bgrms_img, list_residual_img
 
     # ************* Cutout images variables *************
@@ -129,7 +135,7 @@ begin
 
     tmp_bool = no
 
-    print(" TASK: galaxy_model")
+    print("\n START TASK: galaxy_model")
 
     if(single_image == yes){print(" image: list from single image")}
     else{print(" image: list from list of images")}
@@ -419,9 +425,15 @@ begin
 
             # Realizar masking a la observacion:
             segmen_img = seg_dir//"/"//id_obj[k]//"_segmen.fits"
-            setmask_img = obs_dir//"/"//id_obj[k]//"_setmask.fits"
-            imdelete(setmask_img, ver-, >& "dev$null")
-            imexpr("a == b || a == 0 ? c : 0", setmask_img, segmen_img, seg_number[k], observed_img, verb-)
+            obs_setmask_img = obs_dir//"/"//id_obj[k]//"_obs_setmask.fits"
+            imdelete(obs_setmask_img, ver-, >& "dev$null")
+            imexpr("a == b || a == 0 ? c : 0", obs_setmask_img, segmen_img, seg_number[k], observed_img, verb-)
+
+            # Realizar masking a los residuos (de SEx):
+            residual_img = res_dir//"/"//id_obj[k]//"_res.fits"
+            res_setmask_img = res_dir//"/"//id_obj[k]//"_res_setmask.fits"
+            imdelete(res_setmask_img, ver-, >& "dev$null")
+            imexpr("a == b || a == 0 ? c : 0", res_setmask_img, segmen_img, seg_number[k], residual_img, verb-)
 
             # el pixel mas cercano al SEx-centro:
             xc[k] = xwin_img[k]

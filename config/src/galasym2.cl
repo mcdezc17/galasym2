@@ -6,10 +6,12 @@ set direc = "/home/sloan/galasym2/test/A496/J_band/config/src/"
 
 package galasym2
 
+# pre-procesamiento de las imagenes:
 task find_objs      = "direc$find_objs.cl"
 task psf_model      = "direc$psf_model.cl"
 task glxy_model     = "direc$glxy_model.cl"
 task $find_center   = "direc$find_center.cl"
+# lista de indices disponibles:
 task alpha_index    = "direc$alpha_index.cl"
 # -------------------------------------------
 task distance       = "direc$distance.cl"
