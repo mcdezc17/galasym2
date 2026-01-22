@@ -25,6 +25,7 @@ real   low_clip    = 1.00                           {prompt = "Low-clip (relativ
 string hicntr_clip = "10.0"                         {prompt = "Up-clip center/bulge (integer or 'off')"}
 string hioutr_clip = "10.0"                         {prompt = "Up-clip outer/disk (integer or 'off')"}
 bool   edit_mode   = no                             {prompt = "Edit objects to recompute indexes"}
+#pset alpha_par                                      {prompt = "alpha index parameters"}
 struct *list
 
 

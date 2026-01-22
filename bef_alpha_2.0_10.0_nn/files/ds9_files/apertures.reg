@@ -1,0 +1,27 @@
+# Region file format: DS9 version 4.1
+global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
+fk5
+ellipse(68.5087033,-13.2964687,17.7543",15.9318",-40.1) # color=green text={SE fit}
+ellipse(68.5087033,-13.2964687,15.623784",14.019984",-40.1) # color=red text={Rp}
+ellipse(68.5087033,-13.2964687,23.435676",21.029976",-40.1) # color=red dash=1 text={1.5Rp}
+ellipse(68.5087033,-13.2964687,31.247568",28.039968",-40.1) # color=red dash=1 text={2Rp}
+ellipse(68.5087033,-13.2964687,31.247568",28.039968",-40.1) # color=blue dash=1
+ellipse(68.5087033,-13.2964687,46.871352",42.059952",-40.1) # color=blue dash=1 text={in:1, ID_J0434020_131747}
+ellipse(67.7632131,-12.9738956,21.7638",13.6242",-40.14) # color=green text={SE fit}
+ellipse(67.7632131,-12.9738956,19.152144",11.989296",-40.14) # color=red text={Rp}
+ellipse(67.7632131,-12.9738956,28.728216",17.983944",-40.14) # color=red dash=1 text={1.5Rp}
+ellipse(67.7632131,-12.9738956,38.304288",23.978592",-40.14) # color=red dash=1 text={2Rp}
+ellipse(67.7632131,-12.9738956,38.304288",23.978592",-40.14) # color=blue dash=1
+ellipse(67.7632131,-12.9738956,57.456432",35.967888",-40.14) # color=blue dash=1 text={in:2, ID_IC_0375}
+ellipse(68.3205264,-13.1516619,22.5675",5.976",-61.6) # color=green text={SE fit}
+ellipse(68.3205264,-13.1516619,17.376975",4.60152",-61.6) # color=red text={Rp}
+ellipse(68.3205264,-13.1516619,26.0654625",6.90228",-61.6) # color=red dash=1 text={1.5Rp}
+ellipse(68.3205264,-13.1516619,34.75395",9.20304",-61.6) # color=red dash=1 text={2Rp}
+ellipse(68.3205264,-13.1516619,34.75395",9.20304",-61.6) # color=blue dash=1
+ellipse(68.3205264,-13.1516619,52.130925",13.80456",-61.6) # color=blue dash=1 text={in:3, ID_2MFGC_03708}
+ellipse(68.2367496,-12.778006,26.6823",13.1283",-22.21) # color=green text={SE fit}
+ellipse(68.2367496,-12.778006,20.545371",10.108791",-22.21) # color=red text={Rp}
+ellipse(68.2367496,-12.778006,30.8180565",15.1631865",-22.21) # color=red dash=1 text={1.5Rp}
+ellipse(68.2367496,-12.778006,41.090742",20.217582",-22.21) # color=red dash=1 text={2Rp}
+ellipse(68.2367496,-12.778006,41.090742",20.217582",-22.21) # color=blue dash=1
+ellipse(68.2367496,-12.778006,61.636113",30.326373",-22.21) # color=blue dash=1 text={in:4, ID_MCG_02_12_037}

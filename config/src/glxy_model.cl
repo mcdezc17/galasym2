@@ -65,7 +65,8 @@ begin
     string observed_img, obs_setmask_img
     string measure_img
     # imagenes de sextractor:
-    string segmen_img, smooth_img, bg_img, bgrms_img, model_img
+    string segmen_img, smooth_img, bg_img, bgrms_img
+    string model_img, mod_setmask_img
     string residual_img, res_setmask_img
     string no_objs_img
     string list_cat_sex, list_models, list_bgrms_img, list_residual_img
@@ -429,6 +430,12 @@ begin
             imdelete(obs_setmask_img, ver-, >& "dev$null")
             imexpr("a == b || a == 0 ? c : 0", obs_setmask_img, segmen_img, seg_number[k], observed_img, verb-)
 
+            # Realizar masking a los modelos (de SEx):
+            model_img = mod_dir//"/"//id_obj[k]//"_mod.fits"
+            mod_setmask_img = mod_dir//"/"//id_obj[k]//"_mod_setmask.fits"
+            imdelete(mod_setmask_img, ver-, >& "dev$null")
+            imexpr("a == b || a == 0 ? c : 0",mod_setmask_img , segmen_img, seg_number[k], model_img, verb-)
+
             # Realizar masking a los residuos (de SEx):
             residual_img = res_dir//"/"//id_obj[k]//"_res.fits"
             res_setmask_img = res_dir//"/"//id_obj[k]//"_res_setmask.fits"
@@ -493,7 +500,7 @@ begin
                 # Tamaño menor a medida:
                 if(lenght_nx >= xlen_min[k] && lenght_ny >= ylen_min[k]){
                     # requiere imagen aparte del cielo:
-                    ri_ann[k] = -1
+                    ri_ann[k] = 26
                     ro_ann[k] = -1
                 # No es posible medir
                 }else{

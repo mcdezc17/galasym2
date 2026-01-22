@@ -6,6 +6,9 @@ set direc = "/home/sloan/galasym2/test/A496/J_band/config/src/"
 
 package galasym2
 
+# Declarar el pset
+# task alpha_par = "direc$alpha_par.par"
+
 # pre-procesamiento de las imagenes:
 task find_objs      = "direc$find_objs.cl"
 task psf_model      = "direc$psf_model.cl"
