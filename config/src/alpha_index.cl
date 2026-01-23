@@ -15,6 +15,8 @@ begin
     # System variables:
     int i, j, k
     struct line
+    real mean_val
+    int n_pix
     # constants........
     real const_pi
     # patrameters......
@@ -29,6 +31,7 @@ begin
     int xlen_min[999], ylen_min[999]
     int px1, px2, py1, py2
     string trimsection
+    int bulge_area[i]
 
     # list of objects:
     string params_list
@@ -47,11 +50,12 @@ begin
     real ra_rot[999], dec_rot[999]
     int x0_rot[999], y0_rot[999]
     # temporal variables:
-    string tmp_infile, tmp_outfile
+    string tmp_infile, tmp_infile2, tmp_outfile
 
     # nombre de imagenes:
     string observed_img[999], obs_setmask_img[999]
-    string bgrms_img[999], model_img[999]
+    string bgrms_img[999]
+    string mod_setmask_img[999]
     string residual_img[999], res_setmask_img[999]
 
     # carpetas prinicpales:
@@ -164,11 +168,11 @@ begin
             theta_rad[i] = theta_img[i] * const_pi / 180
 
             # Las imagenes existen como:
-            bgrms_img[i]    = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
+            bgrms_img[i] = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
             #seguimiento:
             if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); goto exit_task}
 
-            observed_img[i]    = observed_dir//"/"//id_obj[i]//".fits"
+            observed_img[i] = observed_dir//"/"//id_obj[i]//".fits"
             #seguimiento:
             if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); goto exit_task}
 
@@ -176,9 +180,9 @@ begin
             #seguimiento:
             if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); goto exit_task}
 
-            model_img[i]       = model_dir//"/"//id_obj[i]//"_mod.fits"
+            mod_setmask_img[i] = model_dir//"/"//id_obj[i]//"_mod_setmask.fits"
             #seguimiento:
-            if(!imaccess(model_img[i] )){print("\n ERR: not access to model img!"); goto exit_task}
+            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); goto exit_task}
 
             res_setmask_img[i] = residual_dir//"/"//id_obj[i]//"_res_setmask.fits"
             #seguimiento:
@@ -269,6 +273,8 @@ begin
 
     if(!access(alpha_dir)){mkdir(alpha_dir)}
     if(!access(alphaimg_dir)){mkdir(alphaimg_dir)}
+    if(!access(area_dir)){mkdir(area_dir)}
+    if(!access(asymm_area_dir)){mkdir(asymm_area_dir)}
     if(!access(frames_dir)){mkdir(frames_dir)}
     if(!access(cache_dir)){mkdir(cache_dir)}
 
@@ -278,6 +284,13 @@ begin
     # printf(cache_dir//"/"//"area_%.1f_obs_"//"\n", low_clip) | scan(areaglxy_img)
     # Extended CENTER MASK for measure index (source + noise annulus):
     # centermodmask_img = cache_dir//"/"//"centermodelmask_"
+
+    # name of image observed area without bulge:
+    if(strlwr(hiblg_clip) == "off"){
+        printf(cache_dir//"/"//"area_%.1f_nn_obs_"//"\n", low_clip) | scan(areaglxy_cntrmsk_img)
+    }else{
+        printf(cache_dir//"/"//"area_%.1f_%.1f_obs_"//"\n", low_clip, hicen_clip) | scan(areaglxy_cntrmsk_img)
+    }
 
     # expresion de una elipse rotada y des-centrada:
     ellip_expr = "((((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)))"
@@ -303,21 +316,80 @@ begin
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
-        # Recortar imagenes a analizar (RESIDUAL):
-        tmp_infile  = res_setmask_img[i]//trimsection
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_residual.fits"
+        # BULBO GALACTIVO:
+        tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
-        imcopy(tmp_infile, tmp_outfile, ver-)
+        imexpr("a >= b*c", tmp_outfile, mod_setmask_img[i], hiblg_clip, bgrms_img[i], verb-)
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+        # area en pixeles del bulbo:
+        bulge_area[i] = int(mean_val * n_pix)
 
-        # Recorte de imagen BGRMS:
-        tmp_infile  = bgrms_img[i]//trimsection
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_bgrms.fits"
-        imdelete(tmp_outfile, ver-, >& "dev$null")
-        imcopy(tmp_infile, tmp_outfile, ver-)
 
-        # Low area pixels (pixeles en el residuo >= low_sigma)
-        imexpr("a*b >= c*e && a*b <= d*e", verb-)
+        #    # Recorte de imagen BGRMS:
+        #    tmp_infile  = bgrms_img[i]//trimsection
+        #    tmp_outfile = frames_dir//"/"//id_obj[i]//"_bgrms.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imcopy(tmp_infile, tmp_outfile, ver-)
+        #
+        #    # Centro a evitar del BULBO GALACTICO:
+        #    tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imexpr("a >= b*c", tmp_outfile, mod_setmask_img[i], hiblg_clip, bgrms_img[i], verb-)
+        #
+        #    # Recorte de imagen OBSERVED_SETMASK:
+        #    tmp_infile = obs_setmask_img[i]//trimsection
+        #    tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imcopy(tmp_infile, tmp_outfile, ver-)
+        #
+        #    # Recorte de imagen AREA DE OBSERVED_SETMASK:
+        #    tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        #    tmp_outfile =
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imexpr("", tmp_outfile, tmp_infile, )
+        #
+        #    # Recorte de imagen RESIDUAL_SETMASK:
+        #    tmp_infile  = res_setmask_img[i]//trimsection
+        #    tmp_outfile = frames_dir//"/"//id_obj[i]//"_res_setmask.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imcopy(tmp_infile, tmp_outfile, ver-)
+        #
+        #    # LOW AREA PIXELS (pixeles en el residuo >= low_sigma)
+        #    tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        #    tmp_outfile = area_dir//"/"//id_obj[i]//"_areapixels.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imexpr("a >= b*c && d == 0", tmp_outfile, res_setmask_img[i], low_sigma, bgrms_img[i], tmp_infile, verb-)
+        #
+        #    # ASYMMETRYCAL AREA PIXELS 180° rotation:
+        #    # transposicion = rotar 90 grados:
+        #    tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels.fits"//"[*,-*]"
+        #    tmp_outfile = area_dir//"/"//id_obj[i]//"_areapixels_rot90.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imtranspose(tmp_infile, tmp_outfile)
+        #    # repetir transposicion = 180°:
+        #    tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels_rot90.fits"//"[*,-*]"
+        #    tmp_outfile = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imtranspose(tmp_infile, tmp_outfile)
+        #    # eliminar imagen a 90°:
+        #    tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels_rot90.fits"
+        #    imdelete(tmp_infile, ver-, >& "dev$null")
+        #    # Residuo asimetrico de area (N-N_180):
+        #    tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels.fits"
+        #    tmp_infile2 = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
+        #    tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imexpr("(a-b) > 0", tmp_outfile, tmp_infile, tmp_infile2, verb-)
+        #    # seguimiento:
+        #    tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels.fits"
+        #    tmp_infile2 = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
+        #    tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_negative_asymm_areapixels.fits"
+        #    imdelete(tmp_outfile, ver-, >& "dev$null")
+        #    imexpr("a-b", tmp_outfile, tmp_infile, tmp_infile2, verb-)
 
+        # Progress bar proccess:
+        printf("\r Process (cutting images): %d%%", (i*100/n_list))
     }
 
 
