@@ -1535,6 +1535,10 @@ rotated_index: # go-to-------------------------------------------
         if(min2_pos == -1){min2_pos = min1_pos}
         if(min3_pos == -1){min3_pos = min2_pos}
         if(min4_pos == -1){min4_pos = min3_pos}
+        # Debug check (remove in production)
+        if(min1_pos == -1 || min2_pos == -1 || min3_pos == -1 || min4_pos == -1){
+            print("ERROR: Sorting algorithm failed!")
+        }
 
         # min_densitybg = (n_noisepix[min1_pos] + n_noisepix[min2_pos]) / (area_ann[min1_pos] + area_ann[min2_pos])
         # min_densitybg = (n_noisepix[min2_pos] + n_noisepix[min3_pos]) / (area_ann[min2_pos] + area_ann[min3_pos])
