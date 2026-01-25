@@ -71,13 +71,13 @@ begin
     config_psfex = psfex_dir//"/"//"default.psfex"
     psf_fit = outpsfex_dir//"/"//"prepsfex.psf"
 
-    re_run_bool = no
+    # re_run_bool = no
 
     print("! date +\"%Y-%m-%d\"") | cl | scan(my_date)
     print("! date +\"%H:%M:%S\"") | cl | scan(my_time)
 
     # printf("\n---- GALASYM2: %s at %s ----\n\n", my_date, my_time)
-    print(" task: psf_model")
+    print(" START TASK: psf_model")
 
     # Crear carpeta resultados psfex:
     if(!access(outpsfex_dir)){mkdir(outpsfex_dir)}
@@ -85,7 +85,7 @@ begin
     # SI LA TAREA ES EJECUTADA EN MODO DEFAULT:
     if(default_conv == no){
 
-        re_run_task:
+        # re_run_task:
 
         # Access to psf model (prepsfex.psf) omit PrePSFEx (SEx-prior) and PSFEx, if not:
         if(!access(psf_fit)){
@@ -141,19 +141,19 @@ begin
 
         }
 
-        if(re_run_bool == no){
-            printf(" \n Exists PSF model: \n   - %s\n\n", psf_fit)
-            print(" 'yes' for DELETE and re-run PSFEx?")
-            printf(" Or 'no' for keeping this?: ")
-            scan(tmp_bool)
-
-            if(tmp_bool == yes){
-                delete(psf_fit, ver-, >& "dev$null")
-                re_run_bool = yes
-                goto re_run_task
-            }
-
-        }
+        # if(re_run_bool == no){
+        #     printf(" \n Exists PSF model: \n   - %s\n\n", psf_fit)
+        #     print(" 'yes' for DELETE and re-run PSFEx?")
+        #     printf(" Or 'no' for keeping this?: ")
+        #     scan(tmp_bool)
+        #
+        #     if(tmp_bool == yes){
+        #         delete(psf_fit, ver-, >& "dev$null")
+        #         re_run_bool = yes
+        #         goto re_run_task
+        #     }
+        #
+        # }
 
     # DEFAULT PSF (default_conv == yes)-------------------------------
     }else{
@@ -162,7 +162,7 @@ begin
         print(" SExtractor repository. Expe-")
         print(" rimental stuff!")
 
-        # Copiar el archivo or defecto:
+        # Copiar el archivo por defecto:
         print("\n - copy"
         print("       'config/sextractor/default.psf'")
         print("   to ")
@@ -174,7 +174,7 @@ begin
     exit_task:
 
     # print("Exit task.")
-    print("\n End task: psf_model")
+    print("\n END TASK: psf_model")
     print("\n------------------------------------------")
     print("")
     beep

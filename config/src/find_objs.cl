@@ -374,6 +374,15 @@ begin
         }
     }
 
+
+    # FOLDER VERIFICATION OR CREATION ----------------------------
+    # if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
+    # if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
+    if(!access(data_dir)){mkdir(data_dir)}           # main output: ./data
+    if(!access(datafiles_dir)){mkdir(datafiles_dir)}
+    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
+    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
+
     # Si es una sola imagen, requiere lista de objetos:
     if(single_image == yes){
         if(!access(inputlist)){
@@ -447,13 +456,6 @@ begin
     else{print(" image: list")}
     # -----------------------------------------------------------
 
-    # FOLDER VERIFICATION OR CREATION ----------------------------
-    # if(!access(alpha_dir)){mkdir(alpha_dir)}     # main output: ./alpha
-    # if(!access(config_dir)){mkdir(config_dir)}       # main output:  ./config
-    if(!access(data_dir)){mkdir(data_dir)}           # main output: ./data
-    if(!access(datafiles_dir)){mkdir(datafiles_dir)}
-    if(!access(dataimg_dir)){mkdir(dataimg_dir)}       # images folder:      ./data/images:
-    if(!access(obs_dir)){mkdir(obs_dir)}               # observed images:    ./data/images/observed
     # END FOLDER VERIFICATION -----------------------------------
 
     # IDENTIFICAR UNA O VARIAS IMAGENES: encontrar objetos en la imagen
@@ -709,14 +711,14 @@ begin
     # psf_model
 
     # SExtracto model:
-    tmp_string = datafiles_dir//"/"//"accepted_imgs.ascii"
-    tmp_bool = single_image
-    glxy_model(inputlist=tmp_string, single_image=tmp_bool)
+    # tmp_string = datafiles_dir//"/"//"accepted_imgs.ascii"
+    # tmp_bool = single_image
+    # glxy_model(inputlist=tmp_string, single_image=tmp_bool)
 
     # To skyp index
     if(index_calc == no){
-        print("\n------------------------------------------")
-        print("\n test: Skyp the index calculations!")
+        #print("\n------------------------------------------")
+        #print("\n test: Skyp the index calculations!")
         goto exit_task
     }
 
