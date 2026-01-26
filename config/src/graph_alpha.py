@@ -14,8 +14,8 @@ def leer_datos_txt_matriz(nombre_archivo):
     return np.array(datos_filtrados)
 
 # Nombres de archivos
-nombre_archivo_1 = "areaindex_set.cat"
-nombre_archivo_2 = "rotated_alpha/rot_areaindex_set.cat"
+nombre_archivo_1 = "residual_area/cum_index_set.cat"
+nombre_archivo_2 = "residual_rotation_area/rot_cum_index_set.cat"
 
 # Leer matrices de datos (ignorando líneas con # y primera columna)
 matriz1 = leer_datos_txt_matriz(nombre_archivo_1)

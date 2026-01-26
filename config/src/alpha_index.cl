@@ -88,7 +88,7 @@ begin
     real tmp_current, min_densitybg
     string out_cat, out_ds9_cat
     real n_asymmpix, ap_n_areattl
-    real delta_area
+    real delta_area, delta_area_cum
     real cum_n_areattl[999]
     real prfl_index_alpha, cum_index_alpha
 
@@ -783,32 +783,36 @@ begin
                 imstat(cache_dir//"/"//"tmp_areattl_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
                 ap_n_areattl = mean_val * n_pix
 
-                # ALPHA ASYMETRRY INDEX CALCULATION: ==========================================
-                # --> If change 3.0 to 0.0, then uncomment the '# (<= 0.0)' lines:
-                if(scale_r[j] * petro_r[i] <= 0.0){
+                # ECUACION DEL INDICE ALPHA: ==========================================
+
+                delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30] * petro_r[i])**2) - bulge_area[i]
+
+                # Si utiliza '<= 3.0' asegurese de que las lineas despues de '##estas#' esten comentadas:
+                # Si utiliza '<= 0.0' entonces descomente las lineas despues de '##estas#'
+                if(scale_r[j] * petro_r[i] <= 3.0){
                     delta_area = 0
                     if(ap_n_areattl <= 1){
                         prfl_index_alpha = 0
                     }else{
                         prfl_index_alpha = n_asymmpix / ap_n_areattl
                     }
-                    cum_index_alpha = n_asymmpix / cum_n_areattl[i]
+                    cum_index_alpha = n_asymmpix / (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
                 }else{
 
-                    # (<= 0.0):
-                    delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2) - bulge_area[i]
-                    # (<= 0.0):
-                    if(delta_area <= 0){ delta_area = 0 }
+                    ##estas#:
+                    # delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2) - bulge_area[i]
+                    ##estas#:
+                    # if(delta_area <= 0){ delta_area = 0 }
 
-                    # -> Comment the following line only #if uncomment past '# (<= 0.0)' lines.
-                    # delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2 - 9.0)
+                    # Comentar la siguiente linea SI Y SOLO SI las lineas que preceden a '##estas#' fueron descomentadas:
+                    delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2 - 9.0)
 
                     if(ap_n_areattl <= 1){
                         prfl_index_alpha = 0
                     }else{
-                        prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / ap_n_areattl
+                        prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (ap_n_areattl - (delta_area * min_densitybg))
                     }
-                    cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / cum_n_areattl[i]
+                    cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
                 }
 
                 # ====================================================================================

@@ -47,9 +47,14 @@ begin
 
             i = i + 1
 
-            print(line) | scan(id_obj[i], ra_j00[i], dec_j00[i], xwin_img[i], ywin_img[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i], a_mod[i], b_mod[i])
+            # print(line) | scan(id_obj[i], ra_j00[i], dec_j00[i])
+            print(line) | scan(ra_j00[i], dec_j00[i])
 
-            petro_r[i] = petro_r[i] / 2
+            id_obj[i] = "ID_GLXY_"//i
+
+            #, xwin_img[i], ywin_img[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i], a_mod[i], b_mod[i])
+
+            # petro_r[i] = petro_r[i] / 2
         }
     }
     n_list = i
@@ -67,24 +72,24 @@ begin
 
     for(i=1; i<=n_list; i+=1){
         # refrence (3A,3B) aperture: eliptical
-        expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(3 * a_img[i] * pix_scale)//'",'//str(3 * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=green text={SE}'
+        expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(20)//'",'//str(20)//'",'//str(0)//') # color=green text={'//id_obj[i]//'}'
         print(expre, >> output_reg)
 
-        # refrence (Rp) aperture: eliptical
-        expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(petro_r[i] * a_img[i] * pix_scale)//'",'//str(petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red text={Rp}'
-        print(expre, >> output_reg)
-
-        # measurement (1.5xRp) aperture: eliptical
-        expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(1.5 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={1.5Rp}'
-        print(expre, >> output_reg)
-
-        # measurement (2xRp) aperture: eliptical
-        expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(2 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={2Rp}'
-        print(expre, >> output_reg)
-
-        # Model (A_MOD, B_MOD) aperture: eliptical
-        expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(3 * a_mod[i] * pix_scale)//'",'//str(3 * b_mod[i] * pix_scale)//'",'//str(theta_img[i])//') # color=blue text={Model}'
-        print(expre, >> output_reg)
+        #    # refrence (Rp) aperture: eliptical
+        #    expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(petro_r[i] * a_img[i] * pix_scale)//'",'//str(petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red text={Rp}'
+        #    print(expre, >> output_reg)
+        #
+        #    # measurement (1.5xRp) aperture: eliptical
+        #    expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(1.5 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={1.5Rp}'
+        #    print(expre, >> output_reg)
+        #
+        #    # measurement (2xRp) aperture: eliptical
+        #    expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(2 * petro_r[i] * a_img[i] * pix_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={2Rp}'
+        #    print(expre, >> output_reg)
+        #
+        #    # Model (A_MOD, B_MOD) aperture: eliptical
+        #    expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(3 * a_mod[i] * pix_scale)//'",'//str(3 * b_mod[i] * pix_scale)//'",'//str(theta_img[i])//') # color=blue text={Model}'
+        #    print(expre, >> output_reg)
 
         # background aperture: eliptical annulus
         # expre = 'ellipse('//str(ra_j00[i])//','//str(dec_j00[i])//','//str(ri_ann * petro_r[i] * a_img[i] * pix_scale)//'",'//str(ri_ann * petro_r[i] * b_img[i] * pix_scale)//'",'//str(theta_img[i])//') # color=blue dash=1'

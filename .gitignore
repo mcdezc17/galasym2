@@ -4,6 +4,7 @@ data/
 *.fits
 *.png
 *.csv
+*.reg
 corr_prfl_galasym2_96.cl
 ._*
 .DS_Store
