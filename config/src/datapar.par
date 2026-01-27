@@ -1,0 +1,14 @@
+# ========================================================
+# Archivo de parametros para pset 'datapar.par'
+# nombre,tipo,modo,valor_default,min,max,prompt
+single,b,a,yes,,,           enter 'no' if it's a list of images
+pathname,s,a,"A496J.fits",,,name of image or folder images
+initpos,s,a,"inputlist",,,  initial galaxy position table
+tformat,s,a,"ascii",,,      format of initial pos. table
+tcoord,s,a,"degrees",,,     only 'degrees' or 'image'
+# ========================================================
+# Experimental Stuff
+# sim_img,b,h,n,,,List of sky-simulated images?
+# path_sim,f,h,"none",,,Name of the sky-sim img or folder
+mode,s,h,al
+# ========================================================

@@ -36,7 +36,7 @@ CHECKPLOT_DEV       PNG         # NULL, XWIN, TK, PS, PSC, XFIG, PNG,
 CHECKPLOT_RES       0           # Check-plot resolution (0 = default)
 CHECKPLOT_ANTIALIAS Y           # Anti-aliasing using convert (Y/N) ?
 CHECKPLOT_TYPE      FWHM,ELLIPTICITY,COUNTS,COUNT_FRACTION,CHI2,RESIDUALS # or NONE
-CHECKPLOT_NAME      fwhm,ellipticity,counts,countfrac,chi2,resi
+CHECKPLOT_NAME      data/results_psfex/fwhm.png, data/results_psfex/ellipticity.png, data/results_psfex/counts.png, data/results_psfex/countfrac.png, data/results_psfex/chi2.png, data/results_psfex/resi.png
  
 #------------------------------ Check-Images ---------------------------------
  

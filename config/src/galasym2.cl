@@ -6,10 +6,15 @@ set direc = "/home/sloan/galasym2/test/A496/J_band/config/src/"
 
 package galasym2
 
-# Declarar el pset
+# Declarar pset's
+task datapar = "direc$datapar.par"
+task photimg = "direc$photimg.par"
+task sexpar  = "direc$sexpar.par"
+task psfexp  = "direc$psfexp.par"
 # task alpha_par = "direc$alpha_par.par"
 
 # pre-procesamiento de las imagenes:
+task first_time     = "direc$first_time.cl"
 task find_objs      = "direc$find_objs.cl"
 task psf_model      = "direc$psf_model.cl"
 task glxy_model     = "direc$glxy_model.cl"
@@ -20,5 +25,17 @@ task alpha_index    = "direc$alpha_index.cl"
 task distance       = "direc$distance.cl"
 task select         = "direc$select.cl"
 task uncertainty    = "direc$uncertainty.cl"
+
+hidetask datapar
+hidetask photimg
+hidetask sexpar
+hidetask psfexp
+hidetask find_objs
+hidetask psf_model
+hidetask glxy_model
+hidetask find_center
+hidetask distance
+hidetask select
+hidetask uncertainty
 
 clbye()

@@ -60,7 +60,7 @@ PHOT_PETROPARAMS 2.0, 3.5       # MAG_PETRO parameters: <Petrosian_fact>,
                                 # <min_radius>
 PHOT_AUTOAPERS   0.0,0.0        # <estimation>,<measurement> minimum apertures
                                 # for MAG_AUTO and MAG_PETRO
-PHOT_FLUXFRAC    0.5            # flux fraction[s] used for FLUX_RADIUS
+PHOT_FLUXFRAC    0.2, 0.5, 0.8            # flux fraction[s] used for FLUX_RADIUS
 
 SATUR_LEVEL      295977       # level (in ADUs) at which arises saturation
 SATUR_KEY        SATURATE       # keyword for saturation level (in ADUs)
@@ -124,7 +124,7 @@ ASSOCSELEC_TYPE  MATCHED        # ASSOC selection type: ALL, MATCHED or -MATCHED
 
 #----------------------------- Miscellaneous ---------------------------------
 
-VERBOSE_TYPE     NORMAL         # can be QUIET, NORMAL or FULL
+VERBOSE_TYPE     QUIET         # can be QUIET, NORMAL or FULL
 HEADER_SUFFIX    .head          # Filename extension for additional headers
 WRITE_XML        N              # Write XML file (Y/N)?
 XML_NAME         data/results_sex/sex.xml        # Filename for XML output
@@ -139,7 +139,7 @@ INTERP_TYPE      ALL            # Interpolation type: NONE, VAR_ONLY or ALL
 
 #--------------------------- Experimental Stuff -----------------------------
 
-PSF_NAME         data/results_psfex/prepsfex.psf    # File containing the PSF model
+PSF_NAME         config/sextractor/prepsfex.psf    # File containing the PSF model
 PSF_NMAX         1              # Max.number of PSFs fitted simultaneously
 PATTERN_TYPE     RINGS-HARMONIC # can RINGS-QUADPOLE, RINGS-OCTOPOLE,
                                 # RINGS-HARMONICS or GAUSS-LAGUERRE

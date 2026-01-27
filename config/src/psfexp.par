@@ -1,0 +1,8 @@
+# ========================================================
+# Archivo de parametros para pset 'photimg.par'
+# nombre,tipo,modo,valor_default,min,max,prompt
+# PRE-PSFEX.sex es configurable internamente
+#defaultf,
+img_ext,b,a,y,,,      same image to extract stars (y/n)?
+#
+mode,s,h,al

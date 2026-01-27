@@ -778,7 +778,7 @@ begin
 
                 # aper. Total pixels (N_tot) alpha = n_asymmpix / N_tot(in aperture)
                 imdelete(cache_dir//"/"//"tmp_areattl_ap", >& "dev$null")
-                imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], area_glxy_img, verb-)
+                imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_areattl_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], area_glxy_img, verb-)
                 # Area galaxy counting:
                 imstat(cache_dir//"/"//"tmp_areattl_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
                 ap_n_areattl = mean_val * n_pix
@@ -790,12 +790,15 @@ begin
                 # Si utiliza '<= 3.0' asegurese de que las lineas despues de '##estas#' esten comentadas:
                 # Si utiliza '<= 0.0' entonces descomente las lineas despues de '##estas#'
                 if(scale_r[j] * petro_r[i] <= 3.0){
+
                     delta_area = 0
+
                     if(ap_n_areattl <= 1){
                         prfl_index_alpha = 0
                     }else{
                         prfl_index_alpha = n_asymmpix / ap_n_areattl
                     }
+
                     cum_index_alpha = n_asymmpix / (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
                 }else{
 
@@ -812,6 +815,7 @@ begin
                     }else{
                         prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (ap_n_areattl - (delta_area * min_densitybg))
                     }
+
                     cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
                 }
 
@@ -906,8 +910,6 @@ begin
 
                 }
                 # END PRINT CATALOGS ===============================================================
-
-
 
 
             #END FOR (j): apertura de medida

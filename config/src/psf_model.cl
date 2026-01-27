@@ -34,6 +34,9 @@ begin
     string outsex_dir, cat_sex
     string seg_img, mod_img, res_img, bg_img, bgrms_img
 
+    # temporal variables:
+    string tmp_infile, tmp_outfile
+
     # ASIGNACIÓN DE DIRECTORIOS -------------------------
     # ./data: main output cut frames
     data_dir = "data"
@@ -139,6 +142,11 @@ begin
                goto exit_task
            }
 
+           # Copiar resultado (prepsfex.psf) a carpeta de sextractor
+           tmp_infile  = outpsfex_dir//"/"//"prepsfex.psf"
+           tmp_outfile = sex_dir//"/"//"prepsfex.psf"
+           copy(tmp_infile, tmp_outfile)
+
         }
 
         # if(re_run_bool == no){
@@ -170,6 +178,8 @@ begin
         copy(sex_dir//"/"//"default.psf", outpsfex_dir//"/"//"prepsfex.psf")
 
     }
+
+
 
     exit_task:
 
