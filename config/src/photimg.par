@@ -11,3 +11,17 @@ gain_key,s,a,GAIN,,,                        GAIN_KEY imheader keyword          (
 pix_scal,r,a,0.30,INDEF,INDEF,              PIXEL_SCALE in arcsec (0=use FITS WCS info)
 seeingfw,r,a,1.2,INDEF,INDEF,               SEEING_FWHM stellar FWHM in arcsec
 mode,s,h,al
+# ========================================================
+#
+# --------------------------------------------------------
+# VARIABLES (las siguientes lineas siempre comentadas):
+# photimg.n_apert
+# photimg.fluxfrac
+# photimg.saturlev
+# photimg.saturkey
+# photimg.mag_zero
+# photimg.gain_lev
+# photimg.gain_key
+# photimg.pix_scal
+# photimg.seeingfw
+#

@@ -11,6 +11,7 @@ task datapar = "direc$datapar.par"
 task photimg = "direc$photimg.par"
 task sexpar  = "direc$sexpar.par"
 task psfexp  = "direc$psfexp.par"
+task exp_pst = "direc$exp_pst.par"
 # task alpha_par = "direc$alpha_par.par"
 
 # pre-procesamiento de las imagenes:
@@ -26,10 +27,13 @@ task distance       = "direc$distance.cl"
 task select         = "direc$select.cl"
 task uncertainty    = "direc$uncertainty.cl"
 
+# hide PSET(s)
 hidetask datapar
 hidetask photimg
 hidetask sexpar
 hidetask psfexp
+hidetask exp_pst
+# hide TASK(s)
 hidetask find_objs
 hidetask psf_model
 hidetask glxy_model

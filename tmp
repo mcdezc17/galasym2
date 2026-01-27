@@ -1,0 +1,5 @@
+# Complete set of parameters required by GALASYM
+
+SINGLE_TYPE	NO
+PATH_IMG	A496J.fits
+INIT_POS	0

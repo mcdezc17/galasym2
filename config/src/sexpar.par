@@ -1,6 +1,7 @@
 # ========================================================
 # Archivo de parametros para pset 'sexpar.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
+key_run,s,a,"sex",,,                 the keyword to run PSFEx in shell
 minarea,i,a,5,2,INDEF,               DETECT_MINAREA  (min. number pixels)
 dthresh,r,a,1.0,0.5,INDEF,           DETECT_THRESH   (in sigmas)
 athresh,r,a,1.0,0.5,INDEF,           ANALYSIS_THRESH (in sigmas)
@@ -17,3 +18,24 @@ backsize,i,a,32,32,,                 BACK_SIZE Background mesh size
 bckfilsz,i,a,3,3,,                   BACK_FILTERSIZE Background filter size
 verbotyp,s,a,QUIET,,,                VERBOSE_TYPE also: NORMAL or FULL
 mode,s,h,al
+# ========================================================
+#
+# --------------------------------------------------------
+# VARIABLES (las siguientes lineas siempre comentadas):
+#  sexpar.key_run
+#  sexpar.minarea
+#  sexpar.dthresh
+#  sexpar.athresh
+#  sexpar.bfilter
+#  sexpar.namefilt
+#  # sexpar.dnthresh
+#  # sexpar.dmincont
+#  # sexpar.cleanspu
+#  # sexpar.cleanpar
+#  # sexpar.masktype
+#  sexpar.weightty
+#  sexpar.weightim
+#  sexpar.backsize
+#  sexpar.bckfilsz
+#  sexpar.verbotyp
+#

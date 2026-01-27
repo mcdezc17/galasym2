@@ -1,0 +1,11 @@
+# ========================================================
+# Archivo de parametros para pset 'exp_pst.par'
+# nombre,tipo,modo,valor_default,min,max,prompt
+kw_ds9,s,a,"ds9",,,   the keyword to run SAO-DS9 in shell
+mode,s,h,al
+# ========================================================
+#
+# --------------------------------------------------------
+# VARIABLES (las siguientes lineas siempre comentadas):
+# exp_pst.kw_ds9
+#

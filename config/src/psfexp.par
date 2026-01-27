@@ -1,8 +1,18 @@
 # ========================================================
-# Archivo de parametros para pset 'photimg.par'
+# Archivo de parametros para pset 'psfexp.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
 # PRE-PSFEX.sex es configurable internamente
-#defaultf,
-img_ext,b,a,y,,,      same image to extract stars (y/n)?
-#
+key_run,s,a,"psfex",,,    the keyword to run PSFEx in shell
+defaultf,b,a,n,,,         enter 'no' if you don't have star sample!
+same_img,b,a,y,,,          same image to extract stars (y/n)?
+img_name,s,a,"sameimg",,, the same data image to extract PSF
 mode,s,h,al
+# ========================================================
+#
+# --------------------------------------------------------
+# VARIABLES (las siguientes lineas siempre comentadas):
+# psfexp.key_run
+# psfexp.defaultf
+# psfexp.same_img
+# psfexp.img_name
+#
