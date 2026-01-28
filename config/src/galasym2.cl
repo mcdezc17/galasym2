@@ -16,6 +16,7 @@ task exp_pst = "direc$exp_pst.par"
 
 # pre-procesamiento de las imagenes:
 task first_time     = "direc$first_time.cl"
+task config_files   = "direc$config_files.cl"
 task find_objs      = "direc$find_objs.cl"
 task psf_model      = "direc$psf_model.cl"
 task glxy_model     = "direc$glxy_model.cl"
@@ -34,6 +35,7 @@ hidetask sexpar
 hidetask psfexp
 hidetask exp_pst
 # hide TASK(s)
+hidetask config_files
 hidetask find_objs
 hidetask psf_model
 hidetask glxy_model

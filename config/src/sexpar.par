@@ -1,22 +1,22 @@
 # ========================================================
 # Archivo de parametros para pset 'sexpar.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
-key_run,s,a,"sex",,,                 the keyword to run PSFEx in shell
-minarea,i,a,5,2,INDEF,               DETECT_MINAREA  (min. number pixels)
-dthresh,r,a,1.0,0.5,INDEF,           DETECT_THRESH   (in sigmas)
-athresh,r,a,1.0,0.5,INDEF,           ANALYSIS_THRESH (in sigmas)
-bfilter,b,a,y,,,                     FILTER apply filter (Y/N)?
-namefilt,s,a,"gauss_2.0_3x3.conv",,, FILTER_NAME       (/*.conv)
-# dnthresh,i,a,32,0,INDEF,             DEBLEND_NTHRESH
-# dmincont,r,a,0.005,0.001,INDEF,      DEBLEND_MINCONT
-# cleanspu,b,a,y,,,                    CLEAN clean spurious detections?
-# cleanpar,r,a,1.0,0.001,1.0,          CLEAN_PARAM cleaning efficiency
-# masktype,s,a,CORRECT,,,              MASK_TYPE also: NONE or BLANK
-weightty,s,a,NONE,,,                "WEIGHT_TYPE also:BACKGROUND MAP_RMS MAP_VAR MAP_WEIGHT"
-weightim,s,a,"weight.fits",,,        WEIGHT_IMAGE weight-map filename
-backsize,i,a,32,32,,                 BACK_SIZE Background mesh size
-bckfilsz,i,a,3,3,,                   BACK_FILTERSIZE Background filter size
-verbotyp,s,a,QUIET,,,                VERBOSE_TYPE also: NORMAL or FULL
+key_run,s,h,"sex",,,                 the keyword to run PSFEx in shell
+minarea,i,h,5,2,INDEF,               DETECT_MINAREA  (min. number pixels)
+dthresh,r,h,1.0,0.5,INDEF,           DETECT_THRESH   (in sigmas)
+athresh,r,h,1.0,0.5,INDEF,           ANALYSIS_THRESH (in sigmas)
+bfilter,b,h,y,,,                     FILTER apply filter (Y/N)?
+namefilt,s,h,"gauss_2.0_3x3.conv",,, FILTER_NAME       (/*.conv)
+# dnthresh,i,h,32,0,INDEF,             DEBLEND_NTHRESH
+# dmincont,r,h,0.005,0.001,INDEF,      DEBLEND_MINCONT
+# cleanspu,b,h,y,,,                    CLEAN clean spurious detections?
+# cleanpar,r,h,1.0,0.001,1.0,          CLEAN_PARAM cleaning efficiency
+# masktype,s,h,CORRECT,,,              MASK_TYPE also: NONE or BLANK
+weightty,s,h,NONE,,,                "WEIGHT_TYPE also:BACKGROUND MAP_RMS MAP_VAR MAP_WEIGHT"
+weightim,s,h,"weight.fits",,,        WEIGHT_IMAGE weight-map filename
+backsize,i,h,32,32,,                 BACK_SIZE Background mesh size
+bckfilsz,i,h,3,3,,                   BACK_FILTERSIZE Background filter size
+verbotyp,s,h,QUIET,,,                VERBOSE_TYPE also: NORMAL or FULL
 mode,s,h,al
 # ========================================================
 #

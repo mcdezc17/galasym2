@@ -1,0 +1,41 @@
+# Complet set of parameters required by GALASYM
+#------------------------------------------------------------
+#--------------- PSET: config/src/datapar.par ---------------
+SINGLE_TYPE	YES
+PATH_IMG	A496J.fits
+INIT_POS	tables/inputlist.ascii
+T_FORMAT	ascii
+T_COORD	deg
+#------------------------------------------------------------
+#--------------- PSET: config/src/photimg.par ---------------
+PHOT_APERTURES	40.22, 56.31, 80.45
+PHOT_FLUXFRAC	0.2, 0.5, 0.8
+SATUR_LEVEL	295977.
+SATUR_KEY	SATURATE
+MAG_ZEROPOINT	30.
+GAIN	6.11
+GAIN_KEY	GAIN
+PIXEL_SCALE	0.3
+SEEING_FWHM	1.2
+#------------------------------------------------------------
+#--------------- PSET: config/src/sexpar.par ----------------
+KW_SE	sex
+DETECT_MINAREA	5
+DETECT_THRESH	1.
+ANALYSIS_THRESH	1.
+FILTER	YES
+FILTER_NAME	gauss_2.0_3x3.conv
+WEIGHT_TYPE	NONE
+WEIGHT_IMAGE	weight.fits
+BACK_SIZE	32
+BACK_FILTERSIZE	3
+VERBOSE_TYPE	QUIET
+#------------------------------------------------------------
+#--------------- PSET: config/src/psfexp.par ----------------
+KW_PSFEX	psfex
+DFLT_PSF	NO
+SAME_IMG	YES
+IMG_NAME	sameimg
+#------------------------------------------------------------
+#--------------- PSET: config/src/exp_pst.par ----------------
+KW_DS9	ds9

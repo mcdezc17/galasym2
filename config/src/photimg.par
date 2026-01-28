@@ -1,15 +1,15 @@
 # ========================================================
 # Archivo de parametros para pset 'photimg.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
-n_apert,s,a,"40.22, 56.31, 80.45",,,        PHOT_APERTURES aperture diameter(s) in pixels
-fluxfrac,s,a,"0.2, 0.5, 0.8",,,             PHOT_FLUXFRAC flux-fractions for FLUX_RADIUS
-saturlev,r,a,295977,1,INDEF,                SATUR_LEVEL                       (in ADUs)
-saturkey,s,a,SATURATE,,,                    SATUR_KEY imheader keyword        (in ADUs)
-mag_zero,r,a,30.0,INDEF,INDEF,              MAG_ZEROPOINT magnitude zero-point
-gain_lev,r,a,6.11,INDEF,INDEF,              GAIN detector gain in e-/ADU
-gain_key,s,a,GAIN,,,                        GAIN_KEY imheader keyword          (e-/ADU)
-pix_scal,r,a,0.30,INDEF,INDEF,              PIXEL_SCALE in arcsec (0=use FITS WCS info)
-seeingfw,r,a,1.2,INDEF,INDEF,               SEEING_FWHM stellar FWHM in arcsec
+n_apert,s,h,"40.22, 56.31, 80.45",,,        PHOT_APERTURES aperture diameter(s) in pixels
+fluxfrac,s,h,"0.2, 0.5, 0.8",,,             PHOT_FLUXFRAC flux-fractions for FLUX_RADIUS
+saturlev,r,h,295977,1,INDEF,                SATUR_LEVEL                       (in ADUs)
+saturkey,s,h,SATURATE,,,                    SATUR_KEY imheader keyword        (in ADUs)
+mag_zero,r,h,30.0,INDEF,INDEF,              MAG_ZEROPOINT magnitude zero-point
+gain_lev,r,h,6.11,INDEF,INDEF,              GAIN detector gain in e-/ADU
+gain_key,s,h,GAIN,,,                        GAIN_KEY imheader keyword          (e-/ADU)
+pix_scal,r,h,0.30,INDEF,INDEF,              PIXEL_SCALE in arcsec (0=use FITS WCS info)
+seeingfw,r,h,1.2,INDEF,INDEF,               SEEING_FWHM stellar FWHM in arcsec
 mode,s,h,al
 # ========================================================
 #

@@ -4,8 +4,8 @@
 single,b,a,yes,,,           enter 'no' if it's a list of images
 pathname,s,a,"A496J.fits",,,name of image or folder images
 initpos,s,a,"tables/inputlist.ascii",,,  initial galaxy position table
-tformat,s,a,"ascii",,,      format of initial pos. table
-tcoord,s,a,"deg",,,     only 'deg' or 'image'
+tformat,s,h,"ascii",,,      format of initial pos. table
+tcoord,s,h,"deg",,,     only 'deg' or 'image'
 # ========================================================
 # Experimental Stuff
 # sim_img,b,h,n,,,List of sky-simulated images?

@@ -44,7 +44,7 @@ begin
     string kw_ds9_exp
 
     # ARCHIVO DE SALIDA DE PARAMETROS:
-    tmp_outfile = "tmp"
+    tmp_outfile = "full_params.txt"
 
     # ================================================
     # OBTENER VALORES DE PSET: datapar
@@ -116,9 +116,9 @@ begin
     }
 
     # Si la verificacion continua, imprime archivo full parametros:
-    print("# Complete set of parameters required by GALASYM\n", > tmp_outfile)
-    print("#------------------------------------------------------------")
-    print("#--------------- PSET: config/src/datapar.par ---------------")
+    print("# Complet set of parameters required by GALASYM", > tmp_outfile)
+    print("#------------------------------------------------------------", >> tmp_outfile)
+    print("#--------------- PSET: config/src/datapar.par ---------------", >> tmp_outfile)
     printf("SINGLE_TYPE\t%b\n", single_data, >> tmp_outfile)
     printf("PATH_IMG\t%s\n", pathname_data, >> tmp_outfile)
     if(single_data == yes){
@@ -146,8 +146,8 @@ begin
     seeingfw_phot = photimg.seeingfw
 
     # Si la verificacion continua, imprime archivo full parametros:
-    print("#------------------------------------------------------------")
-    print("#--------------- PSET: config/src/photimg.par ---------------")
+    print("#------------------------------------------------------------", >> tmp_outfile)
+    print("#--------------- PSET: config/src/photimg.par ---------------", >> tmp_outfile)
     printf("PHOT_APERTURES\t%s\n", n_apert_phot, >> tmp_outfile)
     printf("PHOT_FLUXFRAC\t%s\n", fluxfrac_phot, >> tmp_outfile)
     printf("SATUR_LEVEL\t%s\n", saturlev_phot, >> tmp_outfile)
@@ -180,13 +180,13 @@ begin
     verbotyp_se = sexpar.verbotyp
 
     # Si la verificacion continua, imprime archivo full parametros:
-    print("#------------------------------------------------------------")
-    print("#--------------- PSET: config/src/sexpar.par ----------------")
+    print("#------------------------------------------------------------", >> tmp_outfile)
+    print("#--------------- PSET: config/src/sexpar.par ----------------", >> tmp_outfile)
     printf("KW_SE\t%s\n", key_run_se, >> tmp_outfile)
     printf("DETECT_MINAREA\t%s\n", minarea_se, >> tmp_outfile)
     printf("DETECT_THRESH\t%s\n", dthresh_se, >> tmp_outfile)
     printf("ANALYSIS_THRESH\t%s\n", athresh_se, >> tmp_outfile)
-    printf("FILTER\t%s\n", bfilter_se, >> tmp_outfile)
+    printf("FILTER\t%b\n", bfilter_se, >> tmp_outfile)
     printf("FILTER_NAME\t%s\n", namefilt_se, >> tmp_outfile)
     # printf("DEBLEND_NTHRESH\t%s\n", , >> tmp_outfile)
     # printf("DEBLEND_MINCONT\t%s\n", , >> tmp_outfile)
@@ -209,11 +209,11 @@ begin
     img_name_psf = psfexp.img_name
 
     # Si la verificacion continua, imprime archivo full parametros:
-    print("#------------------------------------------------------------")
-    print("#--------------- PSET: config/src/psfexp.par ----------------")
+    print("#------------------------------------------------------------", >> tmp_outfile)
+    print("#--------------- PSET: config/src/psfexp.par ----------------", >> tmp_outfile)
     printf("KW_PSFEX\t%s\n", key_run_psf, >> tmp_outfile)
-    printf("DFLT_PSF\t%s\n", defaultf_psf, >> tmp_outfile)
-    printf("SAME_IMG\t%s\n", same_img_psf, >> tmp_outfile)
+    printf("DFLT_PSF\t%b\n", defaultf_psf, >> tmp_outfile)
+    printf("SAME_IMG\t%b\n", same_img_psf, >> tmp_outfile)
     printf("IMG_NAME\t%s\n", img_name_psf, >> tmp_outfile)
 
     # ================================================
@@ -223,8 +223,8 @@ begin
     kw_ds9_exp  = exp_pst.kw_ds9
 
     # Si la verificacion continua, imprime archivo full parametros:
-    print("#------------------------------------------------------------")
-    print("#--------------- PSET: config/src/exp_pst.par ----------------")
+    print("#------------------------------------------------------------", >> tmp_outfile)
+    print("#--------------- PSET: config/src/exp_pst.par ----------------", >> tmp_outfile)
     printf("KW_DS9\t%s\n", kw_ds9_exp, >> tmp_outfile)
 
     # find_objs

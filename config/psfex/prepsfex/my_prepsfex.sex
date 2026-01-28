@@ -1,0 +1,30 @@
+# Simple configuration file for SExtractor prior to PSFEx use
+# only non-default parameters are present.
+# FOR GALASYM2 ANALYSIS IMG: A496J.fits
+# DATE 190925
+
+#-------------------------------- Catalog ------------------------------------
+
+CATALOG_NAME     data/results_psfex/prepsfex.cat            # (BEST DEFAULT) Catalog filename
+CATALOG_TYPE     FITS_LDAC                     # (MANDATORY FITS_LDAC) FITS_LDAC format
+PARAMETERS_NAME  config/psfex/prepsfex/prepsfex.param # name of the file containing catalog contents
+
+#------------------------------- Extraction ----------------------------------
+
+DETECT_MINAREA 3    # (BEST DEFAULT) minimum number of pixels above threshold
+DETECT_THRESH    4    # (BEST DEFAULT) a fairly conservative threshold
+ANALYSIS_THRESH  4    # idem
+
+FILTER         Y    # (MANDATORY YES) apply filter for detection (Y or N)?
+FILTER_NAME      config/psfex/prepsfex/default.conv   # (MANATORY default.conv) name of the file containing the filter
+
+#-------------------------------- WEIGHTing ----------------------------------
+#-------------------------------- FLAGging -----------------------------------
+#------------------------------ Photometry -----------------------------------
+
+PHOT_FLUXFRAC   0.5
+
+PHOT_APERTURES  17.        # put the referrence aperture diameter here: 5arsec diameter in pixels
+SATUR_LEVEL       295977.        # put the right saturation threshold here
+MAG_ZEROPOINT     30.        # magnitude zero-point
+GAIN              6.11        # put the right detector gain in e-/ADU here
