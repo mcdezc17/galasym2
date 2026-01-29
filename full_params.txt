@@ -4,6 +4,8 @@
 SINGLE_TYPE	YES
 PATH_IMG	A496J.fits
 INIT_POS	tables/inputlist.ascii
+COSMOPAR	0.033 70 0.3 0.7
+BCG_ID	MCG_02_12_039
 T_FORMAT	ascii
 T_COORD	deg
 #------------------------------------------------------------
@@ -39,3 +41,4 @@ IMG_NAME	sameimg
 #------------------------------------------------------------
 #--------------- PSET: config/src/exp_pst.par ----------------
 KW_DS9	ds9
+KW_PYTHON	python3

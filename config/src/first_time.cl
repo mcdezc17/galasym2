@@ -13,7 +13,9 @@ begin
 
     # Declaracion de variables para pset 'datapar'
     bool   single_data
-    string pathname_data, initpos_data, tformat_data, tcoord_data
+    string pathname_data, initpos_data
+    string cosmopar_data
+    string bcgid_data, tformat_data, tcoord_data
 
     # Declaracion de variables para pset 'photimg'
     string n_apert_phot, fluxfrac_phot
@@ -41,7 +43,7 @@ begin
     string img_name_psf
 
     # Declaracion de variables para pset 'exp_pst'
-    string kw_ds9_exp
+    string kw_ds9_exp, kw_py_exp
 
     # ARCHIVO DE SALIDA DE PARAMETROS:
     tmp_outfile = "full_params.txt"
@@ -53,6 +55,8 @@ begin
     single_data   = datapar.single
     pathname_data = datapar.pathname
     initpos_data  = datapar.initpos
+    cosmopar_data = datapar.cosmopar
+    bcgid_data    = datapar.bcg_id
     tformat_data  = datapar.tformat
     tcoord_data   = datapar.tcoord
     # = datapar.sim_img
@@ -123,10 +127,18 @@ begin
     printf("PATH_IMG\t%s\n", pathname_data, >> tmp_outfile)
     if(single_data == yes){
         printf("INIT_POS\t%s\n", initpos_data, >> tmp_outfile)
+        printf("COSMOPAR\t%s\n", cosmopar_data, >> tmp_outfile)
+        printf("BCG_ID\t%s\n", bcgid_data, >> tmp_outfile)
         printf("T_FORMAT\t%s\n", tformat_data, >> tmp_outfile)
         printf("T_COORD\t%s\n", tcoord_data, >> tmp_outfile)
+
+        # Calcular tamaño de imagen:
+        imgets(pathname_data, )
+
     }else{
         print("INIT_POS\t0", >> tmp_outfile)
+        printf("COSMOPAR\t%s\n", cosmopar_data, >> tmp_outfile)
+        printf("BCG_ID\t%s\n", bcgid_data, >> tmp_outfile)
         print("T_FORMAT\t0", >> tmp_outfile)
         print("T_COORD\t0", >> tmp_outfile)
     }
@@ -221,14 +233,17 @@ begin
     # ================================================
 
     kw_ds9_exp  = exp_pst.kw_ds9
+    kw_py_exp   = exp_pst.kw_py
 
     # Si la verificacion continua, imprime archivo full parametros:
     print("#------------------------------------------------------------", >> tmp_outfile)
     print("#--------------- PSET: config/src/exp_pst.par ----------------", >> tmp_outfile)
     printf("KW_DS9\t%s\n", kw_ds9_exp, >> tmp_outfile)
-
-    # find_objs
+    printf("KW_PYTHON\t%s\n", kw_py_exp, >> tmp_outfile)
 
     # config_files
+    config_files
+
+    # find_objs
 
 end

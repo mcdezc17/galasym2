@@ -16,13 +16,16 @@ task exp_pst = "direc$exp_pst.par"
 
 # pre-procesamiento de las imagenes:
 task first_time     = "direc$first_time.cl"
+# lista de indices disponibles:
+task alpha_index    = "direc$alpha_index.cl"
+
+# No visibles:
 task config_files   = "direc$config_files.cl"
 task find_objs      = "direc$find_objs.cl"
 task psf_model      = "direc$psf_model.cl"
 task glxy_model     = "direc$glxy_model.cl"
 task $find_center   = "direc$find_center.cl"
-# lista de indices disponibles:
-task alpha_index    = "direc$alpha_index.cl"
+
 # -------------------------------------------
 task distance       = "direc$distance.cl"
 task select         = "direc$select.cl"
