@@ -9,13 +9,15 @@ pset exp_pst {prompt = "Experimental stuff    (pset)"}
 begin
 
     # archivo de salida:
-    string tmp_outfile
+    string tmp_file, tmp_outfile
 
     # Declaracion de variables para pset 'datapar'
     bool   single_data
     string pathname_data, initpos_data
+    real imagecut_data
     string cosmopar_data
     string bcgid_data, tformat_data, tcoord_data
+    int xlenght_data, ylenght_data
 
     # Declaracion de variables para pset 'photimg'
     string n_apert_phot, fluxfrac_phot
@@ -45,6 +47,21 @@ begin
     # Declaracion de variables para pset 'exp_pst'
     string kw_ds9_exp, kw_py_exp
 
+    # DIRECTRIOS A USAR:
+    if(!access("data")){mkdir("data")}
+    # cache:
+    if(!access("data/cache")){mkdir("data/cache")}
+    # directorio de archivos:
+    if(!access("data/data_files")){mkdir("data/data_files")}
+    # Recortes de imagenes:
+    if(!access("data/data_images")){mkdir("data/data_images")}
+    # subcarpetas de imagenes:
+    if(!access("data/data_images/observed")){mkdir("data/data_images/observed")}
+    if(!access("data/data_images/background")){mkdir("data/data_images/background")}
+    if(!access("data/data_images/segmentation")){mkdir("data/data_images/segmentation")}
+    if(!access("data/data_images/model")){mkdir("data/data_images/model")}
+    if(!access("data/data_images/residual")){mkdir("data/data_images/residual")}
+
     # ARCHIVO DE SALIDA DE PARAMETROS:
     tmp_outfile = "full_params.txt"
 
@@ -55,6 +72,7 @@ begin
     single_data   = datapar.single
     pathname_data = datapar.pathname
     initpos_data  = datapar.initpos
+    imagecut_data = datapar.imagecut
     cosmopar_data = datapar.cosmopar
     bcgid_data    = datapar.bcg_id
     tformat_data  = datapar.tformat
@@ -70,6 +88,13 @@ begin
             print("       Impossible to continue!")
             bye
         }
+        # Tiene extension?
+        tmp_file = pathname_data//".fits"
+        if(access(tmp_file)){
+            # conservar extension:
+            pathname_data = pathname_data//".fits"
+        }
+
         # Verifica existencia de tabla de posiciones iniciales:
         if(!access(initpos_data)){
             print("\n ERR: pset(datapar) variable(initpos).")
@@ -107,6 +132,7 @@ begin
         if(imaccess(pathname_data)){
             print("\n ERR: pset(datapar) variable(pathname).")
             print("      It looks like an image; a folder is expected.")
+            print("      i.e. whitout extension, e.g., *.fits?")
             print("      Impossible to continue!")
             bye
         }
@@ -127,20 +153,30 @@ begin
     printf("PATH_IMG\t%s\n", pathname_data, >> tmp_outfile)
     if(single_data == yes){
         printf("INIT_POS\t%s\n", initpos_data, >> tmp_outfile)
+        printf("CUT_IMG\t%s\n", imagecut_data, >> tmp_outfile)
         printf("COSMOPAR\t%s\n", cosmopar_data, >> tmp_outfile)
         printf("BCG_ID\t%s\n", bcgid_data, >> tmp_outfile)
         printf("T_FORMAT\t%s\n", tformat_data, >> tmp_outfile)
         printf("T_COORD\t%s\n", tcoord_data, >> tmp_outfile)
 
         # Calcular tamaño de imagen:
-        imgets(pathname_data, )
+        imgets(pathname_data, "naxis1")
+        xlenght_data = int(imgets.value)
+        imgets(pathname_data, "naxis2")
+        ylenght_data = int(imgets.value)
+
+        printf("NAXIS1\t%s\n", xlenght_data, >> tmp_outfile)
+        printf("NAXIS2\t%s\n", ylenght_data, >> tmp_outfile)
 
     }else{
         print("INIT_POS\t0", >> tmp_outfile)
+        print("CUT_IMG\t0\n", >> tmp_outfile)
         printf("COSMOPAR\t%s\n", cosmopar_data, >> tmp_outfile)
         printf("BCG_ID\t%s\n", bcgid_data, >> tmp_outfile)
         print("T_FORMAT\t0", >> tmp_outfile)
         print("T_COORD\t0", >> tmp_outfile)
+        printf("NAXIS1\t0\n", >> tmp_outfile)
+        printf("NAXIS2\t0\n", >> tmp_outfile)
     }
 
     # ================================================
@@ -244,6 +280,9 @@ begin
     # config_files
     config_files
 
-    # find_objs
+    # psf_model
+    if(defaultf_psf == no){
+        psf_model
+    }
 
 end

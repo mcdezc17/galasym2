@@ -353,7 +353,7 @@ begin
 
     print("\n#----------------------------- Miscellaneous ---------------------------------", >> tmp_outfile)
 
-    printf("\nVERBOSE_TYPE %s", verbotyp_se, >> tmp_outfile)
+    printf("\nVERBOSE_TYPE %s\n", verbotyp_se, >> tmp_outfile)
     print("HEADER_SUFFIX .head", >> tmp_outfile)
     print("WRITE_XML N", >> tmp_outfile)
     print("XML_NAME data/results_sex/sex.xml", >> tmp_outfile)

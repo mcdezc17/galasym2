@@ -97,7 +97,16 @@ begin
     string tmp_wait
     string tmp_infile, tmp_infile2, tmp_outfile
 
-
+    # ==================================================
+    find_objs
+    scan(tmp_wait)
+    # ==================================================
+    glxy_model
+    scan(tmp_wait)
+    # ==================================================
+    find_center
+    scan(tmp_wait)
+    # ==================================================
 
     # ASIGNACIÓN DE VARIABLES -------------------------
     const_pi = 3.1415926535897932385
@@ -184,7 +193,7 @@ begin
     # ==================================================
 
     # listas heredadas exactamente de 'find_objs' task:
-    params_list = outsex_dir//"/"//"params_to_index.ascii"
+    params_list = outsex_dir//"/"//"params_to_index.txt"
     # No existe archivo de entrada esperado:
     if(!access(params_list)){
         print("\n ERR(fatal): mandatory that it exist:")
@@ -245,9 +254,9 @@ begin
 
     # listas heredadas exactamente de 'find_center' task:
     if(strlwr(center_rot) == "rms"){
-        center_rot_list = datafiles_dir//"/"//"rms_mincenter.ascii"
+        center_rot_list = datafiles_dir//"/"//"rms_mincenter.txt"
     }else if(strlwr(center_rot) == "abs"){
-        center_rot_list = datafiles_dir//"/"//"abs_mincenter.ascii"
+        center_rot_list = datafiles_dir//"/"//"abs_mincenter.txt"
     }else{
         print("\n ERR: prompt 'center_rot' must be")
         print("      'abs' or 'rms' string!")
@@ -346,8 +355,8 @@ begin
             b_img[i] = b_int / (1.5 * petro_r[i])
             theta_img[i] = ell_angle
             theta_rad[i] = theta_img[i] * const_pi / 180
-            print("# ID A_IMG B_IMG THETA_IMG", > "data"//"/"//id_obj[i]//"_force_params.ascii")
-            print(id_obj[i], " ", a_img[i], " ", b_img[i], " ", theta_img[i], >> "data"//"/"//id_obj[i]//"_force_params.ascii")
+            print("# ID A_IMG B_IMG THETA_IMG", > "data"//"/"//id_obj[i]//"_force_params.txt")
+            print(id_obj[i], " ", a_img[i], " ", b_img[i], " ", theta_img[i], >> "data"//"/"//id_obj[i]//"_force_params.txt")
             # SEGUIMIENTO:
             #print("\n Nuevos parametros: ", a_img[i], b_img[i], theta_img[i], petro_r[i])
 

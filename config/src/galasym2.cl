@@ -47,4 +47,19 @@ hidetask distance
 hidetask select
 hidetask uncertainty
 
+print(" ")
+print("    +------------------ GALASYM IRAF Package -------------------+")
+print("    |                  Version 2.0, Nov, 2025                   |")
+print("    |                                                           |")
+print("    |               Requires IRAF v2.16 or greater              |")
+print("    |        Tested with Ubuntu 24.04.3 LTS IRAF v2.16          |")
+print("    |         Universidad de Guanajuato, Gto., Mexico           |")
+print("    |     Please use GitHub site for submission of questions    |")
+print("    |           https://github.com/mcdezc17/galasym             |")
+print("    +-----------------------------------------------------------+")
+print(" ")
+print("  WARNING - setting imtype=fits")
+print("          - required software: SExtractor, PSFExtractor & STILTS")
+print(" ")
+
 clbye()

@@ -111,7 +111,8 @@ ASSOCSELEC_TYPE MATCHED
 
 #----------------------------- Miscellaneous ---------------------------------
 
-VERBOSE_TYPE QUIETHEADER_SUFFIX .head
+VERBOSE_TYPE QUIET
+HEADER_SUFFIX .head
 WRITE_XML N
 XML_NAME data/results_sex/sex.xml
 XSL_URL file:///usr/local/share/sextractor/sextractor.xsl

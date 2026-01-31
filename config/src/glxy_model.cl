@@ -1,12 +1,15 @@
-procedure glxy_model(inputlist, single_image)
+procedure glxy_model()
 
-string inputlist    = "objs_list"   {prompt = "list of objects"}
-string key_sex      = "sex"         {prompt = "Keyword to run SExtractor"}
-bool   single_image = yes           #{prompt = "one image?"}
+# string inputlist    = "objs_list"   {prompt = "list of objects"}
+# string key_sex      = "sex"         {prompt = "Keyword to run SExtractor"}
+# bool   single_image = yes           #{prompt = "one image?"}
+struct *list
 
 begin
     # ************* Variables Definition *************
     # System variables
+    string inputlist
+    string key_word
     int i, j, k
     struct line
     string my_date, my_time
@@ -34,6 +37,12 @@ begin
     real ellip[999], theta_j00[999], theta_img[999], theta_rad[999]
     real petro_r[999], eff_r[999], kron_r[999]
     real iso_area[999], iso_areaf[999]
+
+    # PSET datapar
+    bool single_data
+    string pathname_data
+    # PSET sexpar
+    string key_run_se, namefilt_se
 
     # match list:
     real x0, y0
@@ -73,6 +82,31 @@ begin
 
     # ************* Cutout images variables *************
     int px1, px2, py1, py2, l_frame, side_frame[999]
+
+    # KEY_WORD requeridas para ejecutar programas
+    list = "full_params.txt"
+    while(fscan(list,line) != EOF){
+        if(line != "" && substr(line,1,1) != "#"){
+
+            print(line) | scan(key_word)
+
+            # DATAPAR PSET -----------------------------------------------------------
+
+            if(key_word == "SINGLE_TYPE"){print(line) | scan(key_word, single_data)}
+
+            if(key_word == "PATH_IMG"){print(line) | scan(key_word, pathname_data)}
+
+            # SEXPAR PSET --------------------------------------------------------
+
+            if(key_word == "KW_SE"){print(line) | scan(key_word, key_run_se)}
+
+            if(key_word == "FILTER_NAME"){print(line) | scan(key_word, namefilt_se)}
+
+        # END IF: lineas validas
+        }
+    # END WHILE: lectura lista parametros full
+    }
+    list = ""
 
     # ASIGNACIÓN DE DIRECTORIOS -------------------------
     # ./data: main output cut frames
@@ -121,9 +155,9 @@ begin
         scale_r[i] = scale_r_offset + (0.05 * (i-1))
     }
 
-    config_sex = sex_dir//"/"//"default.sex"
+    config_sex = sex_dir//"/"//"my_default.sex"
     param_sex  = sex_dir//"/"//"default.param"
-    conv_sex   = sex_dir//"/"//"filter.conv"
+    conv_sex   = sex_dir//"/"//namefilt_se
 
     segmen_img   = outsex_dir//"/"//"check_seg.fits"
     bg_img    = outsex_dir//"/"//"check_bg.fits"
@@ -138,8 +172,11 @@ begin
 
     print("\n START TASK: galaxy_model")
 
-    if(single_image == yes){print(" image: list from single image")}
+    if(single_data == yes){print(" image: list from single image")}
     else{print(" image: list from list of images")}
+
+    # lista de objetos aceptados:
+    inputlist = datafiles_dir//"/"//"accepted_imgs.txt"
 
     # VERIFICAR QUE inputlist TIENE ACCESO:
     if(!access(inputlist)){
@@ -149,7 +186,7 @@ begin
     }
 
     # VERIFICAR SI EL inutlist ES DIFERENTE AL ESPERADO:
-    tmp_string = datafiles_dir//"/"//"accepted_imgs.ascii"
+    tmp_string = datafiles_dir//"/"//"accepted_imgs.txt"
 
     if(inputlist != tmp_string){
         print(" \n WRNNG: 'inputlist' is another")
@@ -160,7 +197,7 @@ begin
     # }
 
     # LEER LOS OBJES DEL inputlist:
-    delete(datafiles_dir//"/"//"not_imaccess_for_glxy_model.ascii", ver-, >& "dev$null")
+    delete(datafiles_dir//"/"//"not_imaccess_for_glxy_model.txt", ver-, >& "dev$null")
     list = inputlist
     i = 0
     j = 0
@@ -170,7 +207,7 @@ begin
             print(line) | scan(tmp_id_obj, tmp_string)
 
             if(!imaccess(tmp_string)){
-                print(line, >> datafiles_dir//"/"//"not_imaccess_for_glxy_model.ascii")
+                print(line, >> datafiles_dir//"/"//"not_imaccess_for_glxy_model.txt")
             }else{
                 j = j + 1
                 id_obj[j] = tmp_id_obj
@@ -187,7 +224,7 @@ begin
     if(n_accepted < n_list){
         print(" \n WRNNG: Can not access some images.")
         print("           Check the following file:  ")
-        print("        - ", datafiles_dir//"/"//"not_imaccess_for_glxy_model.ascii")
+        print("        - ", datafiles_dir//"/"//"not_imaccess_for_glxy_model.txt")
         # si son pocos, imprimir:
         if(n_accepted > 0 && n_accepted < 6){
             for(k=1;k<=j;k+=1){
@@ -218,10 +255,10 @@ begin
 
     re_run_sex:
 
-    list_cat_sex   = outsex_dir//"/"//"inlist.lis"
+    list_cat_sex = outsex_dir//"/"//"inlist.lis"
     list_models = data_dir//"/"//"sextracted.cat"
-    # list_bgrms_img = datafiles_dir//"/"//"data_list_rms_img.ascii"
-    # list_residual_img   = datafiles_dir//"/"//"data_list_residl_imgs.ascii"
+    # list_bgrms_img = datafiles_dir//"/"//"data_list_rms_img.txt"
+    # list_residual_img   = datafiles_dir//"/"//"data_list_residl_imgs.txt"
 
     # Si no accede a los anteriores correr SExtractor
     if(!access(list_cat_sex)){
@@ -231,7 +268,7 @@ begin
         # Impossible to run SEx if:
         if(!access(config_sex) || !access(param_sex) || !access(conv_sex)){
             print("\n WRNNG: incomplete configuration files")
-            prnt("          for SExtractor run! Must exist:\n")
+            print("          for SExtractor run! Must exist:\n")
             print("         - 'default.sex' in 'config/sextractor/'")
             print("         - 'default.param'   (in same dir)")
             print("         - 'and filter.conv' (in same dir)")
@@ -260,7 +297,7 @@ begin
 
             measure_img = image_list[i]
 
-            printf("! %s %s -c %s \n", key_sex, measure_img, config_sex) | cl
+            printf("! %s %s -c %s \n", key_run_se, measure_img, config_sex) | cl
 
             sleep(1)
 
@@ -388,9 +425,9 @@ begin
     # Verificar tamaño de imagen (i.e. de las que ya vienen cortadas)
     # ========================================================================
     # input/output de wcsctran:
-    # delete(outsex_dir//"/"//"list_wcstran.ascii", ver-, >& "dev$null")
-    printf("#%31s %5d %5d\n", "ID", "Xc", "Yc", > outsex_dir//"/"//"xycenter_images.ascii")
-    #delete(outsex_dir//"/"//"list_images.ascii", ver-, >& "dev$null")
+    # delete(outsex_dir//"/"//"list_wcstran.txt", ver-, >& "dev$null")
+    printf("#%31s %5d %5d\n", "ID", "Xc", "Yc", > outsex_dir//"/"//"xycenter_images.txt")
+    #delete(outsex_dir//"/"//"list_images.txt", ver-, >& "dev$null")
 
     # cabecera regiones ds9:
     print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"glxys_in_image.reg")
@@ -522,16 +559,16 @@ begin
 
             # Centros de la imagen a transformar:
             # lista para wcstran:
-            printf("%32s %5d %5d\n", id_obj[k], xc[k], yc[k], > outsex_dir//"/"//k//"_xycenter.ascii")
+            printf("%32s %5d %5d\n", id_obj[k], xc[k], yc[k], > outsex_dir//"/"//k//"_xycenter.txt")
             # y para verificar (seguimiento):
-            printf("%32s %5d %5d\n", id_obj[k], xc[k], yc[k], >> outsex_dir//"/"//"xycenter_images.ascii")
+            printf("%32s %5d %5d\n", id_obj[k], xc[k], yc[k], >> outsex_dir//"/"//"xycenter_images.txt")
 
             # ============================================
             # WCSCTRAN: Transformar coordenadas X,Y -> RA,DEC
             # ============================================
             # CRÍTICO: Copiar imagen del array a variable simple ANTES de llamar wcsctran
-            tmp_infile = outsex_dir//"/"//k//"_xycenter.ascii"
-            tmp_outfile = outsex_dir//"/"//k//"_sky.ascii"
+            tmp_infile = outsex_dir//"/"//k//"_xycenter.txt"
+            tmp_outfile = outsex_dir//"/"//k//"_sky.txt"
 
             # Escribir comando en script temporal
             printf("wcsctran(input='%s', output='%s', image='%s', inwcs='logical', outwcs='world', columns='2,3')\n", tmp_infile, tmp_outfile, observed_img) | cl
@@ -552,20 +589,20 @@ begin
     # Lectura de posiciones ajustadas:
     # ============================================
     # Cabecera de SKYcoord ajustadas
-    printf("#%31s %14s %14s\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.ascii")
+    printf("#%31s %14s %14s\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.txt")
     # Cabecera de parametros (ajustados) del modelo
     expre = "# ID SEG_ID RA DEC XCNTR_IMG YCNTR_IMG A_IMG B_IMG ELLIP PA THET_IMG KRON_R PETRO_R EFF_R ISO_A ISO_AF RI_ANN RO_ANN XMIN_LENG YMIN_LENG"
-    print(expre, > outsex_dir//"/"//"params_to_index.ascii")
+    print(expre, > outsex_dir//"/"//"params_to_index.txt")
 
     for(i=1;i<=n_accepted;i+=1){
 
-        list = outsex_dir//"/"//i//"_sky.ascii"
+        list = outsex_dir//"/"//i//"_sky.txt"
 
         while(fscan(list,line) != EOF){
             if(line != "" && substr(line,1,1) != "#"){
 
                 print(line) | scan (id_obj[i], ra_j00[i], dec_j00[i])
-                printf("%32s %14f %14f\n", id_obj[i], ra_j00[i], dec_j00[i], >> outsex_dir//"/"//"skycenter_images.ascii")
+                printf("%32s %14f %14f\n", id_obj[i], ra_j00[i], dec_j00[i], >> outsex_dir//"/"//"skycenter_images.txt")
 
             # END IF: lineas validas
             }
@@ -576,7 +613,7 @@ begin
         # ----------------------------------------------
         # Imprimir catalogo de parametros del modelo (ajustados)
         # ----------------------------------------------
-        print(id_obj[i], " ", seg_number[i], " ", ra_j00[i], " ", dec_j00[i], " ", xc[i], " ", yc[i], " ", a_img[i], " ", b_img[i], " ", ellip[i], " ", theta_j00[i], " ", theta_img[i], " ", kron_r[i], " ", petro_r[i], " ", eff_r[i], " ", iso_area[i], " ", iso_areaf[i], " ", ri_ann[i], " ", ro_ann[i], " ", xlen_min[i], " ", ylen_min[i], >> outsex_dir//"/"//"params_to_index.ascii")
+        print(id_obj[i], " ", seg_number[i], " ", ra_j00[i], " ", dec_j00[i], " ", xc[i], " ", yc[i], " ", a_img[i], " ", b_img[i], " ", ellip[i], " ", theta_j00[i], " ", theta_img[i], " ", kron_r[i], " ", petro_r[i], " ", eff_r[i], " ", iso_area[i], " ", iso_areaf[i], " ", ri_ann[i], " ", ro_ann[i], " ", xlen_min[i], " ", ylen_min[i], >> outsex_dir//"/"//"params_to_index.txt")
 
         # ----------------------------------------------
         # Crear regiones DS9:
@@ -601,21 +638,21 @@ begin
         print(expre, >> datafiles_dir//"/"//"glxys_in_image.reg")
 
         # Eliminar listas de transformacion WCSTRAN:
-        delete(outsex_dir//"/"//i//"_xycenter.ascii", ver-, >& "dev$null")
-        delete(outsex_dir//"/"//i//"_sky.ascii", ver-, >& "dev$null")
+        delete(outsex_dir//"/"//i//"_xycenter.txt", ver-, >& "dev$null")
+        delete(outsex_dir//"/"//i//"_sky.txt", ver-, >& "dev$null")
 
     # END FOR: recorrido de listas
     }
 
     # Copiar para visualizar por usuario
-    tmp_infile = outsex_dir//"/"//"params_to_index.ascii"
-    tmp_outfile = data_dir//"/"//"params_to_index.ascii"
+    tmp_infile = outsex_dir//"/"//"params_to_index.txt"
+    tmp_outfile = data_dir//"/"//"params_to_index.txt"
     delete(tmp_outfile, ver-, >& "dev$null")
     copy(tmp_infile, tmp_outfile)
 
     # Copiar catalogo de regiones para visualizar:
     tmp_infile = datafiles_dir//"/"//"glxys_in_image.reg"
-    tmp_outfile = data_dir//"/"//"glxys_in_image.reg"
+    tmp_outfile = "glxys_in_image.reg"
     delete(tmp_outfile, ver-, >& "dev$null")
     copy(tmp_infile, tmp_outfile)
 

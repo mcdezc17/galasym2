@@ -84,8 +84,8 @@ begin
     print("\n START TASK: center_min")
 
     # listas heredadas exactamente de 'find_objs' y 'glxy_model' task:
-    params_list = outsex_dir//"/"//"params_to_index.ascii"
-    images_list = datafiles_dir//"/"//"accepted_imgs.ascii"
+    params_list = outsex_dir//"/"//"params_to_index.txt"
+    images_list = datafiles_dir//"/"//"accepted_imgs.txt"
 
     # No existe archivo de entrada esperado:
     if(!access(params_list) || !access(images_list)){
@@ -345,10 +345,10 @@ begin
         }
 
         # lista abs() para wcstran:
-        printf("%32s %5d %5d\n", id_obj[k], min_x0_abs[k], min_y0_abs[k], > cache_dir//"/"//k//"_abs_pixmincenter.ascii")
+        printf("%32s %5d %5d\n", id_obj[k], min_x0_abs[k], min_y0_abs[k], > cache_dir//"/"//k//"_abs_pixmincenter.txt")
 
         # lista rms() para wcstran:
-        printf("%32s %5d %5d\n", id_obj[k], min_x0_rms[k], min_y0_rms[k], > cache_dir//"/"//k//"_rms_pixmincenter.ascii")
+        printf("%32s %5d %5d\n", id_obj[k], min_x0_rms[k], min_y0_rms[k], > cache_dir//"/"//k//"_rms_pixmincenter.txt")
 
         # SEGUIMIENTO:
         print("\n ABS center correction:", >> datafiles_dir//"/"//"history_center_corr.txt")
@@ -374,14 +374,14 @@ begin
         observed_img[k] = observed_dir//"/"//id_obj[k]//".fits"
 
         # Centro que miinimiza sum_abs():
-        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.ascii"
-        tmp_outfile = cache_dir//"/"//k//"_abs_skymincenter.ascii"
+        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.txt"
+        tmp_outfile = cache_dir//"/"//k//"_abs_skymincenter.txt"
         # Convertir valores minimos de pixel a sky_coord:
         printf("wcsctran(input='%s', output='%s', image='%s', inwcs='logical', outwcs='world', columns='2,3')\n", tmp_infile, tmp_outfile, observed_img[k]) | cl
 
         # Centro que miinimiza sum_rms():
-        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.ascii"
-        tmp_outfile = cache_dir//"/"//k//"_rms_skymincenter.ascii"
+        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.txt"
+        tmp_outfile = cache_dir//"/"//k//"_rms_skymincenter.txt"
         # Convertir valores minimos de pixel a sky_coord:
         printf("wcsctran(input='%s', output='%s', image='%s', inwcs='logical', outwcs='world', columns='2,3')\n", tmp_infile, tmp_outfile, observed_img[k]) | cl
 
@@ -392,17 +392,17 @@ begin
     # ===================================================
 
     # Cabecera: lista de centros que minimizan abs():
-    print("# Lista de centros (en pixeles) que minimizan la suma de ABS(I-I_180)", > datafiles_dir//"/"//"abs_mincenter.ascii")
-    printf("#%31s %14s %14s %5s %5s\n", "ID", "RAmin", "DECmin", "Xmin", "Ymin", >> datafiles_dir//"/"//"abs_mincenter.ascii")
+    print("# Lista de centros (en pixeles) que minimizan la suma de ABS(I-I_180)", > datafiles_dir//"/"//"abs_mincenter.txt")
+    printf("#%31s %14s %14s %5s %5s\n", "ID", "RAmin", "DECmin", "Xmin", "Ymin", >> datafiles_dir//"/"//"abs_mincenter.txt")
 
     # Cabecera: lista de centros que minimizan rms():
-    print("# Lista de centros (en pixeles) que minimizan la suma de RMS(I-I_180)", > datafiles_dir//"/"//"rms_mincenter.ascii")
-    printf("#%31s %14s %14s %5s %5s\n", "ID", "RAmin", "DECmin", "Xmin", "Ymin", >> datafiles_dir//"/"//"rms_mincenter.ascii")
+    print("# Lista de centros (en pixeles) que minimizan la suma de RMS(I-I_180)", > datafiles_dir//"/"//"rms_mincenter.txt")
+    printf("#%31s %14s %14s %5s %5s\n", "ID", "RAmin", "DECmin", "Xmin", "Ymin", >> datafiles_dir//"/"//"rms_mincenter.txt")
 
     for(k=1;k<=n_list;k+=1){
 
         # lectura de lista mincenter abs() en pixeles objeto-k:
-        list = cache_dir//"/"//k//"_abs_skymincenter.ascii"
+        list = cache_dir//"/"//k//"_abs_skymincenter.txt"
         while(fscan(list,line) != EOF){
             if(line != "" && substr(line,1,1) != "#"){
                 print(line) | scan(tmp_id_obj, min_ra_abs, min_dec_abs)
@@ -411,10 +411,10 @@ begin
         list = ""
 
         # lista de centros que minimizan abs():
-        printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_abs, min_dec_abs, min_x0_abs[k], min_y0_abs[k], >> datafiles_dir//"/"//"abs_mincenter.ascii")
+        printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_abs, min_dec_abs, min_x0_abs[k], min_y0_abs[k], >> datafiles_dir//"/"//"abs_mincenter.txt")
 
         # lectura de lista mincenter rms() en pixeles objeto-k:
-        list = cache_dir//"/"//k//"_rms_skymincenter.ascii"
+        list = cache_dir//"/"//k//"_rms_skymincenter.txt"
         while(fscan(list,line) != EOF){
             if(line != "" && substr(line,1,1) != "#"){
                 print(line) | scan(tmp_id_obj, min_ra_rms, min_dec_rms)
@@ -423,16 +423,16 @@ begin
         list = ""
 
         # lista de centros que minimizan rms():
-        printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_rms, min_dec_rms, min_x0_rms[k], min_y0_rms[k], >> datafiles_dir//"/"//"rms_mincenter.ascii")
+        printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_rms, min_dec_rms, min_x0_rms[k], min_y0_rms[k], >> datafiles_dir//"/"//"rms_mincenter.txt")
 
         # Liberar espacio:
-        tmp_infile = cache_dir//"/"//k//"_abs_skymincenter.ascii"
+        tmp_infile = cache_dir//"/"//k//"_abs_skymincenter.txt"
         delete(tmp_infile, ver-, >& "dev$null")
-        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.ascii"
+        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.txt"
         delete(tmp_infile, ver-, >& "dev$null")
-        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.ascii"
+        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.txt"
         delete(tmp_infile, ver-, >& "dev$null")
-        tmp_infile = cache_dir//"/"//k//"_rms_skymincenter.ascii"
+        tmp_infile = cache_dir//"/"//k//"_rms_skymincenter.txt"
         delete(tmp_infile, ver-, >& "dev$null")
 
     }
