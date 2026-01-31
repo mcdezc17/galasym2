@@ -1,4 +1,5 @@
 alpha_*/
+tables/
 cas_index/
 data/
 *.fits
@@ -11,4 +12,3 @@ corr_prfl_galasym2_96.cl
 .DS_Store
 .DS
 config/src/dont_src
-tables/
