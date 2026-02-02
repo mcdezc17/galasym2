@@ -280,9 +280,6 @@ begin
     # config_files
     config_files
 
-    # psf_model
-    if(defaultf_psf == no){
-        psf_model
-    }
+    flpr
 
 end

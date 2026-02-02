@@ -138,7 +138,7 @@ begin
 
         print("\n#-------------------------------- Catalog ------------------------------------", >> tmp_outfile)
 
-        print("\nCATALOG_NAME    data/results_psfex/prepsfex.cat", >> tmp_outfile)
+        print("\nCATALOG_NAME    config/psfex/prepsfex/my_prepsfex.cat", >> tmp_outfile)
         print("CATALOG_TYPE     FITS_LDAC", >> tmp_outfile)
         print("PARAMETERS_NAME  config/psfex/prepsfex/prepsfex.param", >> tmp_outfile)
 
@@ -163,6 +163,7 @@ begin
         printf("SATUR_LEVEL     %s\n", saturlev_phot, >> tmp_outfile)
         printf("MAG_ZEROPOINT   %s\n", mag_zero_phot, >> tmp_outfile)
         printf("GAIN            %s\n", gain_lev_phot, >> tmp_outfile)
+        printf("\nVERBOSE_TYPE %s\n", verbotyp_se, >> tmp_outfile)
 
         # ==============================================================================================
         # PSFEX CONFIG FILE
@@ -374,4 +375,5 @@ begin
 
     print("\nSOM_NAME default.som", >> tmp_outfile)
 
+    flpr
 end

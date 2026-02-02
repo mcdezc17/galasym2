@@ -17,8 +17,8 @@ begin
     real pixel_scale, seeing_arc, seeing_pix
     int delta_pix
     int n_grid, min_abs_ngrid, min_rms_ngrid
-    int i_grid[100], j_grid[100]
-    int x0_grid[100], y0_grid[100]
+    int i_grid[999], j_grid[999]
+    int x0_grid[999], y0_grid[999]
     real tmp_xc, tmp_yc
     int tmp_x0, tmp_y0
     real min_sum_abs
@@ -36,9 +36,9 @@ begin
     int min_i_rms, min_j_rms
     int min_x0_rms[999], min_y0_rms[999]
     real min_ra_rms, min_dec_rms
-    real sum_abs[100], sum_rms[100]
+    real sum_abs[999], sum_rms[999]
     # list of objects:
-    string params_list, images_list
+    string params_list
     int n_list
     string observed_img[999], obs_setmask_img[999]
     string id_obj[999]
@@ -85,12 +85,10 @@ begin
 
     # listas heredadas exactamente de 'find_objs' y 'glxy_model' task:
     params_list = outsex_dir//"/"//"params_to_index.txt"
-    images_list = datafiles_dir//"/"//"accepted_imgs.txt"
 
     # No existe archivo de entrada esperado:
-    if(!access(params_list) || !access(images_list)){
+    if(!access(params_list)){
         print("\n ERR(fatal): mandatory that it exist:")
-        print(" - ", images_list)
         print(" - ", params_list)
         print("\n HINT: best run over again.")
         print("\n Abort task!")
@@ -444,5 +442,5 @@ begin
     print("\n------------------------------------------")
     print("")
     beep
-
+    flpr
 end

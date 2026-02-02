@@ -119,7 +119,7 @@ begin
     config_prepsfex = prepsfex_dir//"/"//"my_prepsfex.sex"
     param_prepsfex = prepsfex_dir//"/"//"prepsfex.param"
     conv_prepsfex = prepsfex_dir//"/"//"default.conv"
-    cat_prepsfex = outpsfex_dir//"/"//"prepsfex.cat"
+    cat_prepsfex = prepsfex_dir//"/"//"my_prepsfex.cat"
 
     config_psfex = psfex_dir//"/"//"my_default.psfex"
     # psf_fit = outpsfex_dir//"/"//"prepsfex.psf"
@@ -160,7 +160,6 @@ begin
             print("\n------------------------------------------")
             print(" RUNNING SExtractor PRIOR PSFEx:\n")
             printf("! %s %s -c %s\n", key_run_se, image_sample, config_prepsfex) | cl
-            sleep(2)
             print("\n------------------------------------------")
 
         }
@@ -179,7 +178,6 @@ begin
        print("\n------------------------------------------")
        print(" RUNNING PSFEx:\n")
        printf("! %s %s -c %s\n", key_run_psf, cat_prepsfex, config_psfex) | cl
-       sleep(2)
        print("\n------------------------------------------")
 
        tmp_file = outpsfex_dir//"/"//"prepsfex.psf"
@@ -213,4 +211,5 @@ begin
     print("\n------------------------------------------")
     print("")
     beep
+    flpr
 end

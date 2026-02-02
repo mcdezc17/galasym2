@@ -6,8 +6,7 @@ string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
 string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
 # Experimental stuff:
 bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
-
-# struct *list
+struct *list
 
 begin
 
@@ -15,17 +14,28 @@ begin
     # System variables:
     int i, j, k
     struct line
+    string key_word
+    string extract_img
     real mean_val
     int n_pix
     # constants........
     real const_pi
     # patrameters......
-    string key_word
-    real pixel_scale
     real hiblg_clip, hidsk_clip
     real scale_r_offset, scale_r_step
     real scale_r[99]
     string expr, expre1, expre2, ellip_expr
+
+    # PSET: datapar
+    string pathname_data
+    # PSET: photmetry
+    real pixel_scale
+    # PSET sexpar
+    string key_run_se
+    # PSET psfex
+    string key_run_psf
+    bool defaultf_psf, same_img_psf
+    string img_name_psf
 
     # list of objects:
     string params_list
@@ -93,19 +103,215 @@ begin
     real prfl_index_alpha, cum_index_alpha
 
     # temporal variables:
+    bool tmp_bool
     real tmp_real
     string tmp_wait
     string tmp_infile, tmp_infile2, tmp_outfile
 
+    # KEY_WORD requeridas para ejecutar programas
+    list = "full_params.txt"
+    while(fscan(list,line) != EOF){
+        if(line != "" && substr(line,1,1) != "#"){
+
+            print(line) | scan(key_word)
+
+            # DATAPAR PSET -----------------------------------------------------------
+
+            if(key_word == "PATH_IMG"){print(line) | scan(key_word, pathname_data)}
+
+            # PHOTOMETRY PSET ---------------------------------------------------------
+
+            if(key_word == "PIXEL_SCALE"){print(line) | scan(key_word, pixel_scale)}
+
+            # SEXPAR PSET --------------------------------------------------------
+
+            if(key_word == "KW_SE"){print(line) | scan(key_word, key_run_se)}
+
+            # SEXPAR PSET --------------------------------------------------------
+
+            if(key_word == "KW_PSFEX"){print(line) | scan(key_word, key_run_psf)}
+
+            if(key_word == "DFLT_PSF"){print(line) | scan(key_word, defaultf_psf)}
+
+            if(key_word == "SAME_IMG"){print(line) | scan(key_word, same_img_psf)}
+
+            if(key_word == "IMG_NAME"){print(line) | scan(key_word, img_name_psf)}
+
+        # END IF: lineas validas
+        }
+    # END WHILE: lectura lista parametros full
+    }
+    list = ""
+
     # ==================================================
     find_objs
-    scan(tmp_wait)
+    #scan(tmp_wait)
     # ==================================================
-    glxy_model
-    scan(tmp_wait)
+    # PSFExtractor SPACE
     # ==================================================
-    find_center
-    scan(tmp_wait)
+    print("\n------------------------------------------")
+    print(" START TASK: psf_model")
+
+    # Crear directorio de salida:
+    # 'find_objs' ya verifica existencia de carpeta 'data':
+    if(!access("data/results_psfex")){mkdir("data/results_psfex")}
+
+    # Verificar si es la misma imagen usada para extraer estrellas:
+    if(same_img_psf == yes){
+        extract_img = pathname_data
+    }else{
+        extract_img = img_name_psf
+    }
+
+    # Si NO usa la PSF por defecto de PSFEx, Modela una:
+    if(defaultf_psf == no){
+
+        # Access to psf model (prepsfex.psf) omit PrePSFEx (SEx-prior) and PSFEx, if not:
+        tmp_infile = "config/sextractor/my_prepsfex.psf"
+        if(!access(tmp_infile)){
+
+            # Access to prepsfex catalog (prepsfex.cat [FITS_LDAC]) omit PrePSFEx, if not:
+            tmp_infile = "config/psfex/prepsfex/my_prepsfex.cat"
+            if(!access(tmp_infile)){
+
+                # Impossible to run PrePSFEx (SEx) prior to PSFEx if:
+                tmp_infile = "config/psfex/prepsfex/my_prepsfex.sex"
+                if(!access(tmp_infile)){
+
+                    print("\n ERR: impossible runing pre-PSFEx!")
+                    print("        SExtractor. Exists?: ")
+                    print("         - ./config/psfex/prepsfex/*.sex")
+                    print(" Verify and run again.")
+                    print(" Abort task!")
+                    bye
+
+                # Running PrePSFEx (pre-psfex) prior to PSFEx
+                }else{
+
+                    print("\n------------------------------------------")
+                    print(" RUNNING SExtractor PRIOR PSFEx:\n")
+                    printf("! %s %s -c %s\n", key_run_se, extract_img, tmp_infile) | cl
+                    print("\n------------------------------------------")
+                }
+            }
+
+            # Impossible to run PSFEx if:
+            tmp_infile = "config/psfex/my_default.psfex"
+            if(!access(tmp_infile)){
+
+                print("\n ERR: imposible run PSFEx! The-")
+                print("        following files must exist: ")
+                print("\n        - *.sex (in ./config/psfex/)")
+                print(" Abort task!")
+                bye
+
+            # Running PSFEx
+            }else{
+                tmp_infile2 = "config/psfex/prepsfex/my_prepsfex.cat"
+                print("\n------------------------------------------")
+                print(" RUNNING PSFEx:\n")
+                printf("! %s %s -c %s\n", key_run_psf, tmp_infile2, tmp_infile) | cl
+                print("\n------------------------------------------")
+
+                # Copiar resultado (prepsfex.psf) a carpeta de sextractor:
+                tmp_infile  = "data/results_psfex/my_prepsfex.psf"
+                tmp_outfile = "config/sextractor/my_prepsfex.psf"
+                copy(tmp_infile, tmp_outfile)
+            }
+
+        # END IF: verificacion mypsf_model.psf
+        }else{
+            print("\n There is already a modeled PSF file.")
+            print(" Delete it an run again to create a new one.")
+        }
+
+    # END IF: verificacion modo default.psf
+    }
+
+    beep
+    print("\n END TASK: psf_model")
+
+    # ==================================================
+    # END OF PSFEx SPACE
+    # ==================================================
+
+    # ==================================================
+    # SExtractor SPACE:
+    # ==================================================
+    print("\n------------------------------------------")
+    print("\n START TASK: galaxy_model")
+
+    # Crear directorios de salida:
+    # 'find_objs' crea la carpeta results:
+    if("data/results_sex"){mkdir("data/results_sex")}
+    # 'find_objs' crea la carpeta data/data_images[/observed]
+    if("data/data_images/background"){mkdir("data/data_images/background")}
+    if("data/data_images/segmentation"){mkdir("data/data_images/segmentation")}
+    if("data/data_images/model"){mkdir("data/data_images/model")}
+    if("data/data_images/residual"){mkdir("data/data_images/residual")}
+
+    # limpieza de achivos residuales
+    delete("data/results_sex/check_fil.fits", ver-, >& "dev$null")
+    delete("data/results_sex/check_seg.fits", ver-, >& "dev$null")
+    delete("data/results_sex/check_bg.fits", ver-, >& "dev$null")
+    delete("data/results_sex/check_no_objs.fits", ver-, >& "dev$null")
+    delete("data/results_sex/check_bgrms.fits", ver-, >& "dev$null")
+    delete("data/results_sex/check_mod.fits", ver-, >& "dev$null")
+    delete("data/results_sex/check_res.fits", ver-, >& "dev$null")
+    delete("data/results_sex/test.cat", ver-, >& "dev$null")
+
+    # Archivo de configuracion SExtractor '*.sex'
+    tmp_infile = "config/sextractor/my_default.sex"
+    # Verificar si se creo?
+
+    list = "data/data_files/accepted_imgs.txt"
+    i = 0
+    while(fscan(list, line) != EOF){
+        if (line != "" && substr(line, 1, 1) != "#") {
+            i += 1
+            print(line) | scan(tmp_id_obj, extract_img)
+
+            print("\n------------------------------------------")
+            print("\n RUNNING SExtractor to model-fitting:\n")
+            printf(" img: %4d | ID_OBJ: %s \n", i, tmp_id_obj)
+
+            printf("! %s %s -c %s \n", key_run_se, extract_img, tmp_infile) | cl
+
+            tmp_outfile = "data/data_images/observed/"//tmp_id_obj//"_smooth.fits"
+            rename("data/results_sex/check_fil.fits", tmp_outfile)
+
+            tmp_outfile = "data/data_images/segmentation/"//tmp_id_obj//"_segmen.fits"
+            rename("data/results_sex/check_seg.fits", tmp_outfile)
+
+            tmp_outfile = "data/data_images/background/"//tmp_id_obj//"_bg.fits"
+            rename("data/results_sex/check_bg.fits", tmp_outfile)
+
+            tmp_outfile = "data/data_images/background/"//tmp_id_obj//"_no_objs.fits"
+            rename("data/results_sex/check_no_objs.fits", tmp_outfile)
+
+            tmp_outfile = "data/data_images/background/"//tmp_id_obj//"_bgrms.fits"
+            rename("data/results_sex/check_bgrms.fits", tmp_outfile)
+
+            tmp_outfile = "data/data_images/model/"//tmp_id_obj//"_mod.fits"
+            rename("data/results_sex/check_mod.fits", tmp_outfile)
+
+            tmp_outfile = "data/data_images/residual/"//tmp_id_obj//"_res.fits"
+            rename("data/results_sex/check_res.fits", tmp_outfile)
+
+            tmp_outfile = "data/results_sex/"//tmp_id_obj//"_test.cat"
+            rename("data/results_sex/test.cat", tmp_outfile)
+
+        # END If: lineas validas
+        }
+    # END WHILE: lectura lista 'accepted_imgs.txt'
+    }
+    list = ""
+    print("\n------------------------------------------\n")
+
+    # ==================================================
+    # END OF SExtractor SPACE
+    # ==================================================
+
     # ==================================================
 
     # ASIGNACIÓN DE VARIABLES -------------------------
@@ -200,7 +406,7 @@ begin
         print(" - ", params_list)
         print("\n HINT: best run over again.")
         print("\n Abort task!")
-        goto exit_task
+        bye
     }
 
     list = params_list
@@ -222,23 +428,23 @@ begin
             # Las imagenes existen como:
             bgrms_img[i] = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
             #seguimiento:
-            if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); goto exit_task}
+            if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); bye}
 
             observed_img[i] = observed_dir//"/"//id_obj[i]//".fits"
             #seguimiento:
-            if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); goto exit_task}
+            if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); bye}
 
             obs_setmask_img[i] = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
             #seguimiento:
-            if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); goto exit_task}
+            if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); bye}
 
             mod_setmask_img[i] = model_dir//"/"//id_obj[i]//"_mod_setmask.fits"
             #seguimiento:
-            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); goto exit_task}
+            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); bye}
 
             res_setmask_img[i] = residual_dir//"/"//id_obj[i]//"_res_setmask.fits"
             #seguimiento:
-            if(!imaccess(res_setmask_img[i])){print("\n ERR: not access to observed img!"); goto exit_task}
+            if(!imaccess(res_setmask_img[i])){print("\n ERR: not access to observed img!"); bye}
 
 
         # END IF: lineas validas
@@ -261,7 +467,7 @@ begin
         print("\n ERR: prompt 'center_rot' must be")
         print("      'abs' or 'rms' string!")
         print("\n Abort task!")
-        goto exit_task
+        bye
     }
 
     # No existe archivo de entrada esperado:
@@ -270,7 +476,7 @@ begin
         print(" - ", center_rot_list)
         print("\n HINT: best run over again.")
         print("\n Abort task!")
-        goto exit_task
+        bye
     }
 
     list = center_rot_list
@@ -288,33 +494,12 @@ begin
                 print("       tation!")
                 print("\n HINT: best run over again.")
                 print("\n Abort task!")
-                goto exit_task
+                bye
             }
 
         # END IF: lineas validas
         }
     # END WHILE: leer lista
-    }
-    list = ""
-
-    # ===================================================
-    # Obtener PIXEL_SCALE y SEEING_FWHM
-    # ===================================================
-
-    # Por ahoa obtener PIXEL_SCALE 'default.sex configuration' parametros:
-    list = "config/sextractor/default.sex"
-    while(fscan(list,line) != EOF){
-        if(line != "" && substr(line,1,1) != "#"){
-
-            print(line) | scan(key_word)
-
-            if(key_word == "PIXEL_SCALE"){
-                print(line) | scan(key_word, pixel_scale)
-            }
-
-        # END IF: lineas validas
-        }
-    # END WHILE: lectura lista
     }
     list = ""
 
@@ -950,7 +1135,7 @@ begin
             print("   Se espera una lista de imagenes en")
             print("   una carpeta llamada 'sky_folder'.")
             print("\n Abort task!")
-            goto exit_task
+            bye
         }
 
         # Si accede: debe verificar que exista una imagen correspondiente
@@ -968,5 +1153,5 @@ begin
     print("------------------------------------------")
     print("")
     beep
-
+    flpr
 end
