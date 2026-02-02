@@ -45,8 +45,8 @@ begin
     real fit_ra_j00[999], fit_dec_j00[999]
     int fit_xc[999], fit_yc[999]
     real a_img[999], b_img[999], ellip[999], theta_j00[999]
-    real theta_img[999], theta_rad[999], petro_r[999], eff_r[999]
-    real kron_r[999], iso_area[999], iso_areaf[999]
+    real theta_img[999], theta_rad[999], petro_r[999]
+    real iso_areaf[999]
     int ri_ann[999], ro_ann[999], xlen_min[999], ylen_min[999]
     # list of position to rotating images:
     string center_rot_list
@@ -55,7 +55,7 @@ begin
     int x0_rot[999], y0_rot[999]
 
     # direcciones de imagenes:
-    string observed_dir, bckgrnd_dir
+    string observed_dir, bckgrnd_dir, segmen_dir
     string model_dir, residual_dir
 
     # nombre de imagenes:
@@ -107,6 +107,16 @@ begin
     real tmp_real
     string tmp_wait
     string tmp_infile, tmp_infile2, tmp_outfile
+
+    # ASIGNACIÓN DE  OTROS DIRECTORIOS ------------------------
+    datafiles_dir = "data/data_files"
+    outsex_dir    = "data/results_sex"
+    # directorio de imagenes:
+    observed_dir = "data/data_images/observed"
+    bckgrnd_dir  = "data/data_images/background"
+    segmen_dir   = "data/data_images/segmentation"
+    model_dir    = "data/data_images/model"
+    residual_dir = "data/data_images/residual"
 
     # KEY_WORD requeridas para ejecutar programas
     list = "full_params.txt"
@@ -243,12 +253,12 @@ begin
 
     # Crear directorios de salida:
     # 'find_objs' crea la carpeta results:
-    if("data/results_sex"){mkdir("data/results_sex")}
+    if(outsex_dir){mkdir(outsex_dir)}
     # 'find_objs' crea la carpeta data/data_images[/observed]
-    if("data/data_images/background"){mkdir("data/data_images/background")}
-    if("data/data_images/segmentation"){mkdir("data/data_images/segmentation")}
-    if("data/data_images/model"){mkdir("data/data_images/model")}
-    if("data/data_images/residual"){mkdir("data/data_images/residual")}
+    if(bckgrnd_dir){mkdir(bckgrnd_dir)}
+    if(segmen_dir){mkdir(segmen_dir)}
+    if(model_dir){mkdir(model_dir)}
+    if(residual_dir){mkdir(residual_dir)}
 
     # limpieza de achivos residuales
     delete("data/results_sex/check_fil.fits", ver-, >& "dev$null")
@@ -375,15 +385,6 @@ begin
 
     cache_dir = alpha_dir//"/"//"cache"
 
-    # ASIGNACIÓN DE  OTROS DIRECTORIOS ------------------------
-    datafiles_dir = "data/data_files"
-    outsex_dir    = "data/results_sex"
-    # directorio de imagenes:
-    observed_dir = "data/data_images/observed"
-    bckgrnd_dir  = "data/data_images/background"
-    model_dir    = "data/data_images/model"
-    residual_dir = "data/data_images/residual"
-
     # expresion de una elipse rotada y des-centrada:
     ellip_expr = "((((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)))"
     # Expression for annulus patch of bg estimation: outer
@@ -415,7 +416,7 @@ begin
         if(line !="" && substr(line,1,1)!="#"){
             i = i + 1
 
-            print(line) | scan(id_obj[i], seg_number[i], fit_ra_j00[i], fit_dec_j00[i], fit_xc[i], fit_yc[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
+            print(line) | scan(id_obj[i], seg_number[i], fit_ra_j00[i], fit_dec_j00[i], fit_xc[i], fit_yc[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], petro_r[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
 
             # TEMPORAL TAREA DISTANCIA:
             ccdistance[i] = 0
@@ -1019,10 +1020,10 @@ begin
 
                 if(j == 1){
                     #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: first)
-                    printf("%32s %6.3f %6d %8d", id_obj[i], (3/petro_r[i]), iso_area[i], n_asymmpix, >> out_cat//"asymmpix_set.cat")
+                    printf("%32s %6.3f %6d %8d", id_obj[i], (3/petro_r[i]), iso_areaf[i], n_asymmpix, >> out_cat//"asymmpix_set.cat")
 
                     #       %ID  %Nb %db   %fr   %Nt %Areacorr_1 (II. Noise pixel SET: first)
-                    printf("%32s %6d %7.4f %6.3f %6d %8.2f", id_obj[i], nbg_noisepix, min_densitybg, (3/petro_r[i]), iso_area[i], delta_area, >> out_cat//"noisepix_set.cat")
+                    printf("%32s %6d %7.4f %6.3f %6d %8.2f", id_obj[i], nbg_noisepix, min_densitybg, (3/petro_r[i]), iso_areaf[i], delta_area, >> out_cat//"noisepix_set.cat")
 
                     # III. Asymmetry area SET: first
                     printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
