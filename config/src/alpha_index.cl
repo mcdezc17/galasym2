@@ -43,7 +43,7 @@ begin
     string id_obj[999]
     int  seg_number[999]
     real fit_ra_j00[999], fit_dec_j00[999]
-    int fit_xc[999], fit_yc[999]
+    real fit_xc, fit_yc
     real a_img[999], b_img[999], ellip[999], theta_j00[999]
     real theta_img[999], theta_rad[999], petro_r[999]
     real iso_areaf[999]
@@ -53,10 +53,6 @@ begin
     string tmp_id_obj
     real ra_rot[999], dec_rot[999]
     int x0_rot[999], y0_rot[999]
-
-    # direcciones de imagenes:
-    string observed_dir, bckgrnd_dir, segmen_dir
-    string model_dir, residual_dir
 
     # nombre de imagenes:
     string observed_img[999], obs_setmask_img[999]
@@ -85,6 +81,10 @@ begin
     string datafiles_dir
     string folder_sky
     string outsex_dir
+
+    # direcciones de imagenes:
+    string observed_dir, bckgrnd_dir, segmen_dir
+    string model_dir, residual_dir
 
     # calculo de indices:
     real ccdistance[999]
@@ -137,7 +137,7 @@ begin
 
             if(key_word == "KW_SE"){print(line) | scan(key_word, key_run_se)}
 
-            # SEXPAR PSET --------------------------------------------------------
+            # PSFEXPAR PSET --------------------------------------------------------
 
             if(key_word == "KW_PSFEX"){print(line) | scan(key_word, key_run_psf)}
 
@@ -154,174 +154,7 @@ begin
     list = ""
 
     # ==================================================
-    find_objs
-    #scan(tmp_wait)
-    # ==================================================
-    # PSFExtractor SPACE
-    # ==================================================
-    print("\n------------------------------------------")
-    print(" START TASK: psf_model")
-
-    # Crear directorio de salida:
-    # 'find_objs' ya verifica existencia de carpeta 'data':
-    if(!access("data/results_psfex")){mkdir("data/results_psfex")}
-
-    # Verificar si es la misma imagen usada para extraer estrellas:
-    if(same_img_psf == yes){
-        extract_img = pathname_data
-    }else{
-        extract_img = img_name_psf
-    }
-
-    # Si NO usa la PSF por defecto de PSFEx, Modela una:
-    if(defaultf_psf == no){
-
-        # Access to psf model (prepsfex.psf) omit PrePSFEx (SEx-prior) and PSFEx, if not:
-        tmp_infile = "config/sextractor/my_prepsfex.psf"
-        if(!access(tmp_infile)){
-
-            # Access to prepsfex catalog (prepsfex.cat [FITS_LDAC]) omit PrePSFEx, if not:
-            tmp_infile = "config/psfex/prepsfex/my_prepsfex.cat"
-            if(!access(tmp_infile)){
-
-                # Impossible to run PrePSFEx (SEx) prior to PSFEx if:
-                tmp_infile = "config/psfex/prepsfex/my_prepsfex.sex"
-                if(!access(tmp_infile)){
-
-                    print("\n ERR: impossible runing pre-PSFEx!")
-                    print("        SExtractor. Exists?: ")
-                    print("         - ./config/psfex/prepsfex/*.sex")
-                    print(" Verify and run again.")
-                    print(" Abort task!")
-                    bye
-
-                # Running PrePSFEx (pre-psfex) prior to PSFEx
-                }else{
-
-                    print("\n------------------------------------------")
-                    print(" RUNNING SExtractor PRIOR PSFEx:\n")
-                    printf("! %s %s -c %s\n", key_run_se, extract_img, tmp_infile) | cl
-                    print("\n------------------------------------------")
-                }
-            }
-
-            # Impossible to run PSFEx if:
-            tmp_infile = "config/psfex/my_default.psfex"
-            if(!access(tmp_infile)){
-
-                print("\n ERR: imposible run PSFEx! The-")
-                print("        following files must exist: ")
-                print("\n        - *.sex (in ./config/psfex/)")
-                print(" Abort task!")
-                bye
-
-            # Running PSFEx
-            }else{
-                tmp_infile2 = "config/psfex/prepsfex/my_prepsfex.cat"
-                print("\n------------------------------------------")
-                print(" RUNNING PSFEx:\n")
-                printf("! %s %s -c %s\n", key_run_psf, tmp_infile2, tmp_infile) | cl
-                print("\n------------------------------------------")
-
-                # Copiar resultado (prepsfex.psf) a carpeta de sextractor:
-                tmp_infile  = "data/results_psfex/my_prepsfex.psf"
-                tmp_outfile = "config/sextractor/my_prepsfex.psf"
-                copy(tmp_infile, tmp_outfile)
-            }
-
-        # END IF: verificacion mypsf_model.psf
-        }else{
-            print("\n There is already a modeled PSF file.")
-            print(" Delete it an run again to create a new one.")
-        }
-
-    # END IF: verificacion modo default.psf
-    }
-
-    beep
-    print("\n END TASK: psf_model")
-
-    # ==================================================
-    # END OF PSFEx SPACE
-    # ==================================================
-
-    # ==================================================
-    # SExtractor SPACE:
-    # ==================================================
-    print("\n------------------------------------------")
-    print("\n START TASK: galaxy_model")
-
-    # Crear directorios de salida:
-    # 'find_objs' crea la carpeta results:
-    if(outsex_dir){mkdir(outsex_dir)}
-    # 'find_objs' crea la carpeta data/data_images[/observed]
-    if(bckgrnd_dir){mkdir(bckgrnd_dir)}
-    if(segmen_dir){mkdir(segmen_dir)}
-    if(model_dir){mkdir(model_dir)}
-    if(residual_dir){mkdir(residual_dir)}
-
-    # limpieza de achivos residuales
-    delete("data/results_sex/check_fil.fits", ver-, >& "dev$null")
-    delete("data/results_sex/check_seg.fits", ver-, >& "dev$null")
-    delete("data/results_sex/check_bg.fits", ver-, >& "dev$null")
-    delete("data/results_sex/check_no_objs.fits", ver-, >& "dev$null")
-    delete("data/results_sex/check_bgrms.fits", ver-, >& "dev$null")
-    delete("data/results_sex/check_mod.fits", ver-, >& "dev$null")
-    delete("data/results_sex/check_res.fits", ver-, >& "dev$null")
-    delete("data/results_sex/test.cat", ver-, >& "dev$null")
-
-    # Archivo de configuracion SExtractor '*.sex'
-    tmp_infile = "config/sextractor/my_default.sex"
-    # Verificar si se creo?
-
-    list = "data/data_files/accepted_imgs.txt"
-    i = 0
-    while(fscan(list, line) != EOF){
-        if (line != "" && substr(line, 1, 1) != "#") {
-            i += 1
-            print(line) | scan(tmp_id_obj, extract_img)
-
-            print("\n------------------------------------------")
-            print("\n RUNNING SExtractor to model-fitting:\n")
-            printf(" img: %4d | ID_OBJ: %s \n", i, tmp_id_obj)
-
-            printf("! %s %s -c %s \n", key_run_se, extract_img, tmp_infile) | cl
-
-            tmp_outfile = "data/data_images/observed/"//tmp_id_obj//"_smooth.fits"
-            rename("data/results_sex/check_fil.fits", tmp_outfile)
-
-            tmp_outfile = "data/data_images/segmentation/"//tmp_id_obj//"_segmen.fits"
-            rename("data/results_sex/check_seg.fits", tmp_outfile)
-
-            tmp_outfile = "data/data_images/background/"//tmp_id_obj//"_bg.fits"
-            rename("data/results_sex/check_bg.fits", tmp_outfile)
-
-            tmp_outfile = "data/data_images/background/"//tmp_id_obj//"_no_objs.fits"
-            rename("data/results_sex/check_no_objs.fits", tmp_outfile)
-
-            tmp_outfile = "data/data_images/background/"//tmp_id_obj//"_bgrms.fits"
-            rename("data/results_sex/check_bgrms.fits", tmp_outfile)
-
-            tmp_outfile = "data/data_images/model/"//tmp_id_obj//"_mod.fits"
-            rename("data/results_sex/check_mod.fits", tmp_outfile)
-
-            tmp_outfile = "data/data_images/residual/"//tmp_id_obj//"_res.fits"
-            rename("data/results_sex/check_res.fits", tmp_outfile)
-
-            tmp_outfile = "data/results_sex/"//tmp_id_obj//"_test.cat"
-            rename("data/results_sex/test.cat", tmp_outfile)
-
-        # END If: lineas validas
-        }
-    # END WHILE: lectura lista 'accepted_imgs.txt'
-    }
-    list = ""
-    print("\n------------------------------------------\n")
-
-    # ==================================================
-    # END OF SExtractor SPACE
-    # ==================================================
-
+    # find_objs
     # ==================================================
 
     # ASIGNACIÓN DE VARIABLES -------------------------
@@ -416,7 +249,7 @@ begin
         if(line !="" && substr(line,1,1)!="#"){
             i = i + 1
 
-            print(line) | scan(id_obj[i], seg_number[i], fit_ra_j00[i], fit_dec_j00[i], fit_xc[i], fit_yc[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], petro_r[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
+            print(line) | scan(id_obj[i], seg_number[i], fit_ra_j00[i], fit_dec_j00[i], fit_xc, fit_yc, a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], petro_r[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
 
             # TEMPORAL TAREA DISTANCIA:
             ccdistance[i] = 0

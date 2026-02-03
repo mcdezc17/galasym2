@@ -138,7 +138,7 @@ begin
 
         print("\n#-------------------------------- Catalog ------------------------------------", >> tmp_outfile)
 
-        print("\nCATALOG_NAME    config/psfex/prepsfex/my_prepsfex.cat", >> tmp_outfile)
+        print("\nCATALOG_NAME    data/results_psfex/my_prepsfex.cat", >> tmp_outfile)
         print("CATALOG_TYPE     FITS_LDAC", >> tmp_outfile)
         print("PARAMETERS_NAME  config/psfex/prepsfex/prepsfex.param", >> tmp_outfile)
 
@@ -224,7 +224,7 @@ begin
         print("XML_NAME        data/results_psfex/psfex.xml", >> tmp_outfile)
         print("NTHREADS        0", >> tmp_outfile)
 
-        psf_name = "config/sextractor/my_prepsfex.psf"
+        psf_name = "data/results_psfex/my_prepsfex.psf"
 
 
     # END  IF (default_psf==no)

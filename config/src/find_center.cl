@@ -81,7 +81,13 @@ begin
     # carpeta de uso temporal para este tarea:
     if(!access(cache_dir)){mkdir(cache_dir)}
 
-    print("\n START TASK: center_min")
+    print(" ------------------------------------------")
+    print(" START TASK: find_center (min)\n")
+
+    print(" Searching for center that minimize the sum")
+    print(" of ABS  and  RMS within an aperture of 1.5")
+    print(" Petrosian radius without normalization  or")
+    print(" sky correction:\n")
 
     # listas heredadas exactamente de 'find_objs' y 'glxy_model' task:
     params_list = outsex_dir//"/"//"params_to_index.txt"
@@ -104,7 +110,7 @@ begin
         if(line !="" && substr(line,1,1)!="#"){
             i = i + 1
 
-            print(line) | scan(id_obj[i], seg_number[i], ra_j00[i], dec_j00[i], xc[i], yc[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], kron_r[i], petro_r[i], eff_r[i], iso_area[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
+            print(line) | scan(id_obj[i], seg_number[i], ra_j00[i], dec_j00[i], xc[i], yc[i], a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], petro_r[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
 
             # Correcciones:
             # petro_r[] ya fue corregido en 'glxy_model' task.
@@ -169,6 +175,8 @@ begin
     ellip_expr = "((((I-a)*cos(e) + (J-b)*sin(e))**2 / (c**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (d**2)))"
 
     for(k=1;k<=n_list;k+=1){
+
+        printf("\r - n: %3d | OBJ: %s", k, id_obj[k])
 
         # recortar las imagenes al cuadro minimo que encierre la elipse de medida (1.5rp)
         # De igual tamaño para todos los objetos:
@@ -438,8 +446,8 @@ begin
     exit_task:
 
     # print("Exit task.")
-    print("\n END TASK: center_min")
-    print("\n------------------------------------------")
+    print("\n\n END TASK: find_center (min)")
+    print(" ------------------------------------------")
     print("")
     beep
     flpr
