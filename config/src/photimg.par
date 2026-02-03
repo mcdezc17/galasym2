@@ -1,8 +1,8 @@
 # ========================================================
 # Archivo de parametros para pset 'photimg.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
-n_apert,s,h,"40.22, 56.31, 80.45",,,        PHOT_APERTURES aperture diameter(s) in pixels
-fluxfrac,s,h,"0.2, 0.5, 0.8",,,             PHOT_FLUXFRAC flux-fractions for FLUX_RADIUS
+n_apert,s,h,"7 10 20",,,                    PHOT_APERTURES 3-diameters in arcsecs
+#fluxfrac,s,h,"0.2 0.5 0.8",,,               PHOT_FLUXFRAC 3-flux-fractions for FLUX_RADIUS
 saturlev,r,h,295977,1,INDEF,                SATUR_LEVEL                       (in ADUs)
 saturkey,s,h,SATURATE,,,                    SATUR_KEY imheader keyword        (in ADUs)
 mag_zero,r,h,30.0,INDEF,INDEF,              MAG_ZEROPOINT magnitude zero-point

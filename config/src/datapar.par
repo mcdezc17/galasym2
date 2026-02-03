@@ -4,7 +4,7 @@
 single,b,a,yes,,,                      enter 'no' if it's a list of images
 pathname,s,a,"A496J.fits",,,           name of image or folder images
 imagecut,r,h,100,30,300,               cutting (square) images in kpcs
-initpos,s,a,"tables/inputlist.ascii",,,initial galaxy position table
+initpos,s,a,"inputlist",,,initial galaxy position table
 cosmopar,s,a,"0.033 70 0.3 0.7",,,     Z H0 Omg_m Lamda (space separate!)
 bcg_id,s,a,MCG_02_12_039,,,            id of center cluster
 tformat,s,h,"ascii",,,                 format of initial pos. table

@@ -20,7 +20,7 @@ begin
     int xlenght_data, ylenght_data
 
     # Declaracion de variables para pset 'photimg'
-    string n_apert_phot, fluxfrac_phot
+    string n_apert_phot
     real   saturlev_phot
     string saturkey_phot
     real   mag_zero_phot
@@ -184,7 +184,6 @@ begin
     # ================================================
 
     n_apert_phot  = photimg.n_apert
-    fluxfrac_phot = photimg.fluxfrac
     saturlev_phot = photimg.saturlev
     saturkey_phot = photimg.saturkey
     mag_zero_phot = photimg.mag_zero
@@ -197,7 +196,6 @@ begin
     print("#------------------------------------------------------------", >> tmp_outfile)
     print("#--------------- PSET: config/src/photimg.par ---------------", >> tmp_outfile)
     printf("PHOT_APERTURES\t%s\n", n_apert_phot, >> tmp_outfile)
-    printf("PHOT_FLUXFRAC\t%s\n", fluxfrac_phot, >> tmp_outfile)
     printf("SATUR_LEVEL\t%s\n", saturlev_phot, >> tmp_outfile)
     printf("SATUR_KEY\t%s\n", saturkey_phot, >> tmp_outfile)
     printf("MAG_ZEROPOINT\t%s\n", mag_zero_phot, >> tmp_outfile)

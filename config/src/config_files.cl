@@ -11,6 +11,7 @@ begin
 
     # temporal:
     string tmp_string
+    real aper_1, aper_2, aper_3
 
     string key_word
     # Declaracion de variables para pset 'datapar'
@@ -18,7 +19,6 @@ begin
     string pathname_data
     # Declaracion de variables para pset 'photimg'
     struct n_apert_phot
-    string fluxfrac_phot
     real   saturlev_phot
     string saturkey_phot
     real   mag_zero_phot
@@ -58,8 +58,6 @@ begin
             # ================================================
             # lectura de
             if(key_word == "PHOT_APERTURES"){print(line) | scan(key_word, n_apert_phot)}
-            # lectura de
-            if(key_word == "PHOT_FLUXFRAC"){print(line) | scan(key_word, fluxfrac_phot)}
             # lectura de
             if(key_word == "SATUR_LEVEL"){print(line) | scan(key_word, saturlev_phot)}
             # lectura de
@@ -294,13 +292,21 @@ begin
 
     print("\n#------------------------------ Photometry -----------------------------------", >> tmp_outfile)
 
+    line = n_apert_phot
+    print(line) | scan (aper_1, aper_2, aper_3)
+    aper_1 = aper_1 / pix_scal_phot
+    aper_2 = aper_2 / pix_scal_phot
+    aper_3 = aper_3 / pix_scal_phot
+
+    printf("%.2f, %.2f, %.2f", aper_1, aper_2, aper_3) | scan(n_apert_phot)
+
     printf("\nPHOT_APERTURES %s\n", n_apert_phot, >> tmp_outfile)
     print("PHOT_AUTOPARAMS 2.5, 3.5", >> tmp_outfile)
     print("PHOT_PETROPARAMS 2.0, 3.5", >> tmp_outfile)
 
     print("\nPHOT_AUTOAPERS 0.0,0.0", >> tmp_outfile)
 
-    print("\nPHOT_FLUXFRAC 0.2, 0.5, 0.8", >> tmp_outfile)
+    print("\nPHOT_FLUXFRAC 0.2 0.5 0.8", >> tmp_outfile)
 
     printf("\nSATUR_LEVEL %s\n", saturlev_phot, >> tmp_outfile)
     printf("SATUR_KEY %s\n", saturkey_phot, >> tmp_outfile)
@@ -375,5 +381,6 @@ begin
 
     print("\nSOM_NAME default.som", >> tmp_outfile)
 
+    flpr
     flpr
 end
