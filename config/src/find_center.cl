@@ -451,4 +451,5 @@ begin
     print("")
     beep
     flpr
+    flpr
 end

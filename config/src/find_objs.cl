@@ -462,7 +462,7 @@ begin
     # PSFExtractor SPACE
     # ==================================================
     print(" ------------------------------------------")
-    print(" START TASK: psf_model")
+    print(" ============= PSF MODELING ===============")
 
     # Crear directorio de salida:
     # 'find_objs' ya verifica existencia de carpeta 'data':
@@ -501,7 +501,7 @@ begin
                 }else{
 
                     print(" ------------------------------------------")
-                    print(" RUNNING SExtractor PRIOR PSFEx...\n")
+                    print(" RUNNING SExtractor PRIOR PSFEx...")
                     printf("! %s %s -c %s\n", key_run_se, extract_img, tmp_infile) | cl
                 }
             }
@@ -534,7 +534,7 @@ begin
     # END IF: verificacion modo default.psf
     }
 
-    print(" END TASK: psf_model")
+    # print(" END TASK: psf_model")
 
     # ==================================================
     # END OF PSFEx SPACE
@@ -544,7 +544,8 @@ begin
     # SExtractor SPACE:
     # ==================================================
     print(" ------------------------------------------")
-    print(" START TASK: galaxy_model")
+    print(" =========== GALAXY PHOTOMETRY ============")
+    print(" =========== AND MODEL FITTING ============")
 
     # Crear directorios de salida:
     # 'find_objs' crea la carpeta results:
@@ -919,5 +920,6 @@ begin
     print(" END TASK: check_objs")
     print(" ------------------------------------------")
     beep
+    flpr
     flpr
 end

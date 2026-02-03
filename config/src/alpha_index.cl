@@ -154,7 +154,9 @@ begin
     list = ""
 
     # ==================================================
-    # find_objs
+    find_objs
+    # ==================================================
+    find_center
     # ==================================================
 
     # ASIGNACIÓN DE VARIABLES -------------------------
@@ -225,7 +227,7 @@ begin
     # Inner annulus for noise extract
     expre2 = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (f**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (g**2)) >= 1"
 
-    print("\n------------------------------------------")
+    print("\n ------------------------------------------")
     print(" START TASK: alpha_index")
 
     # ==================================================
@@ -341,7 +343,7 @@ begin
     # Recortar imagenes para realizar medida
     # ===============================================================
 
-    print("\n------------ Cutting images --------------\n")
+    print("\n ------------ Cutting images --------------\n")
     if(!access(alpha_dir)){mkdir(alpha_dir)}
     if(!access(alphaimg_dir)){mkdir(alphaimg_dir)}
     if(!access(area_dir)){mkdir(area_dir)}
@@ -646,7 +648,7 @@ begin
     # ===============================================================
     # INDEX COMPUTATION
     # ===============================================================
-    print("\n\n--------- Computing alpha index ----------\n")
+    print("\n\n --------- Computing alpha index ----------\n")
 
     for(k=1;k<=2;k+=1){
 
@@ -981,11 +983,12 @@ begin
 
     exit_task:
 
-    print("\n------------------------------------------")
+    print("\n ------------------------------------------")
     printf(" OUTPUT FOLDER: ./%s\n", alpha_dir)
     print(" END TASK: alpha_index")
-    print("------------------------------------------")
+    print(" ------------------------------------------")
     print("")
     beep
+    flpr
     flpr
 end
