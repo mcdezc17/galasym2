@@ -38,7 +38,6 @@ begin
     string img_name_psf
 
     # list of objects:
-    string params_list
     int n_list
     string id_obj[999]
     int  seg_number[999]
@@ -227,25 +226,26 @@ begin
     # Inner annulus for noise extract
     expre2 = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (f**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (g**2)) >= 1"
 
-    print("\n ------------------------------------------")
-    print(" START TASK: alpha_index")
+    print(" ------------------------------------------")
+    print(" ============== ALPHA INDEX ===============")
+    print(" ============== CALCULATION ===============")
 
     # ==================================================
     # Leer lista de parametros de los SEx-modelos:
     # ==================================================
 
     # listas heredadas exactamente de 'find_objs' task:
-    params_list = outsex_dir//"/"//"params_to_index.txt"
+    tmp_infile = outsex_dir//"/"//"params_to_index.txt"
     # No existe archivo de entrada esperado:
-    if(!access(params_list)){
+    if(!access(tmp_infile)){
         print("\n ERR(fatal): mandatory that it exist:")
-        print(" - ", params_list)
+        print(" - ", tmp_infile)
         print("\n HINT: best run over again.")
         print("\n Abort task!")
         bye
     }
 
-    list = params_list
+    list = outsex_dir//"/"//"params_to_index.txt"
     i = 0
     while(fscan(list, line) != EOF){
         if(line !="" && substr(line,1,1)!="#"){
@@ -264,23 +264,23 @@ begin
             # Las imagenes existen como:
             bgrms_img[i] = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
             #seguimiento:
-            if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); bye}
+            if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); beep; bye}
 
             observed_img[i] = observed_dir//"/"//id_obj[i]//".fits"
             #seguimiento:
-            if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); bye}
+            if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); beep; bye}
 
             obs_setmask_img[i] = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
             #seguimiento:
-            if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); bye}
+            if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); beep; bye}
 
             mod_setmask_img[i] = model_dir//"/"//id_obj[i]//"_mod_setmask.fits"
             #seguimiento:
-            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); bye}
+            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); beep; bye}
 
             res_setmask_img[i] = residual_dir//"/"//id_obj[i]//"_res_setmask.fits"
             #seguimiento:
-            if(!imaccess(res_setmask_img[i])){print("\n ERR: not access to observed img!"); bye}
+            if(!imaccess(res_setmask_img[i])){print("\n ERR: not access to observed img!"); beep; bye}
 
 
         # END IF: lineas validas
@@ -360,7 +360,7 @@ begin
 
     for(i=1;i<=n_list;i+=1){
 
-        force_obj = "data/force_"//id_obj[i]//".reg"
+        force_obj = "force_"//id_obj[i]//".reg"
         if(access(force_obj)){
 
             # extraer nuevos parametros de medida:
@@ -376,8 +376,10 @@ begin
             b_img[i] = b_int / (1.5 * petro_r[i])
             theta_img[i] = ell_angle
             theta_rad[i] = theta_img[i] * const_pi / 180
-            print("# ID A_IMG B_IMG THETA_IMG", > "data"//"/"//id_obj[i]//"_force_params.txt")
-            print(id_obj[i], " ", a_img[i], " ", b_img[i], " ", theta_img[i], >> "data"//"/"//id_obj[i]//"_force_params.txt")
+
+            # SEGUIMIENTO:
+            # print("# ID A_IMG B_IMG THETA_IMG", > "data"//"/"//id_obj[i]//"_force_params.txt")
+            # print(id_obj[i], " ", a_img[i], " ", b_img[i], " ", theta_img[i], >> "data"//"/"//id_obj[i]//"_force_params.txt")
             # SEGUIMIENTO:
             #print("\n Nuevos parametros: ", a_img[i], b_img[i], theta_img[i], petro_r[i])
 
@@ -518,7 +520,7 @@ begin
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # Progress bar proccess:
-        printf("\r Process (cutting images): %d%%", (i*100/n_list))
+        printf("\r - Process (cutting images): %d%%", (i*100/n_list))
     }
 
     # ===============================================================
@@ -980,8 +982,6 @@ begin
     }
     # EXPERIMENTAL STUFF ============================================
     # ===============================================================
-
-    exit_task:
 
     print("\n ------------------------------------------")
     printf(" OUTPUT FOLDER: ./%s\n", alpha_dir)

@@ -38,7 +38,6 @@ begin
     real min_ra_rms, min_dec_rms
     real sum_abs[999], sum_rms[999]
     # list of objects:
-    string params_list
     int n_list
     string observed_img[999], obs_setmask_img[999]
     string id_obj[999]
@@ -82,7 +81,8 @@ begin
     if(!access(cache_dir)){mkdir(cache_dir)}
 
     print(" ------------------------------------------")
-    print(" START TASK: find_center (min)\n")
+    print(" ============== FIND CENTER ===============")
+    print(" ============== CALCULATION ===============")
 
     print(" Searching for center that minimize the sum")
     print(" of ABS  and  RMS within an aperture of 1.5")
@@ -90,21 +90,22 @@ begin
     print(" sky correction:\n")
 
     # listas heredadas exactamente de 'find_objs' y 'glxy_model' task:
-    params_list = outsex_dir//"/"//"params_to_index.txt"
+    tmp_infile = outsex_dir//"/"//"params_to_index.txt"
 
     # No existe archivo de entrada esperado:
-    if(!access(params_list)){
+    if(!access(tmp_infile)){
         print("\n ERR(fatal): mandatory that it exist:")
-        print(" - ", params_list)
+        print(" - ", tmp_infile)
         print("\n HINT: best run over again.")
-        print("\n Abort task!")
-        goto exit_task
+        print("\n Abort task!\n")
+        beep
+        bye
     }
 
     # ==================================================
     # Leer lista de parametros de los SEx-modelos:
     # ==================================================
-    list = params_list
+    list = outsex_dir//"/"//"params_to_index.txt"
     i = 0
     while(fscan(list, line) != EOF){
         if(line !="" && substr(line,1,1)!="#"){
@@ -160,12 +161,12 @@ begin
     #
     # ===================================================
 
-    # SEGUIMIENTO:
-    print("# SEGUIMIENTO: REGISTRO DE CORRECCION DE CENTRO", > datafiles_dir//"/"//"history_center_corr.txt")
-    print("# Busqueda del pixel que minimiza la suma del residuo abs(I-I_180) y (I-I_180)**2", >> datafiles_dir//"/"//"history_center_corr.txt")
-    print("\n# Los valores x0/y0 son respecto a los recortes:", >> datafiles_dir//"/"//"history_center_corr.txt")
-    print("# PATH_IMG: 'data/data_images/observed/ID_OBJ.fits", >> datafiles_dir//"/"//"history_center_corr.txt")
-    print("# o las imagenes de entrada si son una lista de imagenes!", >> datafiles_dir//"/"//"history_center_corr.txt")
+    # # SEGUIMIENTO:
+    # print("# SEGUIMIENTO: REGISTRO DE CORRECCION DE CENTRO", > datafiles_dir//"/"//"history_center_corr.txt")
+    # print("# Busqueda del pixel que minimiza la suma del residuo abs(I-I_180) y (I-I_180)**2", >> datafiles_dir//"/"//"history_center_corr.txt")
+    # print("\n# Los valores x0/y0 son respecto a los recortes:", >> datafiles_dir//"/"//"history_center_corr.txt")
+    # print("# PATH_IMG: 'data/data_images/observed/ID_OBJ.fits", >> datafiles_dir//"/"//"history_center_corr.txt")
+    # print("# o las imagenes de entrada si son una lista de imagenes!", >> datafiles_dir//"/"//"history_center_corr.txt")
 
     # La busqueda de centro dentro de una caja del tamaño del SEEING_FWHM
     delta_pix = seeing_pix
@@ -176,7 +177,32 @@ begin
 
     for(k=1;k<=n_list;k+=1){
 
-        printf("\r - n: %3d | OBJ: %s", k, id_obj[k])
+        tmp_infile = cache_dir//"/"//id_obj[k]//"_abs_pixmincenter.txt"
+        tmp_infile2 = cache_dir//"/"//id_obj[k]//"_rms_pixmincenter.txt"
+
+        if(access(tmp_infile) && access(tmp_infile2)){
+            printf("\r - there's a result for: %3d | OBJ: %s", k, id_obj[k])
+
+            list = tmp_infile
+            while(fscan(list,line) != EOF){
+                if(line != "" && substr(line,1,1) != "#"){
+                    print(line) | scan(tmp_id_obj, min_x0_abs[k], min_y0_abs[k])
+                }
+            }
+            list = ""
+
+            list = tmp_infile2
+            while(fscan(list,line) != EOF){
+                if(line != "" && substr(line,1,1) != "#"){
+                    print(line) | scan(tmp_id_obj, min_x0_rms[k], min_y0_rms[k])
+                }
+            }
+            list = ""
+
+            next
+        }else{
+            printf("\r - calculating  for   n: %3d | OBJ: %s", k, id_obj[k])
+        }
 
         # recortar las imagenes al cuadro minimo que encierre la elipse de medida (1.5rp)
         # De igual tamaño para todos los objetos:
@@ -196,15 +222,15 @@ begin
         tmp_xc = real(xlen_min[k]) / 2
         tmp_yc = real(ylen_min[k]) / 2
 
-        # SEGUIMIENTO:
-        print("\n ------------------------------------------------", >> datafiles_dir//"/"//"history_center_corr.txt")
-        print("\n ID_OBJ: ", id_obj[k], >> datafiles_dir//"/"//"history_center_corr.txt")
-        printf(" x0: %4d | y0: %4d\n", xc[k], yc[k], >> datafiles_dir//"/"//"history_center_corr.txt")
-        printf(" Lx: %4d | Ly: %4d\n", xlen_min[k], ylen_min[k], >> datafiles_dir//"/"//"history_center_corr.txt")
-        printf(" matriz de busqueda: %dx%d pix.\n", delta_pix, delta_pix, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # # SEGUIMIENTO:
+        # print("\n ------------------------------------------------", >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print("\n ID_OBJ: ", id_obj[k], >> datafiles_dir//"/"//"history_center_corr.txt")
+        # printf(" x0: %4d | y0: %4d\n", xc[k], yc[k], >> datafiles_dir//"/"//"history_center_corr.txt")
+        # printf(" Lx: %4d | Ly: %4d\n", xlen_min[k], ylen_min[k], >> datafiles_dir//"/"//"history_center_corr.txt")
+        # printf(" matriz de busqueda: %dx%d pix.\n", delta_pix, delta_pix, >> datafiles_dir//"/"//"history_center_corr.txt")
 
-        # Cabecera
-        printf("\n %6s %4s %4s %10s %10s\n", "n_grid", "x0", "y0", "sum_abs", "sum_rms", >> datafiles_dir//"/"//"history_center_corr.txt")
+        # # Cabecera
+        # printf("\n %6s %4s %4s %10s %10s\n", "n_grid", "x0", "y0", "sum_abs", "sum_rms", >> datafiles_dir//"/"//"history_center_corr.txt")
 
         n_grid = 0
 
@@ -249,8 +275,9 @@ begin
                     print("      have '*.fits' extension.")
                     print("      Try 'imaccess' to:")
                     print(" - ", measure_img[k])
-                    print("\n Abort task!")
-                    goto exit_task
+                    print("\n Abort task!\n")
+                    beep
+                    bye
                 }
 
                 # Una transposicion = rotar 90 grados:
@@ -289,8 +316,8 @@ begin
                 # suma (F)**2:
                 sum_rms[n_grid] = mean_val * n_pix
 
-                # SEGUIMIENTO:
-                printf(" %6d %4d %4d %10f %10f\n", n_grid, tmp_x0, tmp_y0, sum_abs[n_grid], sum_rms[n_grid], >> datafiles_dir//"/"//"history_center_corr.txt")
+                # # SEGUIMIENTO:
+                # printf(" %6d %4d %4d %10f %10f\n", n_grid, tmp_x0, tmp_y0, sum_abs[n_grid], sum_rms[n_grid], >> datafiles_dir//"/"//"history_center_corr.txt")
 
                 # Liberar espacio (?):
                 imdelete(measure_img[k], ver-, >& "dev$null")
@@ -351,21 +378,21 @@ begin
         }
 
         # lista abs() para wcstran:
-        printf("%32s %5d %5d\n", id_obj[k], min_x0_abs[k], min_y0_abs[k], > cache_dir//"/"//k//"_abs_pixmincenter.txt")
+        printf("%32s %5d %5d\n", id_obj[k], min_x0_abs[k], min_y0_abs[k], > cache_dir//"/"//id_obj[k]//"_abs_pixmincenter.txt")
 
         # lista rms() para wcstran:
-        printf("%32s %5d %5d\n", id_obj[k], min_x0_rms[k], min_y0_rms[k], > cache_dir//"/"//k//"_rms_pixmincenter.txt")
+        printf("%32s %5d %5d\n", id_obj[k], min_x0_rms[k], min_y0_rms[k], > cache_dir//"/"//id_obj[k]//"_rms_pixmincenter.txt")
 
-        # SEGUIMIENTO:
-        print("\n ABS center correction:", >> datafiles_dir//"/"//"history_center_corr.txt")
-        print(" n_grid: ", min_abs_ngrid, >> datafiles_dir//"/"//"history_center_corr.txt")
-        print(" i_grid: ", min_i_abs, " j_grid: ", min_j_abs, >> datafiles_dir//"/"//"history_center_corr.txt")
-        print(" min sum: ", min_sum_abs, >> datafiles_dir//"/"//"history_center_corr.txt")
-        # SEGUIMIENTO:
-        print("\n RMS center correction:", >> datafiles_dir//"/"//"history_center_corr.txt")
-        print(" n_grid: ", min_rms_ngrid, >> datafiles_dir//"/"//"history_center_corr.txt")
-        print(" i_grid: ", min_i_rms, " j_grid: ", min_j_rms, >> datafiles_dir//"/"//"history_center_corr.txt")
-        print(" min sum: ", min_sum_rms, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # # SEGUIMIENTO:
+        # print("\n ABS center correction:", >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print(" n_grid: ", min_abs_ngrid, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print(" i_grid: ", min_i_abs, " j_grid: ", min_j_abs, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print(" min sum: ", min_sum_abs, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # # SEGUIMIENTO:
+        # print("\n RMS center correction:", >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print(" n_grid: ", min_rms_ngrid, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print(" i_grid: ", min_i_rms, " j_grid: ", min_j_rms, >> datafiles_dir//"/"//"history_center_corr.txt")
+        # print(" min sum: ", min_sum_rms, >> datafiles_dir//"/"//"history_center_corr.txt")
 
     # END FOR: k-objects list
     }
@@ -380,14 +407,14 @@ begin
         observed_img[k] = observed_dir//"/"//id_obj[k]//".fits"
 
         # Centro que miinimiza sum_abs():
-        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.txt"
-        tmp_outfile = cache_dir//"/"//k//"_abs_skymincenter.txt"
+        tmp_infile = cache_dir//"/"//id_obj[k]//"_abs_pixmincenter.txt"
+        tmp_outfile = cache_dir//"/"//id_obj[k]//"_abs_skymincenter.txt"
         # Convertir valores minimos de pixel a sky_coord:
         printf("wcsctran(input='%s', output='%s', image='%s', inwcs='logical', outwcs='world', columns='2,3')\n", tmp_infile, tmp_outfile, observed_img[k]) | cl
 
         # Centro que miinimiza sum_rms():
-        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.txt"
-        tmp_outfile = cache_dir//"/"//k//"_rms_skymincenter.txt"
+        tmp_infile = cache_dir//"/"//id_obj[k]//"_rms_pixmincenter.txt"
+        tmp_outfile = cache_dir//"/"//id_obj[k]//"_rms_skymincenter.txt"
         # Convertir valores minimos de pixel a sky_coord:
         printf("wcsctran(input='%s', output='%s', image='%s', inwcs='logical', outwcs='world', columns='2,3')\n", tmp_infile, tmp_outfile, observed_img[k]) | cl
 
@@ -408,7 +435,7 @@ begin
     for(k=1;k<=n_list;k+=1){
 
         # lectura de lista mincenter abs() en pixeles objeto-k:
-        list = cache_dir//"/"//k//"_abs_skymincenter.txt"
+        list = cache_dir//"/"//id_obj[k]//"_abs_skymincenter.txt"
         while(fscan(list,line) != EOF){
             if(line != "" && substr(line,1,1) != "#"){
                 print(line) | scan(tmp_id_obj, min_ra_abs, min_dec_abs)
@@ -420,7 +447,7 @@ begin
         printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_abs, min_dec_abs, min_x0_abs[k], min_y0_abs[k], >> datafiles_dir//"/"//"abs_mincenter.txt")
 
         # lectura de lista mincenter rms() en pixeles objeto-k:
-        list = cache_dir//"/"//k//"_rms_skymincenter.txt"
+        list = cache_dir//"/"//id_obj[k]//"_rms_skymincenter.txt"
         while(fscan(list,line) != EOF){
             if(line != "" && substr(line,1,1) != "#"){
                 print(line) | scan(tmp_id_obj, min_ra_rms, min_dec_rms)
@@ -431,19 +458,17 @@ begin
         # lista de centros que minimizan rms():
         printf("%32s %14f %14f %5d %5d\n", id_obj[k], min_ra_rms, min_dec_rms, min_x0_rms[k], min_y0_rms[k], >> datafiles_dir//"/"//"rms_mincenter.txt")
 
-        # Liberar espacio:
-        tmp_infile = cache_dir//"/"//k//"_abs_skymincenter.txt"
-        delete(tmp_infile, ver-, >& "dev$null")
-        tmp_infile = cache_dir//"/"//k//"_abs_pixmincenter.txt"
-        delete(tmp_infile, ver-, >& "dev$null")
-        tmp_infile = cache_dir//"/"//k//"_rms_pixmincenter.txt"
-        delete(tmp_infile, ver-, >& "dev$null")
-        tmp_infile = cache_dir//"/"//k//"_rms_skymincenter.txt"
-        delete(tmp_infile, ver-, >& "dev$null")
+        # # Liberar espacio:
+        # tmp_infile = cache_dir//"/"//id_obj[k]//"_abs_skymincenter.txt"
+        # delete(tmp_infile, ver-, >& "dev$null")
+        # tmp_infile = cache_dir//"/"//id_obj[k]//"_abs_pixmincenter.txt"
+        # delete(tmp_infile, ver-, >& "dev$null")
+        # tmp_infile = cache_dir//"/"//id_obj[k]//"_rms_pixmincenter.txt"
+        # delete(tmp_infile, ver-, >& "dev$null")
+        # tmp_infile = cache_dir//"/"//id_obj[k]//"_rms_skymincenter.txt"
+        # delete(tmp_infile, ver-, >& "dev$null")
 
     }
-
-    exit_task:
 
     # print("Exit task.")
     print("\n\n END TASK: find_center (min)")
