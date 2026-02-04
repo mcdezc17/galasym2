@@ -190,10 +190,14 @@ begin
         # Espacio para crear columna.
 
         # Si la tabla de posiciones iniciales esa dada en grados
-        if(tformat_data != "deg"){
+        if(tcoord_data == "deg"){
             tmp_infile = initpos_data
             tmp_outfile = "data/data_files/"//"xyimg_initpos.txt"
             wcsctran(tmp_infile, tmp_outfile, pathname_data, inwcs="world", outwcs="logical", columns="2,3")
+        }else if(tcoord_data == "image"){
+            tmp_infile = initpos_data
+            tmp_outfile = "data/data_files/"//"xyimg_initpos.txt"
+            copy(tmp_infile, tmp_outfile)
         }
 
         # REGION DE IMAGEN EFECTIVA:
@@ -274,8 +278,8 @@ begin
             tmp_outfile = "data/data_files/"//"edited_effective_image.reg"
             copy(tmp_infile, tmp_outfile)
 
-            tmp_infile = "data/data_files/"//"effective_image.reg"
-            delete(tmp_infile, , ver-, >& "dev$null")
+            # tmp_infile = "data/data_files/"//"effective_image.reg"
+            # delete(tmp_infile, , ver-, >& "dev$null")
             tmp_infile = "to_edit_effective_image.reg"
             delete(tmp_infile, , ver-, >& "dev$null")
         # END IF: access to edited effective_image

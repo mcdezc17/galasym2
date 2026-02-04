@@ -5,7 +5,7 @@ real     low_sigma  = 2.0     {prompt = "low sigma clipping"}
 string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
 string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
 # Experimental stuff:
-bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
+# bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
 struct *list
 
 begin
@@ -264,23 +264,23 @@ begin
             # Las imagenes existen como:
             bgrms_img[i] = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
             #seguimiento:
-            if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); beep; bye}
+            if(!imaccess(bgrms_img[i])){print("\n ERR: not access to bgrms img!"); bye}
 
             observed_img[i] = observed_dir//"/"//id_obj[i]//".fits"
             #seguimiento:
-            if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); beep; bye}
+            if(!imaccess(observed_img[i])){print("\n ERR: not access to observed img!"); bye}
 
             obs_setmask_img[i] = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
             #seguimiento:
-            if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); beep; bye}
+            if(!imaccess(obs_setmask_img[i])){print("\n ERR: not access to obs_setmask img!"); bye}
 
             mod_setmask_img[i] = model_dir//"/"//id_obj[i]//"_mod_setmask.fits"
             #seguimiento:
-            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); beep; bye}
+            if(!imaccess(mod_setmask_img[i] )){print("\n ERR: not access to setmask model img!"); bye}
 
             res_setmask_img[i] = residual_dir//"/"//id_obj[i]//"_res_setmask.fits"
             #seguimiento:
-            if(!imaccess(res_setmask_img[i])){print("\n ERR: not access to observed img!"); beep; bye}
+            if(!imaccess(res_setmask_img[i])){print("\n ERR: not access to observed img!"); bye}
 
 
         # END IF: lineas validas
@@ -953,42 +953,12 @@ begin
     # END FOR (k): indices alpha
     }
 
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # ===============================================================
-    # EXPERIMENTAL STUFF ============================================
-    if(sky_imgs == yes){
-        # Busca carpeta especifica:
-        folder_sky = "sky_folder"
-        # Verifica acceso:
-        if(!access(folder_sky)){
-
-            print("\n ERR: esta en un modo experimental.")
-            print("   Se espera una lista de imagenes en")
-            print("   una carpeta llamada 'sky_folder'.")
-            print("\n Abort task!")
-            bye
-        }
-
-        # Si accede: debe verificar que exista una imagen correspondiente
-        # 'id_obj//"_sky.fits"' para cada imagen a analizar 'id_obj//".fits"'
-
-    }
-    # EXPERIMENTAL STUFF ============================================
-    # ===============================================================
-
     print("\n ------------------------------------------")
     printf(" OUTPUT FOLDER: ./%s\n", alpha_dir)
     print(" END TASK: alpha_index")
     print(" ------------------------------------------")
     print("")
-    beep
+
     flpr
     flpr
 end
