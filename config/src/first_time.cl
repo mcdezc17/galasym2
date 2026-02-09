@@ -63,7 +63,7 @@ begin
     if(!access("data/data_images/residual")){mkdir("data/data_images/residual")}
 
     # ARCHIVO DE SALIDA DE PARAMETROS:
-    tmp_outfile = "full_params.txt"
+    tmp_outfile = "data/data_files/full_params.txt"
 
     # ================================================
     # OBTENER VALORES DE PSET: datapar
@@ -279,5 +279,5 @@ begin
     config_files
 
     flpr
-
+    flpr
 end

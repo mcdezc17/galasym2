@@ -108,7 +108,7 @@ begin
     }
 
     # KEY_WORD requeridas para ejecutar programas
-    list = "full_params.txt"
+    list = "data/data_files/full_params.txt"
     while(fscan(list,line) != EOF){
         if(line != "" && substr(line,1,1) != "#"){
 

@@ -118,7 +118,7 @@ begin
     residual_dir = "data/data_images/residual"
 
     # KEY_WORD requeridas para ejecutar programas
-    list = "full_params.txt"
+    list = "data/data_files/full_params.txt"
     while(fscan(list,line) != EOF){
         if(line != "" && substr(line,1,1) != "#"){
 
@@ -486,6 +486,7 @@ begin
         tmp_infile = cache_dir//"/"//id_obj[i]//obs_area//".fits"//trimsection
         tmp_outfile = cache_dir//"/"//id_obj[i]//obs_area//".fits"
         imcopy(tmp_infile, tmp_outfile, ver-)
+
         # Maxima area para indice acumulativo:
         tmp_infile = cache_dir//"/"//id_obj[i]//obs_area//".fits"
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_area.fits"
@@ -619,10 +620,10 @@ begin
     # COMPACT RESIDUAL ROTATION AREA INDEX:
 
     # VIII. Residual Rotated Area with center distance (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s %7s prfl%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_prfl_index_main.cat")
+    printf("#%31s %11s %11s %11s %11s %7s prfl%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_prfl_index_main.cat")
 
     # IX. Residual Rotated Area with center distance (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s %7s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_cum_index_main.cat")
+    printf("#%31s %11s %11s %11s %11s %7s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_cum_index_main.cat")
 
     # DENSITY NOISE CATALOG:
     printf("#%31s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s\n", "ID_OBJ", "min_rho", "ttl_rho", "A1_ann", "N1_ann", "rho1", "A2_ann", "N2_ann", "rho2", "A3_ann", "N3_ann", "rho3", "A4_ann", "N4_ann", "rho4", > residual_alpha_dir//"/"//"patch_bg_set.cat")

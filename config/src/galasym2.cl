@@ -18,6 +18,7 @@ task exp_pst = "direc$exp_pst.par"
 task first_time     = "direc$first_time.cl"
 # lista de indices disponibles:
 task alpha_index    = "direc$alpha_index.cl"
+task abs_index      = "direc$abs_index.cl"
 
 # No visibles:
 task config_files   = "direc$config_files.cl"

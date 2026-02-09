@@ -1,6 +1,6 @@
 alpha_*/
 tables/
-cas_index/
+abs_index/
 data/
 *.fits
 *.png
