@@ -818,7 +818,7 @@ begin
 
                 # ECUACION DEL INDICE ALPHA: ==========================================
 
-                delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30]**2 * petro_r[i])**2) - bulge_area[i]
+                delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30] * petro_r[i])**2) - bulge_area[i]
 
                 # Si utiliza '<= 3.0' asegurese de que las lineas despues de '##estas#' esten comentadas:
                 # Si utiliza '<= 0.0' entonces descomente las lineas despues de '##estas#'
