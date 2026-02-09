@@ -818,7 +818,7 @@ begin
 
                 # ECUACION DEL INDICE ALPHA: ==========================================
 
-                delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30] * petro_r[i])**2) - bulge_area[i]
+                delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30]**2 * petro_r[i])**2) - bulge_area[i]
 
                 # Si utiliza '<= 3.0' asegurese de que las lineas despues de '##estas#' esten comentadas:
                 # Si utiliza '<= 0.0' entonces descomente las lineas despues de '##estas#'
@@ -863,7 +863,7 @@ begin
                     #       %ID  %Nb %db   %fr   %Nt %Areacorr_1 (II. Noise pixel SET: first)
                     printf("%32s %6d %7.4f %6.3f %6d %8.2f", id_obj[i], nbg_noisepix, min_densitybg, (3/petro_r[i]), iso_areaf[i], delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # III. Asymmetry area SET: first
+                    # III. PROFILE Asymmetry area SET: first
                     printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
 
                     # IV. CUMULATIVE Asymmetry area SET: first
