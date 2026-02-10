@@ -1,4 +1,4 @@
-procedure abs_index()
+procedure abs_outer_index()
 
 string   center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
 

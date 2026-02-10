@@ -15,10 +15,11 @@ task exp_pst = "direc$exp_pst.par"
 # task alpha_par = "direc$alpha_par.par"
 
 # pre-procesamiento de las imagenes:
-task first_time     = "direc$first_time.cl"
+task first_time      = "direc$first_time.cl"
 # lista de indices disponibles:
-task alpha_index    = "direc$alpha_index.cl"
-task abs_index      = "direc$abs_index.cl"
+task alpha_index     = "direc$alpha_index.cl"
+task abs_index       = "direc$abs_index.cl"
+task abs_outer_index = "direc$abs_outer_index.cl"
 
 # No visibles:
 task config_files   = "direc$config_files.cl"

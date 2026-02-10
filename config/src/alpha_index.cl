@@ -86,7 +86,6 @@ begin
     string model_dir, residual_dir
 
     # calculo de indices:
-    real ccdistance[999]
     string measure_area_img
     int f_ri, f_ro
     real area_ann[4], n_noisepix[4], density_noise[4]
@@ -252,9 +251,6 @@ begin
             i = i + 1
 
             print(line) | scan(id_obj[i], seg_number[i], fit_ra_j00[i], fit_dec_j00[i], fit_xc, fit_yc, a_img[i], b_img[i], ellip[i], theta_j00[i], theta_img[i], petro_r[i], iso_areaf[i], ri_ann[i], ro_ann[i], xlen_min[i], ylen_min[i])
-
-            # TEMPORAL TAREA DISTANCIA:
-            ccdistance[i] = 0
 
             # Correcciones:
             # petro_r[] ya fue corregido en 'glxy_model' task.
@@ -611,19 +607,19 @@ begin
 
     # COMPACT RESIDUAL AREA INDEX:
 
-    # VII. Residual Area with center distance (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s %7s prf%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, > residual_alpha_dir//"/"//"prfl_index_main.cat")
+    # VII. Residual Area with center (PROFILE CURVE)
+    printf("#%31s %11s %11s %11s %11s prf%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > residual_alpha_dir//"/"//"prfl_index_main.cat")
 
-    # IV. Residual area with center distance (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s %7s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, > residual_alpha_dir//"/"//"cum_index_main.cat")
+    # IV. Residual area with center (CUMMULATIVE CURVE)
+    printf("#%31s %11s %11s %11s %11s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > residual_alpha_dir//"/"//"cum_index_main.cat")
 
     # COMPACT RESIDUAL ROTATION AREA INDEX:
 
-    # VIII. Residual Rotated Area with center distance (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s %7s prfl%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_prfl_index_main.cat")
+    # VIII. Residual Rotated Area with center (PROFILE CURVE)
+    printf("#%31s %11s %11s %11s %11s prfl%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_prfl_index_main.cat")
 
-    # IX. Residual Rotated Area with center distance (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s %7s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", "D_Cc(Mpc)", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_cum_index_main.cat")
+    # IX. Residual Rotated Area with center (CUMMULATIVE CURVE)
+    printf("#%31s %11s %11s %11s %11s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_cum_index_main.cat")
 
     # DENSITY NOISE CATALOG:
     printf("#%31s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s\n", "ID_OBJ", "min_rho", "ttl_rho", "A1_ann", "N1_ann", "rho1", "A2_ann", "N2_ann", "rho2", "A3_ann", "N3_ann", "rho3", "A4_ann", "N4_ann", "rho4", > residual_alpha_dir//"/"//"patch_bg_set.cat")
@@ -904,10 +900,10 @@ begin
                 if(j == 16){
 
                     # PROFILE Main catalog Asymetry
-                    printf("%32s %11.4f %11.4f %11.8f %11.8f %7.3f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], ccdistance[i], prfl_index_alpha, >> out_cat//"prfl_index_main.cat")
+                    printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], prfl_index_alpha, >> out_cat//"prfl_index_main.cat")
 
                     # CUMULATIVE Main catalog Asymetry
-                    printf("%32s %11.4f %11.4f %11.8f %11.8f %7.3f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], ccdistance[i], cum_index_alpha, >> out_cat//"cum_index_main.cat")
+                    printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], cum_index_alpha, >> out_cat//"cum_index_main.cat")
 
                 }else if(j == 26){
 
