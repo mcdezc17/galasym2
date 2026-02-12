@@ -4,6 +4,7 @@ string   center_rot = "rms"   {prompt = "'abs' or 'rms' minimization"}
 real     low_sigma  = 2.0     {prompt = "low sigma clipping"}
 string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
 string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
+bool     force      = no      {prompt = "force measure with ds9 regions"}
 # Experimental stuff:
 # bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
 struct *list
@@ -99,6 +100,9 @@ begin
     real delta_area, delta_area_cum
     real cum_n_areattl[999]
     real prfl_index_alpha, cum_index_alpha
+    # Experimental stuff
+    real num_prfl_index, den_prfl_index
+    real delta_corr_prfl
 
     # temporal variables:
     bool tmp_bool
@@ -357,7 +361,7 @@ begin
     for(i=1;i<=n_list;i+=1){
 
         force_obj = "force_"//id_obj[i]//".reg"
-        if(access(force_obj)){
+        if(access(force_obj) && force == yes){
 
             # extraer nuevos parametros de medida:
             expr = "! awk '/^ellipse\\(/ {split($0,a,\"[(),]\"); print a[4],a[5],a[6],a[7],a[8]}' %s\n"
@@ -539,8 +543,8 @@ begin
             # II.      %ID  %Nb %db %fr %Nt %Areacorr_1 (II. Noise pixels SET: first)
             printf("#%31s %6s %7s %6s %6s d_%4.2frp", "ID_OBJ", "Nbg", "rho_bg", "3/rp", "Nttl", scale_r[i], > residual_alpha_dir//"/"//"noisepix_set.cat")
 
-            # III. PROFILE Asymmetry area SET: first
-            printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"prfl_index_set.cat")
+            # # III. PROFILE Asymmetry area SET: first
+            # printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"prfl_index_set.cat")
 
             # IV. CUMULATIVE Asymmetry area SET: first
             printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"cum_index_set.cat")
@@ -560,8 +564,8 @@ begin
             # II. Noise pixel SET: last
             printf(" d_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"noisepix_set.cat")
 
-            # III. PROFILE Asymmetry area SET: first
-            printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
+            # # III. PROFILE Asymmetry area SET: first
+            # printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
 
             # IV. CUMULATIVE Asymmetry area SET: first
             printf(" cum_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
@@ -579,8 +583,8 @@ begin
             # II. Noise pixel SET: mid
             printf(" d_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"noisepix_set.cat")
 
-            # III. PROFILE Asymmetry area SET: mid
-            printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
+            # # III. PROFILE Asymmetry area SET: mid
+            # printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
 
             # IV. CUMULATIVE Asymmetry area SET: mid
             printf(" cum_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
@@ -592,6 +596,20 @@ begin
             printf(" ⟨SNR⟩_%4.2frp", scale_r[i], >> files_dir//"/"//"SNR_ann_set.cat")
 
         }
+
+        # EXPERIMENTAL ---------------------------
+        if(i%2==0 && i<30){
+            if(i==2){
+                printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"prfl_index_set.cat")
+            }else if(i>2){
+                printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
+            }
+        }else if(i==30){
+            printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
+        }
+        # END EXPERIME ...........................
+
+
     # END FOR: header catalogs
     }
 
@@ -805,6 +823,76 @@ begin
                 imstat(cache_dir//"/"//"tmp_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
                 n_asymmpix = mean_val * n_pix
 
+                # =========== EXPERIMENTAL STUFF PROFILE INDEX =====================
+                # Asymmetrical pixel image in annullus aperture scale_r[]
+                if(j % 2 == 0 && j < 30){
+
+                    if(j==2){
+
+                        # NUMERATOR PROFILE:
+                        imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
+                        imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], measure_area_img, verb-)
+                        # Residual Area (rotated) pixels counting:
+                        imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        num_prfl_index = mean_val * n_pix
+
+                        # DENOMINATOR PROFILE:
+                        imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
+                        imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_ann_areattl", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], area_glxy_img, verb-)
+                        # Area galaxy counting:
+                        imstat(cache_dir//"/"//"tmp_ann_areattl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        den_prfl_index = mean_val * n_pix
+
+                        # AREA CORRECCION:
+                        delta_corr_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2))
+
+                    }else if(j > 2){
+
+                        # NUMERATOR PROFILE:
+                        imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
+                        expr = expre1//" && "//expre2//" ? h : 0"
+                        imexpr(expr, cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], measure_area_img, verb-)
+                        # Residual Area (rotated) pixels counting:
+                        imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        num_prfl_index = mean_val * n_pix
+
+                        # DENOMINATOR PROFILE:
+                        imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
+                        expr = expre1//" && "//expre2//" ? h : 0"
+                        imexpr(expr, cache_dir//"/"//"tmp_ann_areattl", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], area_glxy_img, verb-)
+                        # Area galaxy counting:
+                        imstat(cache_dir//"/"//"tmp_ann_areattl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        den_prfl_index = mean_val * n_pix
+
+                        # AREA CORRECCION:
+                        delta_corr_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-2]**2))
+
+                    }
+
+                }else if(j == 30){
+
+                    # NUMERATOR PROFILE:
+                    imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
+                    expr = expre1//" && "//expre2//" ? h : 0"
+                    imexpr(expr, cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], measure_area_img, verb-)
+                    # Residual Area (rotated) pixels counting:
+                    imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                    num_prfl_index = mean_val * n_pix
+
+                    # DENOMINATOR PROFILE:
+                    imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
+                    expr = expre1//" && "//expre2//" ? h : 0"
+                    imexpr(expr, cache_dir//"/"//"tmp_ann_areattl", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], area_glxy_img, verb-)
+                    # Area galaxy counting:
+                    imstat(cache_dir//"/"//"tmp_ann_areattl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                    den_prfl_index = mean_val * n_pix
+
+                    # AREA CORRECCION:
+                    delta_corr_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-2]**2))
+
+                }
+                # ==================================================================
+
                 # aper. Total pixels (N_tot) alpha = n_asymmpix / N_tot(in aperture)
                 imdelete(cache_dir//"/"//"tmp_areattl_ap", >& "dev$null")
                 imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_areattl_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], area_glxy_img, verb-)
@@ -822,7 +910,7 @@ begin
 
                     delta_area = 0
 
-                    if(ap_n_areattl <= 1){
+                    if(ap_n_areattl <= 0){
                         prfl_index_alpha = 0
                     }else{
                         prfl_index_alpha = n_asymmpix / ap_n_areattl
@@ -839,7 +927,7 @@ begin
                     # Comentar la siguiente linea SI Y SOLO SI las lineas que preceden a '##estas#' fueron descomentadas:
                     delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2 - 9.0)
 
-                    if(ap_n_areattl <= 1){
+                    if(ap_n_areattl <= 0){
                         prfl_index_alpha = 0
                     }else{
                         prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (ap_n_areattl - (delta_area * min_densitybg))
@@ -847,6 +935,29 @@ begin
 
                     cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
                 }
+
+                # ======== EXPERIMENTAL STUFF PROFILE INDEX ==========================================
+                if(j%2==0){
+
+                    if(scale_r[j] * petro_r[i] <= 3.0){
+                        if(den_prfl_index <= 0){
+                            prfl_index_alpha = 0
+                        }else{
+                            prfl_index_alpha = num_prfl_index / (den_prfl_index - (delta_corr_prfl * min_densitybg))
+                        }
+                    }else{
+                        if(den_prfl_index <= 0){
+                            prfl_index_alpha = 0
+                        }else{
+                            prfl_index_alpha = (num_prfl_index - (delta_corr_prfl * min_densitybg)) / (den_prfl_index - (delta_corr_prfl * min_densitybg))
+                        }
+                    }
+                }
+
+                if(prfl_index_alpha < 0){
+                    prfl_index_alpha = 0
+                }
+                # ====================================================================================
 
                 # ====================================================================================
                 # PRINT CATALOGS
@@ -859,8 +970,8 @@ begin
                     #       %ID  %Nb %db   %fr   %Nt %Areacorr_1 (II. Noise pixel SET: first)
                     printf("%32s %6d %7.4f %6.3f %6d %8.2f", id_obj[i], nbg_noisepix, min_densitybg, (3/petro_r[i]), iso_areaf[i], delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # III. PROFILE Asymmetry area SET: first
-                    printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                    # # III. PROFILE Asymmetry area SET: first
+                    # #printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
 
                     # IV. CUMULATIVE Asymmetry area SET: first
                     printf("%32s %11.4f", id_obj[i], cum_index_alpha, >> out_cat//"cum_index_set.cat")
@@ -873,8 +984,8 @@ begin
                     # II. Noise pixel SET: last
                     printf(" %8.2f\n", delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # III. PROFILE Asymmetry area SET: last
-                    printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                    # # III. PROFILE Asymmetry area SET: last
+                    # printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
 
                     # IV. CUMULATIVE Asymmetry area SET: last
                     printf(" %11.4f\n", cum_index_alpha, >> out_cat//"cum_index_set.cat")
@@ -887,12 +998,24 @@ begin
                     # II. Noise pixel SET: mid
                     printf(" %8.2f", delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # III. PROFILE Asymmetry area SET: mid
-                    printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                    # # III. PROFILE Asymmetry area SET: mid
+                    # printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
 
                     # IV. CUMULATIVE Asymmetry area SET: mid
                     printf(" %11.4f", cum_index_alpha, >> out_cat//"cum_index_set.cat")
                 }
+
+                # EXPERIMENTAL ---------------------------
+                if(j%2==0 && j<30){
+                    if(j==2){
+                        printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                    }else if(j>2){
+                        printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                    }
+                }else if(j==30){
+                    printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                }
+                # END EXPERIME ...........................
 
                 # ====================================================================================
                 # PRINT CATALOGS: Tree fixed apertures

@@ -1,6 +1,8 @@
-procedure abs_outer_index()
+procedure outer_abs_index()
 
-string   center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
+string center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
+real   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
+bool   force      = no      {prompt = "force measure with ds9 regions"}
 
 struct *list
 
@@ -40,8 +42,6 @@ begin
     real ra_rot[999], dec_rot[999]
     int x0_rot[999], y0_rot[999]
 
-
-
     # recorte de imagenes:
     real A_outer, B_outer
     int px1, px2, py1, py2
@@ -59,12 +59,12 @@ begin
     string datafiles_dir
     string outsex_dir
     # direcciones de imagenes:
-    string observed_dir
+    string observed_dir, bckgrnd_dir, model_dir
 
     # calculo de indices:
     real cum_flux_ttl[999]
     int f_ri, f_ro
-    real denominator_cumm, numerator_corr
+    real bulge_area, denominator_cumm, numerator_corr
     real area_sky, numerator_aper
     real area_aper, denominator_prfl
     real abs_prfl_index, abs_cumm_index
@@ -76,7 +76,7 @@ begin
     string tmp_infile, tmp_infile2, tmp_outfile
 
     # ASIGNACIÓN DE  OTROS DIRECTORIOS ------------------------
-    abs_dir = "abs_index"
+    abs_dir = "outer_abs_index"
     cache_dir = abs_dir//"/"//"cache"
     # images:
     absimg_dir = abs_dir//"/"//"images"
@@ -91,6 +91,8 @@ begin
     outsex_dir    = "data/results_sex"
     # directorio de imagenes:
     observed_dir = "data/data_images/observed"
+    bckgrnd_dir  = "data/data_images/background"
+    model_dir    = "data/data_images/model"
 
     # KEY_WORD requeridas para ejecutar programas
     list = "data/data_files/full_params.txt"
@@ -239,7 +241,7 @@ begin
     for(i=1;i<=n_list;i+=1){
 
         force_obj = "force_"//id_obj[i]//".reg"
-        if(access(force_obj)){
+        if(access(force_obj) && force == yes){
 
             # extraer nuevos parametros de medida:
             expr = "! awk '/^ellipse\\(/ {split($0,a,\"[(),]\"); print a[4],a[5],a[6],a[7],a[8]}' %s\n"
@@ -293,35 +295,53 @@ begin
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
-        # OBSERVED SET MASK:
-        tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"//trimsection
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        # BULBO GALACTIVO:
+        tmp_infile = model_dir//"/"//id_obj[i]//"_mod_setmask.fits"
+        tmp_infile2 = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
+        tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
+        imexpr("a >= b*c", tmp_outfile, tmp_infile, bulge_clip, tmp_infile2, verb-)
+
+        # OUTER OBSERVED SET MASK:
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        tmp_infile2 = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        imdelete(tmp_outfile, ver-, >& "dev$null")
+        imexpr("a == 0 ? b : 0", tmp_outfile, tmp_infile, tmp_infile2, verb-)
+
+        # recorta tamaño optimo (BULBO a evitar):
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"//trimsection
+        tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        imcopy(tmp_infile, tmp_outfile, ver-)
+
+        # recorta tamaño optimo (OBSSERVED OUTER SETMASK):
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"//trimsection
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # Apertura maxima para indice acumulativo:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_setmask.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_out_setmask.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[30] * petro_r[i] * a_img[i], scale_r[30] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
 
         # MINIMUM RESIDUAL (SET MASK) 180° rotation:
         # transposicion = rotar 90 grados:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"//"[*,-*]"
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"//"[*,-*]"
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot90.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imtranspose(tmp_infile, tmp_outfile)
         # repetir transposicion = 180°:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"//"[*,-*]"
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot180.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot90.fits"//"[*,-*]"
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot180.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imtranspose(tmp_infile, tmp_outfile)
         # eliminar imagen a 90°:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot90.fits"
         imdelete(tmp_infile, ver-, >& "dev$null")
         # Residuo asimetrico de area (N-N_180):
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot180.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot180.fits"
         tmp_outfile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr("abs(a-b)", tmp_outfile, tmp_infile, tmp_infile2, verb-)
@@ -408,13 +428,17 @@ begin
 
     for(i=1;i<=n_list;i+=1){
 
+        # AREA DEL BULBO A EVITAR
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+        # area del bulbo a evitar:
+        bulge_area = mean_val * n_pix
+
         # DENOMINADOR DEL INDICE CUMULATIVO (const.):
-        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_setmask.fits"
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_out_setmask.fits"
         imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
         # denominador de indice cumulativo:
         denominator_cumm = mean_val * n_pix
-        mean_val = 0
-        n_pix = 0
 
         # ESTIMACION DEL FONDO -----------------------------------------------------------
         f_ri = ri_ann[i]
@@ -445,11 +469,9 @@ begin
             # numerador del indice por apertura:
             imstat(cache_dir//"/"//"tmp_numerator_aper", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
             numerator_aper = mean_val * n_pix
-            # Area de la apertura:
-            area_aper = const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])
 
             # Denominador para indice de perfil:
-            tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+            tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
             tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
             imdelete(tmp_outfile, >& "dev$null")
             imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
@@ -457,9 +479,20 @@ begin
             imstat(cache_dir//"/"//"tmp_denominator_prfl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
             denominator_prfl = mean_val * n_pix
 
-            # ECUACION DE INDICE DE PERFIL:
-            abs_prfl_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_prfl
-            # ECUACION DE INDICE CUMULATIVO:
+            # Area de la apertura:
+            area_aper = (const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])) - bulge_area
+            # Verificar que 'area_aper' sea valido:
+            if(area_aper < 0){
+                area_aper = 0
+            }
+
+            # ECUACION DEL INDICE DE PERFIL VALIDADA!
+            if(denominator_prfl <= 0){
+                abs_prfl_index = 0
+            }else{
+                abs_prfl_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_prfl
+            }
+            # ECUACION DEL INDICE CUMULATIVO:
             abs_cumm_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_cumm
 
             #    if(j==26){

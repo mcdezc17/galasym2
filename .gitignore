@@ -1,6 +1,7 @@
 alpha_*/
 tables/
 abs_index/
+outer_abs_index/
 data/
 *.fits
 *.png

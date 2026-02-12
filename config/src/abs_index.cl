@@ -1,6 +1,7 @@
 procedure abs_index()
 
 string   center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
+bool     force      = no      {prompt = "force measure with ds9 regions"}
 
 struct *list
 
@@ -239,7 +240,7 @@ begin
     for(i=1;i<=n_list;i+=1){
 
         force_obj = "force_"//id_obj[i]//".reg"
-        if(access(force_obj)){
+        if(access(force_obj) && force == yes){
 
             # extraer nuevos parametros de medida:
             expr = "! awk '/^ellipse\\(/ {split($0,a,\"[(),]\"); print a[4],a[5],a[6],a[7],a[8]}' %s\n"

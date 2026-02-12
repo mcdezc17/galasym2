@@ -1,33 +1,45 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 plt.rcParams.update({'font.size': 15})
 
 def leer_datos_txt_matriz(nombre_archivo):
     datos_filtrados = []
+    identificadores = []  # Nueva lista para guardar los identificadores
     with open(nombre_archivo, 'r') as archivo:
         for linea in archivo:
             if linea.strip().startswith('#') or not linea.strip():
                 continue
-            valores = linea.strip().split()[1:]  # Ignorar primera columna
-            datos_filtrados.append([float(v) for v in valores])
-    return np.array(datos_filtrados)
+            valores = linea.strip().split()
+            identificadores.append(valores[0])  # Guardar primera columna
+            datos_filtrados.append([float(v) for v in valores[1:]])  # Ignorar primera columna para datos numéricos
+    return np.array(datos_filtrados), identificadores
 
 # Nombres de archivos
 nombre_archivo_1 = "residual_area/cum_index_set.cat"
 nombre_archivo_2 = "residual_rotation_area/rot_cum_index_set.cat"
 
 # Leer matrices de datos (ignorando líneas con # y primera columna)
-matriz1 = leer_datos_txt_matriz(nombre_archivo_1)
-matriz2 = leer_datos_txt_matriz(nombre_archivo_2)
+matriz1, identificadores1 = leer_datos_txt_matriz(nombre_archivo_1)
+matriz2, identificadores2 = leer_datos_txt_matriz(nombre_archivo_2)
 
 # Verificar consistencia
 if matriz1.shape != matriz2.shape:
     raise ValueError("Los archivos no tienen la misma forma.")
 
+# Verificar que los identificadores coincidan (opcional pero recomendado)
+if identificadores1 != identificadores2:
+    print("Advertencia: Los identificadores de ambos archivos no coinciden.")
+
 # Mostrar cuántas filas hay y pedir al usuario cuál quiere usar
 print(f"Se encontraron {matriz1.shape[0]} filas disponibles.")
 fila = int(input("Ingrese el índice de la fila que desea graficar (comenzando desde 0): "))
+
+# Validar índice
+if fila < 0 or fila >= matriz1.shape[0]:
+    raise ValueError(f"Índice fuera de rango. Debe estar entre 0 y {matriz1.shape[0]-1}")
+
+# Mostrar el identificador de la fila seleccionada
+print(f"\n>>> La fila {fila} corresponde al identificador: {identificadores1[fila]} <<<\n")
 
 # Validar índice
 if fila < 0 or fila >= matriz1.shape[0]:
