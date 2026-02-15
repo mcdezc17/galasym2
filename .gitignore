@@ -1,12 +1,11 @@
 alpha_*/
 tables/
 abs_index/
-outer_abs_index/
+outer_*/
 data/
 *.fits
 *.png
 *.csv
-*.reg
 *.txt
 corr_prfl_galasym2_96.cl
 ._*

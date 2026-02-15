@@ -1,7 +1,7 @@
 procedure abs_index()
 
 string   center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
-bool     force      = no      {prompt = "force measure with ds9 regions"}
+bool     force      = yes      {prompt = "force measure with ds9 regions"}
 
 struct *list
 
@@ -68,6 +68,7 @@ begin
     real denominator_cumm, numerator_corr
     real area_sky, numerator_aper
     real area_aper, denominator_prfl
+    real area_prfl, numerator_prfl
     real abs_prfl_index, abs_cumm_index
 
     # temporal variables:
@@ -139,12 +140,12 @@ begin
 
     print(" ------------------------------------------")
     print(" =========== ABSOLUTE ROTATION ============")
-    print(" ================ INDEX ===================")
+    print(" ============ ASYMMETRY INDEX =============")
 
     print(" Classical  asymmetry  index,  known as A of")
     print(" CAS (Conselice et al., 2000). However, here")
     print(" it is  calculated as in (recently) Sazonova")
-    print(" et. al. (2014).\n")
+    print(" et. al. (2024).\n")
 
     # listas heredadas exactamente de 'find_objs' task:
     tmp_infile = outsex_dir//"/"//"params_to_index.txt"
@@ -335,7 +336,6 @@ begin
     # CATALOGS HEADER:
     # ===============================================================
 
-
     if(!access(files_dir)){mkdir(files_dir)}
     if(!access(abscat_dir)){mkdir(abscat_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
@@ -449,17 +449,57 @@ begin
             # Area de la apertura:
             area_aper = const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])
 
-            # Denominador para indice de perfil:
-            tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-            tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
-            imdelete(tmp_outfile, >& "dev$null")
-            imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
-            # numerador del indice por apertura:
-            imstat(cache_dir//"/"//"tmp_denominator_prfl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-            denominator_prfl = mean_val * n_pix
+            # =========== EXPERIMENTAL STUFF PROFILE INDEX =====================
+            if(j==1){
+
+                # NUMERADOR INDICE PERFIL (ELIPSE):
+                numerator_prfl = numerator_aper
+
+                # DENOMINADOR INDICE DE PERFIL (ELIPSE):
+                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+                tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
+                imdelete(tmp_outfile, >& "dev$null")
+                expr = expre1//" ? f : 0"
+                imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
+                # suma:
+                imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                denominator_prfl = mean_val * n_pix
+
+                # AREA DE CORRECION DEL CIELO (ELIPSE):
+                area_prfl = area_aper
+
+            }else{
+
+                # NUMERADOR INDICE PERFIL (ANILLOS):
+                tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
+                tmp_outfile = cache_dir//"/"//"tmp_numerator_prfl"
+                imdelete(tmp_outfile, >& "dev$null")
+                expr = expre1//" && "//expre2//" ? h : 0"
+                imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-1] * petro_r[i] * a_img[i], scale_r[j-1] * petro_r[i] * b_img[i], tmp_infile, verb-)
+                # suma:
+                imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                numerator_prfl = mean_val * n_pix
+
+                # DENOMINADOR INDICE PERFIL (ANILLOS):
+                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+                tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
+                imdelete(tmp_outfile, >& "dev$null")
+                expr = expre1//" && "//expre2//" ? h : 0"
+                imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-1] * petro_r[i] * a_img[i], scale_r[j-1] * petro_r[i] * b_img[i], tmp_infile, verb-)
+                # numerador del indice por apertura:
+                imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                denominator_prfl = mean_val * n_pix
+
+                # AREA DE CORRECCION DEL CIELO (ANILLOS):
+                area_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-1]**2))
+            }
+            # =========== END EXPERIMENTAL STUFF PROFILE INDEX =====================
 
             # ECUACION DE INDICE DE PERFIL:
-            abs_prfl_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_prfl
+            abs_prfl_index = (numerator_aper - ((area_prfl / area_sky) * numerator_corr)) / denominator_prfl
+            # Truncar indice de perfil:
+            if(abs_prfl_index < 0){abs_prfl_index = 0}
+
             # ECUACION DE INDICE CUMULATIVO:
             abs_cumm_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_cumm
 
@@ -564,6 +604,14 @@ begin
     }
 
     print("\n\n ------------------------------------------")
+    print(" =========== ABSOLUTE ROTATION ============")
+    print(" ============ ASYMMETRY INDEX =============")
+
+    print(" Classical  asymmetry  index,  known as A of")
+    print(" CAS (Conselice et al., 2000). However, here")
+    print(" it is  calculated as in (recently) Sazonova")
+    print(" et. al. (2024).\n")
+
     printf(" OUTPUT FOLDER: ./%s\n", abs_dir)
     print(" END TASK: abs_index")
     print(" ------------------------------------------")

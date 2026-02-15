@@ -1,8 +1,8 @@
 procedure outer_abs_index()
 
 string center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
-real   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
-bool   force      = no      {prompt = "force measure with ds9 regions"}
+real   bulge_clip = 10.0    {prompt = "sigma-clip avoid bulge"}
+bool   force      = yes      {prompt = "force measure with ds9 regions"}
 
 struct *list
 
@@ -66,6 +66,7 @@ begin
     int f_ri, f_ro
     real bulge_area, denominator_cumm, numerator_corr
     real area_sky, numerator_aper
+    real area_prfl, numerator_prfl
     real area_aper, denominator_prfl
     real abs_prfl_index, abs_cumm_index
 
@@ -76,7 +77,8 @@ begin
     string tmp_infile, tmp_infile2, tmp_outfile
 
     # ASIGNACIÓN DE  OTROS DIRECTORIOS ------------------------
-    abs_dir = "outer_abs_index"
+    printf("outer_abs_index_%.1f", bulge_clip) | scan(abs_dir)
+    # abs_dir = "outer_abs_index"
     cache_dir = abs_dir//"/"//"cache"
     # images:
     absimg_dir = abs_dir//"/"//"images"
@@ -139,13 +141,17 @@ begin
     expre2 = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (f**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (g**2)) >= 1"
 
     print(" ------------------------------------------")
-    print(" =========== ABSOLUTE ROTATION ============")
-    print(" ================ INDEX ===================")
+    print(" ============= OUTER ABSOLUTE ROTATION ===========")
+    print(" ================ ASYMMETRY INDEX ================")
 
-    print(" Classical  asymmetry  index,  known as A of")
-    print(" CAS (Conselice et al., 2000). However, here")
-    print(" it is  calculated as in (recently) Sazonova")
-    print(" et. al. (2014).\n")
+    print(" This is a  version very  similar to that proposed")
+    print(" by  Wen et al. (2014), known  as  Outer Asymmetry")
+    print(" (Ao). However, there are some subtle  differences")
+    print(" from the original  definition: basically, we cal-")
+    print(" culate the (absolute) A index of Conselice et al.")
+    print(" (2000) by avoiding  a symmetric central region of")
+    print(" the galaxy taken from a two-component photometric")
+    print(" model.\n")
 
     # listas heredadas exactamente de 'find_objs' task:
     tmp_infile = outsex_dir//"/"//"params_to_index.txt"
@@ -303,11 +309,11 @@ begin
         imexpr("a >= b*c", tmp_outfile, tmp_infile, bulge_clip, tmp_infile2, verb-)
 
         # OUTER OBSERVED SET MASK:
-        tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
-        tmp_infile2 = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
-        imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr("a == 0 ? b : 0", tmp_outfile, tmp_infile, tmp_infile2, verb-)
+        # tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        # tmp_infile2 = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        # tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        # imdelete(tmp_outfile, ver-, >& "dev$null")
+        # imexpr("a == 0 ? b : 0", tmp_outfile, tmp_infile, tmp_infile2, verb-)
 
         # recorta tamaño optimo (BULBO a evitar):
         tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"//trimsection
@@ -315,8 +321,10 @@ begin
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # recorta tamaño optimo (OBSSERVED OUTER SETMASK):
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"//trimsection
+        # tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"//trimsection
+        tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"//trimsection
         tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        imdelete(tmp_outfile, ver-, >& "dev$null")
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # Apertura maxima para indice acumulativo:
@@ -344,7 +352,7 @@ begin
         tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot180.fits"
         tmp_outfile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr("abs(a-b)", tmp_outfile, tmp_infile, tmp_infile2, verb-)
+        imexpr("c == 0 ? abs(a-b) : 0", tmp_outfile, tmp_infile, tmp_infile2, cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits", verb-)
 
         # Progress bar proccess:
         printf("\r - Process (cutting images): %d%%", (i*100/n_list))
@@ -470,15 +478,6 @@ begin
             imstat(cache_dir//"/"//"tmp_numerator_aper", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
             numerator_aper = mean_val * n_pix
 
-            # Denominador para indice de perfil:
-            tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
-            tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
-            imdelete(tmp_outfile, >& "dev$null")
-            imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
-            # numerador del indice por apertura:
-            imstat(cache_dir//"/"//"tmp_denominator_prfl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-            denominator_prfl = mean_val * n_pix
-
             # Area de la apertura:
             area_aper = (const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])) - bulge_area
             # Verificar que 'area_aper' sea valido:
@@ -486,12 +485,60 @@ begin
                 area_aper = 0
             }
 
+            # =========== EXPERIMENTAL STUFF PROFILE INDEX =====================
+            if(j==1){
+
+                # NUMERADOR INDICE PERFIL (ELIPSE):
+                numerator_prfl = numerator_aper
+
+                # DENOMINADOR INDICE DE PERFIL (ELIPSE):
+                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+                tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
+                imdelete(tmp_outfile, >& "dev$null")
+                imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
+                # numerador del indice por apertura:
+                imstat(cache_dir//"/"//"tmp_denominator_prfl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                denominator_prfl = mean_val * n_pix
+
+                # AREA DE CORRECION DEL CIELO (ELIPSE):
+                area_prfl = area_aper
+
+            }else{
+
+                # NUMERADOR INDICE PERFIL (ELIPSE):
+                tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
+                tmp_outfile = cache_dir//"/"//"tmp_numerator_prfl"
+                imdelete(tmp_outfile, >& "dev$null")
+                expr = expre1//" && "//expre2//" ? h : 0"
+                imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-1] * petro_r[i] * a_img[i], scale_r[j-1] * petro_r[i] * b_img[i], tmp_infile, verb-)
+                # suma:
+                imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                numerator_prfl = mean_val * n_pix
+
+                # DENOMINADOR INDICE DE PERFIL (ELIPSE):
+                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+                tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
+                imdelete(tmp_outfile, >& "dev$null")
+                expr = expre1//" && "//expre2//" ? h : 0"
+                imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-1] * petro_r[i] * a_img[i], scale_r[j-1] * petro_r[i] * b_img[i], tmp_infile, verb-)
+                # numerador del indice por apertura:
+                imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                denominator_prfl = mean_val * n_pix
+
+                # AREA DE CORRECION DEL CIELO (ELIPSE):
+                area_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-1]**2))
+
+            }
+
             # ECUACION DEL INDICE DE PERFIL VALIDADA!
             if(denominator_prfl <= 0){
                 abs_prfl_index = 0
             }else{
-                abs_prfl_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_prfl
+                abs_prfl_index = (numerator_prfl - ((area_prfl / area_sky) * numerator_corr)) / denominator_prfl
             }
+            # Truncar indice de perfil:
+            if(abs_prfl_index < 0){abs_prfl_index = 0}
+
             # ECUACION DEL INDICE CUMULATIVO:
             abs_cumm_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_cumm
 
@@ -596,11 +643,22 @@ begin
     }
 
     print("\n\n ------------------------------------------")
+    print(" ============= OUTER ABSOLUTE ROTATION ===========")
+    print(" ================ ASYMMETRY INDEX ================")
+
+    print(" This is a  version very  similar to that proposed")
+    print(" by  Wen et al. (2014), known  as  Outer Asymmetry")
+    print(" (Ao). However, there are some subtle  differences")
+    print(" from the original  definition: basically, we cal-")
+    print(" culate the (absolute) A index of Conselice et al.")
+    print(" (2000) by avoiding  a symmetric central region of")
+    print(" the galaxy taken from a two-component photometric")
+    print(" model.\n")
+
     printf(" OUTPUT FOLDER: ./%s\n", abs_dir)
     print(" END TASK: abs_index")
     print(" ------------------------------------------")
     print("")
 
-    flpr
     flpr
 end

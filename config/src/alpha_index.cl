@@ -4,7 +4,7 @@ string   center_rot = "rms"   {prompt = "'abs' or 'rms' minimization"}
 real     low_sigma  = 2.0     {prompt = "low sigma clipping"}
 string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
 string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
-bool     force      = no      {prompt = "force measure with ds9 regions"}
+bool     force      = yes      {prompt = "force measure with ds9 regions"}
 # Experimental stuff:
 # bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
 struct *list
@@ -829,12 +829,13 @@ begin
 
                     if(j==2){
 
-                        # NUMERATOR PROFILE:
-                        imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
-                        imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], measure_area_img, verb-)
-                        # Residual Area (rotated) pixels counting:
-                        imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                        num_prfl_index = mean_val * n_pix
+                        # # NUMERATOR PROFILE:
+                        # imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
+                        # imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], measure_area_img, verb-)
+                        # # Residual Area (rotated) pixels counting:
+                        # imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        # num_prfl_index = mean_val * n_pix
+                        num_prfl_index = n_asymmpix
 
                         # DENOMINATOR PROFILE:
                         imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
@@ -844,7 +845,7 @@ begin
                         den_prfl_index = mean_val * n_pix
 
                         # AREA CORRECCION:
-                        delta_corr_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2))
+                        delta_corr_prfl = const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])
 
                     }else if(j > 2){
 
