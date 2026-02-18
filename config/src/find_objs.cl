@@ -857,7 +857,7 @@ begin
     print("fk5", >> datafiles_dir//"/"//"glxys_in_image.reg")
 
     # Cabecera de parametros (ajustados) del modelo
-    expre = "# ID SEG_ID RA DEC XCNTR_IMG YCNTR_IMG A_IMG B_IMG ELLIP PA THET_IMG KRON_R PETRO_R EFF_R ISO_A ISO_AF RI_ANN RO_ANN XMIN_LENG YMIN_LENG"
+    expre = "# ID SEG_ID RA DEC XCNTR_IMG YCNTR_IMG A_IMG B_IMG ELLIP PA THET_IMG PETRO_R ISO_AF RI_ANN RO_ANN XMIN_LENG YMIN_LENG"
     print(expre, > outsex_dir//"/"//"params_to_index.txt")
 
     # leer resultados de SEx:

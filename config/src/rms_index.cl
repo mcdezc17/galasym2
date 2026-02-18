@@ -1,13 +1,13 @@
-procedure abs_index()
+procedure rms_index()
 
-string   center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
-bool     force      = yes      {prompt = "force measure with ds9 regions"}
+string   center_rot = "rms"   {prompt = "'rms' or 'abs' minimization"}
+bool     force      = yes     {prompt = "force measure with ds9 regions"}
 
 struct *list
 
 begin
 
-    # ************* Variables Definition *************
+# ************* Variables Definition *************
     # System variables:
     int i, j, k
     struct line
@@ -53,9 +53,9 @@ begin
     int ri_ann_force, ro_ann_force
 
     # carpeta principal:
-    string abs_dir, absimg_dir, cache_dir
+    string rms_dir, rmsimg_dir, cache_dir
     string frames_dir, residualimg_dir
-    string files_dir, abscat_dir, ds9_dir
+    string files_dir, rmscat_dir, ds9_dir
     # otras carpetas:
     string datafiles_dir
     string outsex_dir
@@ -65,11 +65,17 @@ begin
     # calculo de indices:
     real cum_flux_ttl[999]
     int f_ri, f_ro
-    real denominator_cumm, numerator_corr
-    real area_sky, numerator_aper
-    real area_aper, denominator_prfl
-    real area_prfl, numerator_prfl
-    real abs_prfl_index, abs_cumm_index
+    real denominator_cumm
+    real numerator_corr, denominator_corr
+    real aperture_sky, numerator_cumm
+    real aperture_cumm, denominator_prfl
+    real aperture_prfl, numerator_prfl
+    # NEW -----------------------------
+    real sq_avrg_rms_sky, sq_avrg_flux_sky
+    real numerator_ttl_prfl, denominator_ttl_prfl
+    real sq_prfl_index, rms_prfl_index
+    real numerator_ttl_cumm, denominator_ttl_cumm
+    real sq_cumm_index, rms_cumm_index
 
     # temporal variables:
     bool tmp_bool
@@ -78,16 +84,16 @@ begin
     string tmp_infile, tmp_infile2, tmp_outfile
 
     # ASIGNACIÓN DE  OTROS DIRECTORIOS ------------------------
-    abs_dir = "abs_index"
-    cache_dir = abs_dir//"/"//"cache"
+    rms_dir = "rms_index"
+    cache_dir = rms_dir//"/"//"cache"
     # images:
-    absimg_dir = abs_dir//"/"//"images"
-    frames_dir = absimg_dir//"/"//"small_frames"
-    residualimg_dir = absimg_dir//"/"//"abs_residual"
+    rmsimg_dir = rms_dir//"/"//"images"
+    frames_dir = rmsimg_dir//"/"//"small_frames"
+    residualimg_dir = rmsimg_dir//"/"//"rms_residual"
     # catalogs:
-    files_dir = abs_dir//"/"//"catalogs"
+    files_dir = rms_dir//"/"//"catalogs"
     ds9_dir = files_dir//"/"//"ds9"
-    abscat_dir = files_dir//"/"//"abs_index"
+    rmscat_dir = files_dir//"/"//"rms_index"
     # other:
     datafiles_dir = "data/data_files"
     outsex_dir    = "data/results_sex"
@@ -138,14 +144,13 @@ begin
     # Inner annulus for noise extract
     expre2 = "(((I-a)*cos(e) + (J-b)*sin(e))**2 / (f**2)) + (((I-a)*sin(e) - (J-b)*cos(e))**2 / (g**2)) >= 1"
 
-    print(" ------------------------------------------")
-    print(" =========== ABSOLUTE ROTATION ============")
+    print(" ============== RMS ROTATION ==============")
     print(" ============ ASYMMETRY INDEX =============")
 
-    print(" Classical  asymmetry  index,  known as A of")
-    print(" CAS (Conselice et al., 2000). However, here")
-    print(" it is  calculated as in (recently) Sazonova")
-    print(" et. al. (2024).\n")
+    print(" Classical  asymmetry  index,  known as RMS")
+    print(" Conselice (1997). However, here it is cal-")
+    print(" culated as in  (recently) Sazonova  et al.")
+    print(" (2024).\n")
 
     # listas heredadas exactamente de 'find_objs' task:
     tmp_infile = outsex_dir//"/"//"params_to_index.txt"
@@ -170,6 +175,7 @@ begin
             # petro_r[] ya fue corregido en 'glxy_model' task.
             # theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
             theta_rad[i] = theta_img[i] * const_pi / 180
+
         # END IF: lineas validas
         }
     # END WHILE: leer lista
@@ -232,9 +238,9 @@ begin
 
     print("\n ------------ Cutting images --------------\n")
     # Salida de resultados:
-    if(!access(abs_dir)){mkdir(abs_dir)}
+    if(!access(rms_dir)){mkdir(rms_dir)}
     if(!access(cache_dir)){mkdir(cache_dir)}
-    if(!access(absimg_dir)){mkdir(absimg_dir)}
+    if(!access(rmsimg_dir)){mkdir(rmsimg_dir)}
     if(!access(frames_dir)){mkdir(frames_dir)}
     if(!access(residualimg_dir)){mkdir(residualimg_dir)}
 
@@ -303,9 +309,9 @@ begin
 
         # Apertura maxima para indice acumulativo:
         tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_setmask.fits"
+        tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_sq_obs_setmask.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[30] * petro_r[i] * a_img[i], scale_r[30] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
+        imexpr(expre1//" ? f**2 : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[30] * petro_r[i] * a_img[i], scale_r[30] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
 
         # MINIMUM RESIDUAL (SET MASK) 180° rotation:
         # transposicion = rotar 90 grados:
@@ -324,9 +330,9 @@ begin
         # Residuo asimetrico de area (N-N_180):
         tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
         tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot180.fits"
-        tmp_outfile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
+        tmp_outfile = residualimg_dir//"/"//id_obj[i]//"_min_rms_residual.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr("abs(a-b)", tmp_outfile, tmp_infile, tmp_infile2, verb-)
+        imexpr("(a-b)**2", tmp_outfile, tmp_infile, tmp_infile2, verb-)
 
         # Progress bar proccess:
         printf("\r - Process (cutting images): %d%%", (i*100/n_list))
@@ -337,7 +343,7 @@ begin
     # ===============================================================
 
     if(!access(files_dir)){mkdir(files_dir)}
-    if(!access(abscat_dir)){mkdir(abscat_dir)}
+    if(!access(rmscat_dir)){mkdir(rmscat_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
 
     for(i=1;i<=30;i+=1){
@@ -345,34 +351,34 @@ begin
         if(i == 1){
 
             # I.      %ID  %fr %Nt %Nasymm_1 (I. N asymm. pixels SET: first)
-            printf("#%31s sumF_%4.2frp", "ID_OBJ", scale_r[i], > abscat_dir//"/"//"sum_flux_set.cat")
+            printf("#%31s sumF_%4.2frp", "ID_OBJ", scale_r[i], > rmscat_dir//"/"//"sum_flux_set.cat")
 
             # II. PROFILE Asymmetry area SET: first
-            printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > abscat_dir//"/"//"prfl_index_set.cat")
+            printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > rmscat_dir//"/"//"prfl_index_set.cat")
 
             # III. CUMULATIVE Asymmetry area SET: first
-            printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[i], > abscat_dir//"/"//"cum_index_set.cat")
+            printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[i], > rmscat_dir//"/"//"cum_index_set.cat")
 
         }else if(i == 30){
 
             #  I.     %Nasymm_last (I. N asymm. pixels SET: last)
-            printf(" sumF_%4.2frp\n", scale_r[i], >> abscat_dir//"/"//"asymmpix_set.cat")
+            printf(" sumF_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"asymmpix_set.cat")
 
             # II. PROFILE Asymmetry area SET: first
-            printf(" prfl_%4.2frp\n", scale_r[i], >> abscat_dir//"/"//"prfl_index_set.cat")
+            printf(" prfl_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"prfl_index_set.cat")
 
             # III. CUMULATIVE Asymmetry area SET: first
-            printf(" cum_%4.2frp\n", scale_r[i], >> abscat_dir//"/"//"cum_index_set.cat")
+            printf(" cum_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"cum_index_set.cat")
 
         }else{
             # I.     %Nasymm_i (All parameters catalog:)
-            printf(" sumF_%4.2frp", scale_r[i], >> abscat_dir//"/"//"asymmpix_set.cat")
+            printf(" sumF_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"asymmpix_set.cat")
 
             # II. PROFILE Asymmetry area SET: mid
-            printf(" prfl_%4.2frp", scale_r[i], >> abscat_dir//"/"//"prfl_index_set.cat")
+            printf(" prfl_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"prfl_index_set.cat")
 
             # III. CUMULATIVE Asymmetry area SET: mid
-            printf(" cum_%4.2frp", scale_r[i], >> abscat_dir//"/"//"cum_index_set.cat")
+            printf(" cum_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"cum_index_set.cat")
 
         }
     # END FOR: header catalogs
@@ -380,10 +386,10 @@ begin
 
     # COMPACT CATALOG ABS INDEX:
     # IV. (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s prfl_1.0rp prfl_1.5rp prfl_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > abscat_dir//"/"//"prfl_index_main.cat")
+    printf("#%31s %11s %11s %11s %11s prfl_1.0rp prfl_1.5rp prfl_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > rmscat_dir//"/"//"prfl_index_main.cat")
 
     # V. (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s cum_1.0rp cum_1.5rp cum_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > abscat_dir//"/"//"cum_index_main.cat")
+    printf("#%31s %11s %11s %11s %11s cum_1.0rp cum_1.5rp cum_1.7rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > rmscat_dir//"/"//"cum_index_main.cat")
 
     #   # DS9 HEADER ACATALOG INDEX VALUE (PROFILE CURVE):
     #   print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"prfl_index.reg")
@@ -405,33 +411,41 @@ begin
     # ===============================================================
     # INDEX COMPUTATION
     # ===============================================================
-    print("\n\n --------- Computing abs index ------------\n")
+    print("\n\n --------- Computing rms index ------------\n")
 
     for(i=1;i<=n_list;i+=1){
 
         # DENOMINADOR DEL INDICE CUMULATIVO (const.):
-        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_setmask.fits"
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_sq_obs_setmask.fits"
         imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
         # denominador de indice cumulativo:
         denominator_cumm = mean_val * n_pix
-        mean_val = 0
-        n_pix = 0
 
         # ESTIMACION DEL FONDO -----------------------------------------------------------
         f_ri = ri_ann[i]
         f_ro = ro_ann[i]
-        # Anillo eliptico del CIELO ASIMETRICO (blank patch)
-        tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
+        # Numerador del indice de correccion:
+        tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_rms_residual.fits"
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_blankpatch.fits"
         expr = expre1//" && "//expre2//" ? h : 0"
         imdelete(tmp_outfile, >& "dev$null")
         imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[f_ro]*petro_r[i]*a_img[i], scale_r[f_ro]*petro_r[i]*b_img[i], theta_rad[i], scale_r[f_ri]*petro_r[i]*a_img[i], scale_r[f_ri]*petro_r[i]*b_img[i], tmp_infile, verb-)
-        # numerador de la correccion de cielo:
-        imstat(cache_dir//"/"//id_obj[i]//"_blankpatch.fits", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-        # numerador de sky correction:
+        # suma(I_sky - I_sky,180)**2:
+        imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+        # numerador:
         numerator_corr = mean_val * n_pix
+        # Denominador del indice de correccion:
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        tmp_outfile = cache_dir//"/"//"tmp_denominator_corr"
+        expr = expre1//" && "//expre2//" ? (h**2) : 0"
+        imdelete(tmp_outfile, >& "dev$null")
+        imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[f_ro]*petro_r[i]*a_img[i], scale_r[f_ro]*petro_r[i]*b_img[i], theta_rad[i], scale_r[f_ri]*petro_r[i]*a_img[i], scale_r[f_ri]*petro_r[i]*b_img[i], tmp_infile, verb-)
+        # suma(I_sky)**2:
+        imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+        # denominator:
+        denominator_corr = mean_val * n_pix
         # area del anillo:
-        area_sky = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[f_ro]**2) - (scale_r[f_ri]**2))
+        aperture_sky = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[f_ro]**2) - (scale_r[f_ri]**2))
 
         printf("\r - Analysing object........: %d / %d", i, n_list)
 
@@ -439,24 +453,24 @@ begin
         for(j=1;j<=30;j+=1){
 
             # Flujo residual dentro de apertura:
-            tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
-            tmp_outfile = cache_dir//"/"//"tmp_numerator_aper"
+            tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_rms_residual.fits"
+            tmp_outfile = cache_dir//"/"//"tmp_numerator_cumm"
             imdelete(tmp_outfile, >& "dev$null")
             imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
             # numerador del indice por apertura:
-            imstat(cache_dir//"/"//"tmp_numerator_aper", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-            numerator_aper = mean_val * n_pix
+            imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+            numerator_cumm = mean_val * n_pix
             # Area de la apertura:
-            area_aper = const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])
+            aperture_cumm = const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])
 
             # =========== EXPERIMENTAL STUFF PROFILE INDEX =====================
             if(j==1){
 
                 # NUMERADOR INDICE PERFIL (ELIPSE):
-                numerator_prfl = numerator_aper
+                numerator_prfl = numerator_cumm
 
                 # DENOMINADOR INDICE DE PERFIL (ELIPSE):
-                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_sq_obs_setmask.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 expr = expre1//" ? f : 0"
@@ -466,12 +480,12 @@ begin
                 denominator_prfl = mean_val * n_pix
 
                 # AREA DE CORRECION DEL CIELO (ELIPSE):
-                area_prfl = area_aper
+                aperture_prfl = aperture_cumm
 
             }else{
 
                 # NUMERADOR INDICE PERFIL (ANILLOS):
-                tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
+                tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_rms_residual.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_numerator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 expr = expre1//" && "//expre2//" ? h : 0"
@@ -481,7 +495,7 @@ begin
                 numerator_prfl = mean_val * n_pix
 
                 # DENOMINADOR INDICE PERFIL (ANILLOS):
-                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_sq_obs_setmask.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 expr = expre1//" && "//expre2//" ? h : 0"
@@ -491,65 +505,85 @@ begin
                 denominator_prfl = mean_val * n_pix
 
                 # AREA DE CORRECCION DEL CIELO (ANILLOS):
-                area_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-1]**2))
+                aperture_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-1]**2))
             }
             # =========== END EXPERIMENTAL STUFF PROFILE INDEX =====================
 
-            # ECUACION DE INDICE DE PERFIL:
-            abs_prfl_index = (numerator_aper - ((area_prfl / area_sky) * numerator_corr)) / denominator_prfl
-            # Truncar indice de perfil:
-            if(abs_prfl_index < 0){abs_prfl_index = 0}
+            # Indice RMS del cielo al cuadrado! ⟨ A_rms,sky**2 ⟩ = {(A_rms,sky)**2 / aperture_sky}:
+            # sq_avrg_rms_sky = (numerator_corr / denominator_corr) / aperture_sky
+            sq_avrg_rms_sky = (numerator_corr) / aperture_sky
 
-            # ECUACION DE INDICE CUMULATIVO:
-            abs_cumm_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_cumm
+            # ⟨ I_sky**2 ⟩ = (I_sky**2) / aperture_sky
+            sq_avrg_flux_sky = denominator_corr / aperture_sky
 
-            #    if(j==26){
-            #        print("")
-            #        print((0.25+(0.05*(j-1))))
-            #        print(" num_aper.....: ", numerator_aper)
-            #        print(" num_corr.....: ", numerator_corr)
-            #        print(" den_cum......: ", denominator_cumm)
-            #        print(" den_prfl.....: ", denominator_prfl)
-            #        print(" area aper/sky: ", area_aper, area_sky)
-            #        print(" frac_aper....: ", area_aper / area_sky)
-            #        print(" abs_cumm.....: ", abs_cumm_index)
-            #    }
+            # ECUACION INDICE DE PERFIL RMS -----------------------------------------------------------
+            numerator_ttl_prfl = (numerator_prfl - (aperture_prfl * sq_avrg_rms_sky))
+            denominator_ttl_prfl = (denominator_prfl - (aperture_prfl * sq_avrg_flux_sky))
+            # Cuadrado del perfil del indice RMS de asimetria A_rms**2:
+            if(denominator_ttl_prfl <= 0){
+                sq_prfl_index = 0
+            }else{
+                sq_prfl_index = numerator_ttl_prfl / denominator_ttl_prfl
+            }
+            # Raiz cuadrada del cuadrado del perfil indice rms de asimetria SQRT(A_rms**2):
+            if(sq_prfl_index <= 0){
+                rms_prfl_index = 0
+            }else{
+                rms_prfl_index = sqrt(sq_prfl_index)
+            }
+            # No se trunca a cero por que se valido (arriba) que siempre fuera positivo!
+            # -----------------------------------------------------------------------------------------
+
+            # ECUACION DE INDICE CUMULATIVO RMS -------------------------------------------------------
+            numerator_ttl_cumm = (numerator_cumm - (aperture_cumm * sq_avrg_rms_sky))
+            denominator_ttl_cumm = (denominator_cumm - (aperture_cumm * sq_avrg_flux_sky))
+            # 'denominator_ttl_cumm' siempre es mayor que cero, sin embargo validamos:
+            # Cuadrado del indice cumulativo RMS de asimetria A_rms**2:
+            if(denominator_ttl_cumm <= 0){
+                sq_cumm_index = 0
+            }else{
+                sq_cumm_index = numerator_ttl_cumm / denominator_ttl_cumm
+            }
+            # Raiz cuadrada del cuadrado del indice rms de asimetria cumulativo SQRT(A_rms**2):
+            rms_cumm_index = sqrt(sq_cumm_index)
+            # El indice cumm no es negativo: No se trunca a cero!
+            # -----------------------------------------------------------------------------------------
 
             # ====================================================================================
-            # IMPRIMIR CATALOGOS:
+            # IMPRIMIR CATALOGOS
             # ====================================================================================
             if(j == 1){
 
                 #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: first)
-                printf("%32s %11f", id_obj[i], numerator_aper, >> abscat_dir//"/"//"sum_flux_set.cat")
+                printf("%32s %11f", id_obj[i], numerator_cumm, >> rmscat_dir//"/"//"sum_flux_set.cat")
 
                 # II. PROFILE index SET: first
-                printf("%32s %11.4f", id_obj[i], abs_prfl_index, >> abscat_dir//"/"//"prfl_index_set.cat")
+                printf("%32s %11.4f", id_obj[i], rms_prfl_index, >> rmscat_dir//"/"//"prfl_index_set.cat")
 
                 # III. CUMULATIVE index SET: first
-                printf("%32s %11.4f", id_obj[i], abs_cumm_index, >> abscat_dir//"/"//"cum_index_set.cat")
+                printf("%32s %11.4f", id_obj[i], rms_cumm_index, >> rmscat_dir//"/"//"cum_index_set.cat")
 
             }else if(j == 30){
 
                 # I. Asymmetrical pixel SET: last
-                printf(" %11f\n", numerator_aper, >> abscat_dir//"/"//"sum_flux_set.cat")
+                printf(" %11f\n", numerator_cumm, >> rmscat_dir//"/"//"sum_flux_set.cat")
 
                 # III. PROFILE Asymmetry area SET: last
-                printf(" %11.4f\n", abs_prfl_index, >> abscat_dir//"/"//"prfl_index_set.cat")
+                printf(" %11.4f\n", rms_prfl_index, >> rmscat_dir//"/"//"prfl_index_set.cat")
 
                 # IV. CUMULATIVE Asymmetry area SET: last
-                printf(" %11.4f\n", abs_cumm_index, >> abscat_dir//"/"//"cum_index_set.cat")
+                printf(" %11.4f\n", rms_cumm_index, >> rmscat_dir//"/"//"cum_index_set.cat")
 
             }else{
 
                 # I. Asymetrical pixel SET: mid
-                printf(" %11f", numerator_aper, >> abscat_dir//"/"//"sum_flux_set.cat")
+                printf(" %11f", numerator_cumm, >> rmscat_dir//"/"//"sum_flux_set.cat")
 
                 # III. PROFILE index SET: mid
-                printf(" %11.4f", abs_prfl_index, >> abscat_dir//"/"//"prfl_index_set.cat")
+                printf(" %11.4f", rms_prfl_index, >> rmscat_dir//"/"//"prfl_index_set.cat")
 
                 # IV. CUMULATIVE index SET: mid
-                printf(" %11.4f", abs_cumm_index, >> abscat_dir//"/"//"cum_index_set.cat")
+                printf(" %11.4f", rms_cumm_index, >> rmscat_dir//"/"//"cum_index_set.cat")
 
             }
 
@@ -559,18 +593,18 @@ begin
             if(j == 16){
 
                 # PROFILE Main catalog Asymetry
-                printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], abs_prfl_index, >> abscat_dir//"/"//"prfl_index_main.cat")
+                printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], rms_prfl_index, >> rmscat_dir//"/"//"prfl_index_main.cat")
 
                 # CUMULATIVE Main catalog Asymetry
-                printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], abs_cumm_index, >> abscat_dir//"/"//"cum_index_main.cat")
+                printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], rms_cumm_index, >> rmscat_dir//"/"//"cum_index_main.cat")
 
             }else if(j == 26){
 
                 # PROFILE MAIN catalog Asymmetry
-                printf(" %11.4f", abs_prfl_index, >> abscat_dir//"/"//"prfl_index_main.cat")
+                printf(" %11.4f", rms_prfl_index, >> rmscat_dir//"/"//"prfl_index_main.cat")
 
                 # CUMULATIVE MAIN catalog Asymmetry
-                printf(" %11.4f", abs_cumm_index, >> abscat_dir//"/"//"cum_index_main.cat")
+                printf(" %11.4f", rms_cumm_index, >> rmscat_dir//"/"//"cum_index_main.cat")
 
                 #   # ALPHA INDEX DS9 REGION: measurement (1.5xRp) aperture: eliptical
                 #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(prfl_index_alpha)//'}'
@@ -583,10 +617,10 @@ begin
             }else if(j == 30){
 
                 # PROFILE MAIN catalog Asymmetry
-                printf(" %11.4f\n", abs_prfl_index, >> abscat_dir//"/"//"prfl_index_main.cat")
+                printf(" %11.4f\n", rms_prfl_index, >> rmscat_dir//"/"//"prfl_index_main.cat")
 
                 # CUMULATIVE MAIN catalog Asymmetry
-                printf(" %11.4f\n", abs_cumm_index, >> abscat_dir//"/"//"cum_index_main.cat")
+                printf(" %11.4f\n", rms_cumm_index, >> rmscat_dir//"/"//"cum_index_main.cat")
 
                 #   # PROFILE INDEX DS9 REGION: measurement (2xRp) aperture: eliptical
                 #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(1rp): '//str(prfl_index_alpha)//'}'
@@ -606,19 +640,20 @@ begin
     }
 
     print("\n\n ------------------------------------------")
-    print(" =========== ABSOLUTE ROTATION ============")
+    print(" ============== RMS ROTATION ==============")
     print(" ============ ASYMMETRY INDEX =============")
 
-    print(" Classical  asymmetry  index,  known as A of")
-    print(" CAS (Conselice et al., 2000). However, here")
-    print(" it is  calculated as in (recently) Sazonova")
-    print(" et. al. (2024).\n")
+    print(" Classical  asymmetry  index,  known as RMS")
+    print(" Conselice (1997). However, here it is cal-")
+    print(" culated as in  (recently) Sazonova  et al.")
+    print(" (2024).\n")
 
-    printf(" OUTPUT FOLDER: ./%s\n", abs_dir)
-    print(" END TASK: abs_index")
+    printf(" OUTPUT FOLDER: ./%s\n", rms_dir)
+    print(" END TASK: rms_index")
     print(" ------------------------------------------")
     print("")
 
     flpr
     flpr
+
 end

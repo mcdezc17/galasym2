@@ -20,6 +20,8 @@ task first_time      = "direc$first_time.cl"
 task alpha_index     = "direc$alpha_index.cl"
 task abs_index       = "direc$abs_index.cl"
 task outer_abs_index = "direc$outer_abs_index.cl"
+task rms_index       = "direc$rms_index.cl"
+task outer_rms_index = "direc$outer_rms_index.cl"
 
 # No visibles:
 task config_files   = "direc$config_files.cl"

@@ -308,48 +308,41 @@ begin
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr("a >= b*c", tmp_outfile, tmp_infile, bulge_clip, tmp_infile2, verb-)
 
-        # OUTER OBSERVED SET MASK:
-        # tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
-        # tmp_infile2 = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        # tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
-        # imdelete(tmp_outfile, ver-, >& "dev$null")
-        # imexpr("a == 0 ? b : 0", tmp_outfile, tmp_infile, tmp_infile2, verb-)
-
         # recorta tamaño optimo (BULBO a evitar):
         tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"//trimsection
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # recorta tamaño optimo (OBSSERVED OUTER SETMASK):
-        # tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"//trimsection
         tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"//trimsection
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # Apertura maxima para indice acumulativo:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
+        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_out_setmask.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[30] * petro_r[i] * a_img[i], scale_r[30] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
+        imexpr(expre1//" && f == 0 ? g : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[30] * petro_r[i] * a_img[i], scale_r[30] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, tmp_infile2, verb-)
 
         # MINIMUM RESIDUAL (SET MASK) 180° rotation:
         # transposicion = rotar 90 grados:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"//"[*,-*]"
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot90.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"//"[*,-*]"
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imtranspose(tmp_infile, tmp_outfile)
         # repetir transposicion = 180°:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot90.fits"//"[*,-*]"
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot180.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"//"[*,-*]"
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot180.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imtranspose(tmp_infile, tmp_outfile)
         # eliminar imagen a 90°:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot90.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"
         imdelete(tmp_infile, ver-, >& "dev$null")
         # Residuo asimetrico de area (N-N_180):
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
-        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_out_setmask_rot180.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot180.fits"
         tmp_outfile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr("c == 0 ? abs(a-b) : 0", tmp_outfile, tmp_infile, tmp_infile2, cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits", verb-)
@@ -457,8 +450,8 @@ begin
         expr = expre1//" && "//expre2//" ? h : 0"
         imdelete(tmp_outfile, >& "dev$null")
         imexpr(expr, tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[f_ro]*petro_r[i]*a_img[i], scale_r[f_ro]*petro_r[i]*b_img[i], theta_rad[i], scale_r[f_ri]*petro_r[i]*a_img[i], scale_r[f_ri]*petro_r[i]*b_img[i], tmp_infile, verb-)
-        # numerador de la correccion de cielo:
-        imstat(cache_dir//"/"//id_obj[i]//"_blankpatch.fits", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+        # suma[abs(I_sky - I_sky,180)]
+        imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
         # numerador de sky correction:
         numerator_corr = mean_val * n_pix
         # area del anillo:
@@ -492,7 +485,7 @@ begin
                 numerator_prfl = numerator_aper
 
                 # DENOMINADOR INDICE DE PERFIL (ELIPSE):
-                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_out_setmask.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 imexpr(expre1//" ? f : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, verb-)
@@ -516,7 +509,7 @@ begin
                 numerator_prfl = mean_val * n_pix
 
                 # DENOMINADOR INDICE DE PERFIL (ELIPSE):
-                tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_outer_setmask.fits"
+                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_obs_out_setmask.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 expr = expre1//" && "//expre2//" ? h : 0"
@@ -537,7 +530,7 @@ begin
                 abs_prfl_index = (numerator_prfl - ((area_prfl / area_sky) * numerator_corr)) / denominator_prfl
             }
             # Truncar indice de perfil:
-            if(abs_prfl_index < 0){abs_prfl_index = 0}
+            if(abs_prfl_index <= 0){abs_prfl_index = 0}
 
             # ECUACION DEL INDICE CUMULATIVO:
             abs_cumm_index = (numerator_aper - ((area_aper / area_sky) * numerator_corr)) / denominator_cumm
