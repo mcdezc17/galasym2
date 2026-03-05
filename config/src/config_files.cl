@@ -36,6 +36,7 @@ begin
     string verbotyp_se
     # Declaracion de variables para pset 'psfexp'
     bool   defaultf_psf
+    real   dthresh_psf, athresh_psf
     string img_name_psf
 
     # Lectura de parametros:
@@ -101,6 +102,10 @@ begin
             # lectura de
             if(key_word == "DFLT_PSF"){print(line) | scan(key_word, defaultf_psf)}
             # lectura de
+            if(key_word == "DTHRESH_PSF"){print(line) | scan(key_word, dthresh_psf)}
+            # lectura de
+            if(key_word == "ATHRES_PSF"){print(line) | scan(key_word, athresh_psf)}
+            # lectura de
             if(key_word == "IMG_NAME"){print(line) | scan(key_word, img_name_psf)}
 
         #END IF: lineas validas
@@ -143,8 +148,8 @@ begin
         print("\n#------------------------------- Extraction ----------------------------------", >> tmp_outfile)
 
         print("\nDETECT_MINAREA   3", >> tmp_outfile)
-        print("DETECT_THRESH    4", >> tmp_outfile)
-        print("ANALYSIS_THRESH  4", >> tmp_outfile)
+        printf("DETECT_THRESH    %s\n", dthresh_psf, >> tmp_outfile)
+        printf("ANALYSIS_THRESH  %s\n", athresh_psf, >> tmp_outfile)
 
         print("\nFILTER           Y", >> tmp_outfile)
         print("FILTER_NAME      config/psfex/prepsfex/default.conv", >> tmp_outfile)

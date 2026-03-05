@@ -2,16 +2,20 @@
 # Archivo de parametros para pset 'psfexp.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
 # PRE-PSFEX.sex es configurable internamente
-key_run,s,h,"psfex",,,    the keyword to run PSFEx in shell
-defaultf,b,h,n,,,         enter 'no' if you don't have star sample!
+key_run,s,h,"psfex",,,     the keyword to run PSFEx in shell
+dthresh,r,h,4.0,0.5,INDEF, DETECT_THRESH   (in sigmas)
+athresh,r,h,4.0,0.5,INDEF, ANALYSIS_THRESH (in sigmas)
+defaultf,b,h,n,,,          enter 'no' if you don't have star sample!
 same_img,b,h,y,,,          same image to extract stars (y/n)?
-img_name,s,h,"sameimg",,, the same data image to extract PSF
+img_name,s,h,"sameimg",,,  the same data image to extract PSF
 mode,s,h,al
 # ========================================================
 #
 # --------------------------------------------------------
 # VARIABLES (las siguientes lineas siempre comentadas):
 # psfexp.key_run
+# psfexp.dthresh
+# psfexp.athresh
 # psfexp.defaultf
 # psfexp.same_img
 # psfexp.img_name

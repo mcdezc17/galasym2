@@ -41,8 +41,6 @@ begin
     real ra_rot[999], dec_rot[999]
     int x0_rot[999], y0_rot[999]
 
-
-
     # recorte de imagenes:
     real A_outer, B_outer
     int px1, px2, py1, py2

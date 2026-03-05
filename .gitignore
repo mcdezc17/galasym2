@@ -1,6 +1,7 @@
 alpha_*/
 tables/
-abs_index/
+abs_*/
+rms_*/
 outer_*/
 data/
 *.fits

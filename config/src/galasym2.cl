@@ -22,6 +22,7 @@ task abs_index       = "direc$abs_index.cl"
 task outer_abs_index = "direc$outer_abs_index.cl"
 task rms_index       = "direc$rms_index.cl"
 task outer_rms_index = "direc$outer_rms_index.cl"
+task a180_index      = "direc$a180_index.cl"
 
 # No visibles:
 task config_files   = "direc$config_files.cl"

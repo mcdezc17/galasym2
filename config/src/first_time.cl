@@ -41,6 +41,7 @@ begin
 
     # Declaracion de variables para pset 'psfexp'
     string key_run_psf
+    real dthresh_psf, athresh_psf
     bool   defaultf_psf, same_img_psf
     string img_name_psf
 
@@ -250,14 +251,18 @@ begin
     # ================================================
 
     key_run_psf  = psfexp.key_run
+    dthresh_psf  = psfexp.dthresh
+    athresh_psf  = psfexp.athresh
     defaultf_psf = psfexp.defaultf
-    same_img_psf  = psfexp.same_img
+    same_img_psf = psfexp.same_img
     img_name_psf = psfexp.img_name
 
     # Si la verificacion continua, imprime archivo full parametros:
     print("#------------------------------------------------------------", >> tmp_outfile)
     print("#--------------- PSET: config/src/psfexp.par ----------------", >> tmp_outfile)
     printf("KW_PSFEX\t%s\n", key_run_psf, >> tmp_outfile)
+    printf("DTHRESH_PSF\t%f\n", dthresh_psf, >> tmp_outfile)
+    printf("ATHRES_PSF\t%f\n", athresh_psf, >> tmp_outfile)
     printf("DFLT_PSF\t%b\n", defaultf_psf, >> tmp_outfile)
     printf("SAME_IMG\t%b\n", same_img_psf, >> tmp_outfile)
     printf("IMG_NAME\t%s\n", img_name_psf, >> tmp_outfile)
