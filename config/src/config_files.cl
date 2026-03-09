@@ -88,6 +88,8 @@ begin
             # lectura de
             if(key_word == "FILTER_NAME"){print(line) | scan(key_word, namefilt_se)}
             # lectura de
+            if(key_word == "DEBLEND_MINCONT"){print(line) | scan(key_word, dmincont_se)}
+            # lectura de
             if(key_word == "WEIGHT_TYPE"){print(line) | scan(key_word, weightty_se)}
             # lectura de
             if(key_word == "WEIGHT_IMAGE"){print(line) | scan(key_word, weightim_se)}
