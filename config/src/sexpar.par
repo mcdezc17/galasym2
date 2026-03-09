@@ -7,8 +7,8 @@ dthresh,r,h,1.0,0.5,INDEF,           DETECT_THRESH   (in sigmas)
 athresh,r,h,1.0,0.5,INDEF,           ANALYSIS_THRESH (in sigmas)
 bfilter,b,h,y,,,                     FILTER apply filter (Y/N)?
 namefilt,s,h,"gauss_2.0_3x3.conv",,, FILTER_NAME       (/*.conv)
-# dnthresh,i,h,32,0,INDEF,             DEBLEND_NTHRESH
-# dmincont,r,h,0.005,0.001,INDEF,      DEBLEND_MINCONT
+# dnthresh,i,h,32,0,INDEF,            DEBLEND_NTHRESH
+dmincont,r,h,0.005,0,1,              DEBLEND_MINCONT
 # cleanspu,b,h,y,,,                    CLEAN clean spurious detections?
 # cleanpar,r,h,1.0,0.001,1.0,          CLEAN_PARAM cleaning efficiency
 # masktype,s,h,CORRECT,,,              MASK_TYPE also: NONE or BLANK
@@ -29,7 +29,7 @@ mode,s,h,al
 #  sexpar.bfilter
 #  sexpar.namefilt
 #  # sexpar.dnthresh
-#  # sexpar.dmincont
+#  sexpar.dmincont
 #  # sexpar.cleanspu
 #  # sexpar.cleanpar
 #  # sexpar.masktype

@@ -35,6 +35,7 @@ begin
     real   dthresh_se, athresh_se
     bool   bfilter_se
     string namefilt_se
+    real   dmincont_se
     string weightty_se, weightim_se
     int    backsize_se, bckfilsz_se
     string verbotyp_se
@@ -216,7 +217,7 @@ begin
     bfilter_se  = sexpar.bfilter
     namefilt_se = sexpar.namefilt
     #  = sexpar.dnthresh
-    #  = sexpar.dmincont
+    dmincont_se = sexpar.dmincont
     #  = sexpar.cleanspu
     #  = sexpar.cleanpar
     #  = sexpar.masktype
@@ -236,7 +237,7 @@ begin
     printf("FILTER\t%b\n", bfilter_se, >> tmp_outfile)
     printf("FILTER_NAME\t%s\n", namefilt_se, >> tmp_outfile)
     # printf("DEBLEND_NTHRESH\t%s\n", , >> tmp_outfile)
-    # printf("DEBLEND_MINCONT\t%s\n", , >> tmp_outfile)
+    printf("DEBLEND_MINCONT\t%s\n", dmincont_se, >> tmp_outfile)
     # printf("CLEAN\t%s\n", , >> tmp_outfile)
     # printf("CLEAN_PARAM\t%s\n", , >> tmp_outfile)
     # printf("MASK_TYPE\t%s\n", , >> tmp_outfile)
