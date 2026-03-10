@@ -36,6 +36,8 @@ begin
     bool   bfilter_se
     string namefilt_se
     real   dmincont_se
+    bool   cleanspu_se
+    real   cleanpar_se
     string weightty_se, weightim_se
     int    backsize_se, bckfilsz_se
     string verbotyp_se
@@ -218,8 +220,8 @@ begin
     namefilt_se = sexpar.namefilt
     #  = sexpar.dnthresh
     dmincont_se = sexpar.dmincont
-    #  = sexpar.cleanspu
-    #  = sexpar.cleanpar
+    cleanspu_se  = sexpar.cleanspu
+    cleanpar_se  = sexpar.cleanpar
     #  = sexpar.masktype
     weightty_se = sexpar.weightty
     weightim_se = sexpar.weightim
@@ -238,8 +240,8 @@ begin
     printf("FILTER_NAME\t%s\n", namefilt_se, >> tmp_outfile)
     # printf("DEBLEND_NTHRESH\t%s\n", , >> tmp_outfile)
     printf("DEBLEND_MINCONT\t%s\n", dmincont_se, >> tmp_outfile)
-    # printf("CLEAN\t%s\n", , >> tmp_outfile)
-    # printf("CLEAN_PARAM\t%s\n", , >> tmp_outfile)
+    printf("CLEAN\t%b\n", cleanspu_se, >> tmp_outfile)
+    printf("CLEAN_PARAM\t%s\n", cleanpar_se, >> tmp_outfile)
     # printf("MASK_TYPE\t%s\n", , >> tmp_outfile)
     printf("WEIGHT_TYPE\t%s\n", weightty_se, >> tmp_outfile)
     printf("WEIGHT_IMAGE\t%s\n", weightim_se, >> tmp_outfile)

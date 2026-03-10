@@ -32,6 +32,8 @@ begin
     bool   bfilter_se
     string namefilt_se
     real   dmincont_se
+    bool   cleanspu_se
+    real   cleanpar_se
     string weightty_se, weightim_se
     int    backsize_se, bckfilsz_se
     string verbotyp_se
@@ -89,6 +91,10 @@ begin
             if(key_word == "FILTER_NAME"){print(line) | scan(key_word, namefilt_se)}
             # lectura de
             if(key_word == "DEBLEND_MINCONT"){print(line) | scan(key_word, dmincont_se)}
+            # lectura de
+            if(key_word == "CLEAN"){print(line) | scan(key_word, cleanspu_se)}
+            # lectura de
+            if(key_word == "CLEAN_PARAM"){print(line) | scan(key_word, cleanpar_se)}
             # lectura de
             if(key_word == "WEIGHT_TYPE"){print(line) | scan(key_word, weightty_se)}
             # lectura de
@@ -274,8 +280,8 @@ begin
     print("\nDEBLEND_NTHRESH 32", >> tmp_outfile)
     printf("DEBLEND_MINCONT   %s\n", dmincont_se, >> tmp_outfile)
 
-    print("\nCLEAN Y", >> tmp_outfile)
-    print("CLEAN_PARAM 1.0", >> tmp_outfile)
+    printf("\nCLEAN %s\n", cleanspu_se, >> tmp_outfile)
+    printf("CLEAN_PARAM %s\n", cleanpar_se, >> tmp_outfile)
 
     print("\nMASK_TYPE CORRECT", >> tmp_outfile)
 

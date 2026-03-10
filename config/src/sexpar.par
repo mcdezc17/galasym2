@@ -9,8 +9,8 @@ bfilter,b,h,y,,,                     FILTER apply filter (Y/N)?
 namefilt,s,h,"gauss_2.0_3x3.conv",,, FILTER_NAME       (/*.conv)
 # dnthresh,i,h,32,0,INDEF,            DEBLEND_NTHRESH
 dmincont,r,h,0.005,0,1,              DEBLEND_MINCONT
-# cleanspu,b,h,y,,,                    CLEAN clean spurious detections?
-# cleanpar,r,h,1.0,0.001,1.0,          CLEAN_PARAM cleaning efficiency
+cleanspu,b,h,y,,,                    CLEAN clean spurious detections?
+cleanpar,r,h,1.0,0.001,10,          CLEAN_PARAM cleaning efficiency
 # masktype,s,h,CORRECT,,,              MASK_TYPE also: NONE or BLANK
 weightty,s,h,NONE,,,                "WEIGHT_TYPE also:BACKGROUND MAP_RMS MAP_VAR MAP_WEIGHT"
 weightim,s,h,"weight.fits",,,        WEIGHT_IMAGE weight-map filename
@@ -30,8 +30,8 @@ mode,s,h,al
 #  sexpar.namefilt
 #  # sexpar.dnthresh
 #  sexpar.dmincont
-#  # sexpar.cleanspu
-#  # sexpar.cleanpar
+#  sexpar.cleanspu
+#  sexpar.cleanpar
 #  # sexpar.masktype
 #  sexpar.weightty
 #  sexpar.weightim
