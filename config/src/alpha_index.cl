@@ -4,7 +4,8 @@ string   center_rot = "rms"   {prompt = "'abs' or 'rms' minimization"}
 real     low_sigma  = 2.0     {prompt = "low sigma clipping"}
 string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
 string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
-bool     force      = yes      {prompt = "force measure with ds9 regions"}
+bool     force      = yes     {prompt = "force measure with ds9 regions"}
+bool     min_corr   = yes     {prompt = "minimize the sky correction"}
 # Experimental stuff:
 # bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
 struct *list
@@ -799,8 +800,12 @@ begin
             # PRUEBAS:
             # min_densitybg = (n_noisepix[min1_pos] + n_noisepix[min2_pos]) / (area_ann[min1_pos] + area_ann[min2_pos])
             # min_densitybg = (n_noisepix[min2_pos] + n_noisepix[min3_pos]) / (area_ann[min2_pos] + area_ann[min3_pos])
-            min_densitybg = (n_noisepix[min1_pos] + n_noisepix[min2_pos] + n_noisepix[min3_pos]) / (area_ann[min1_pos] + area_ann[min2_pos] + area_ann[min3_pos])
-            # min_densitybg = ttl_rho
+
+            if(min_corr == yes){
+                min_densitybg = (n_noisepix[min1_pos] + n_noisepix[min2_pos] + n_noisepix[min3_pos]) / (area_ann[min1_pos] + area_ann[min2_pos] + area_ann[min3_pos])
+            }else{
+                min_densitybg = ttl_rho
+            }
 
             # Print catalog density noise -------------------------------------------------------------------
             printf("%32s %8.5f %8.5f %8.2f %8d %8.5f %8.2f %8d %8.5f %8.2f %8d %8.5f %8.2f %8d %8.5f\n", id_obj[i], min_densitybg, ttl_rho, area_ann[1], n_noisepix[1], density_noise[1], area_ann[2], n_noisepix[2], density_noise[2], area_ann[3], n_noisepix[3], density_noise[3], area_ann[4], n_noisepix[4], density_noise[4], >> out_cat//"patch_bg_set.cat")
