@@ -247,8 +247,8 @@ begin
             printf(expr, force_obj) | cl | scan(a_int, b_int, a_ext, b_ext, ell_angle)
 
             # Nuevos parametros:
-            a_img[i] = a_int / (1.5 * petro_r[i])
-            b_img[i] = b_int / (1.5 * petro_r[i])
+            a_img[i] = a_int / (2.0 * petro_r[i])
+            b_img[i] = b_int / (2.0 * petro_r[i])
             theta_img[i] = ell_angle
             theta_rad[i] = theta_img[i] * const_pi / 180
 
@@ -261,7 +261,15 @@ begin
             ro_ann[i] = ro_ann_force
             # La elipse interior para extraer el cielo,
             # por definicion se toma como (1.7 r/rp):
-            ri_ann[i] = 30
+            # ri_ann[i] = 30
+            # ---------- MODIFICACIÓN (SAT.23/05/26):
+            # Elipse exterior para extraer cielo:
+            tmp_real = (((a_int / (a_img[i] * petro_r[i])) - scale_r_offset) / scale_r_step) + 1
+            ri_ann_force = int(tmp_real)
+            # Asegurar entero proximo mas grande:
+            if((tmp_real - ri_ann_force) >= 0.5){ri_ann_force += 1}
+            # Actualizar nuevo parametro:
+            ri_ann[i] = ri_ann_force + scale_r_step
 
             # Recorta tamaño a la elipse exterior "forzada"
             A_outer = a_ext + 5
@@ -284,7 +292,7 @@ begin
             if(ylen_min[i] % 2 == 0){ylen_min[i] = ylen_min[i] + 1}
         }
 
-        # Recortar la imagen alrededor del centro temporal:
+        # Recortar la imagen alrededor del centro temporal(? parece ya el punto final):
         # Vertices
         px1 = x0_rot[i] - int((xlen_min[i] - 1) / 2)
         px2 = x0_rot[i] + int((xlen_min[i] - 1) / 2)
@@ -338,7 +346,7 @@ begin
     if(!access(abscat_dir)){mkdir(abscat_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
 
-    for(i=1;i<=30;i+=1){
+    for(i=1;i<=35;i+=1){
 
         if(i == 1){
 
@@ -351,7 +359,7 @@ begin
             # III. CUMULATIVE Asymmetry area SET: first
             printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[i], > abscat_dir//"/"//"cum_index_set.cat")
 
-        }else if(i == 30){
+        }else if(i == 35){
 
             #  I.     %Nasymm_last (I. N asymm. pixels SET: last)
             printf(" sumF_%4.2frp\n", scale_r[i], >> abscat_dir//"/"//"asymmpix_set.cat")
@@ -391,11 +399,11 @@ begin
     #   delete(ds9_dir//"/"//"rot_prfl_index.reg",  >& "dev$null")
     #   copy(ds9_dir//"/"//"prfl_index.reg", ds9_dir//"/"//"rot_prfl_index.reg")
 
-    #   # DS9 HEADER ACATALOG INDEX VALUE (CUMMULATIVE CURVE):
-    #   delete(ds9_dir//"/"//"cum_index.reg",  >& "dev$null")
-    #   print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"cum_index.reg")
-    #   print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> ds9_dir//"/"//"cum_index.reg")
-    #   print("fk5", >> ds9_dir//"/"//"cum_index.reg")
+    # DS9 HEADER ACATALOG INDEX VALUE (CUMMULATIVE CURVE):
+    delete(ds9_dir//"/"//"cum_index.reg",  >& "dev$null")
+    print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"cum_index.reg")
+    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> ds9_dir//"/"//"cum_index.reg")
+    print("fk5", >> ds9_dir//"/"//"cum_index.reg")
     #   # copy rotational
     #   delete(ds9_dir//"/"//"rot_cum_index.reg",  >& "dev$null")
     #   copy(ds9_dir//"/"//"cum_index.reg", ds9_dir//"/"//"rot_cum_index.reg")
@@ -434,7 +442,7 @@ begin
         printf("\r - Analysing object........: %d / %d", i, n_list)
 
         # AUMENTO DE APERTURAS:
-        for(j=1;j<=30;j+=1){
+        for(j=1;j<=35;j+=1){
 
             # Flujo residual dentro de apertura:
             tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_abs_residual.fits"
@@ -527,7 +535,7 @@ begin
                 # III. CUMULATIVE index SET: first
                 printf("%32s %11.4f", id_obj[i], abs_cumm_index, >> abscat_dir//"/"//"cum_index_set.cat")
 
-            }else if(j == 30){
+            }else if(j == 35){
 
                 # I. Asymmetrical pixel SET: last
                 printf(" %11f\n", numerator_aper, >> abscat_dir//"/"//"sum_flux_set.cat")
@@ -554,7 +562,7 @@ begin
             # ====================================================================================
             # PRINT CATALOGS: Tree fixed apertures
             # ====================================================================================
-            if(j == 16){
+            if(j == 15){
 
                 # PROFILE Main catalog Asymetry
                 printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], abs_prfl_index, >> abscat_dir//"/"//"prfl_index_main.cat")
@@ -562,7 +570,7 @@ begin
                 # CUMULATIVE Main catalog Asymetry
                 printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], abs_cumm_index, >> abscat_dir//"/"//"cum_index_main.cat")
 
-            }else if(j == 26){
+            }else if(j == 25){
 
                 # PROFILE MAIN catalog Asymmetry
                 printf(" %11.4f", abs_prfl_index, >> abscat_dir//"/"//"prfl_index_main.cat")
@@ -574,11 +582,11 @@ begin
                 #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(prfl_index_alpha)//'}'
                 #   print(expr, >> out_ds9_cat//"prfl_index.reg")
                 #
-                #   # ALPHA INDEX DS9 REGION: measurement (1.5xRp) aperture: eliptical
-                #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(cum_index_alpha)//'}'
-                #   print(expr, >> out_ds9_cat//"cum_index.reg")
+                # ALPHA INDEX DS9 REGION: measurement (1.5xRp) aperture: eliptical
+                expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.5rp): '//str(abs_cumm_index)//'}'
+                print(expr, >> ds9_dir//"/cum_index.reg")
 
-            }else if(j == 30){
+            }else if(j == 35){
 
                 # PROFILE MAIN catalog Asymmetry
                 printf(" %11.4f\n", abs_prfl_index, >> abscat_dir//"/"//"prfl_index_main.cat")
@@ -590,9 +598,9 @@ begin
                 #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(1rp): '//str(prfl_index_alpha)//'}'
                 #   print(expr, >> out_ds9_cat//"prfl_index.reg")
                 #
-                #   # CUMULATIVE INDEX DS9 REGION: measurement (2xRp) aperture: eliptical
-                #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(1rp): '//str(cum_index_alpha)//'}'
-                #   print(expr, >> out_ds9_cat//"cum_index.reg")
+                # CUMULATIVE INDEX DS9 REGION: measurement (2xRp) aperture: eliptical
+                expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(2rp): '//str(abs_cumm_index)//'}'
+                print(expr, >> ds9_dir//"/cum_index.reg")
 
             }
             # END PRINT CATALOGS ===============================================================

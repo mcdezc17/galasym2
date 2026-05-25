@@ -243,11 +243,11 @@ begin
     printf("CLEAN\t%b\n", cleanspu_se, >> tmp_outfile)
     printf("CLEAN_PARAM\t%s\n", cleanpar_se, >> tmp_outfile)
     # printf("MASK_TYPE\t%s\n", , >> tmp_outfile)
-    printf("WEIGHT_TYPE\t%s\n", weightty_se, >> tmp_outfile)
-    printf("WEIGHT_IMAGE\t%s\n", weightim_se, >> tmp_outfile)
     printf("BACK_SIZE\t%s\n", backsize_se, >> tmp_outfile)
     printf("BACK_FILTERSIZE\t%s\n", bckfilsz_se, >> tmp_outfile)
     printf("VERBOSE_TYPE\t%s\n", verbotyp_se, >> tmp_outfile)
+    # printf("WEIGHT_TYPE\t%s\n", weightty_se, >> tmp_outfile)
+    # printf("WEIGHT_IMAGE\t%s\n", weightim_se, >> tmp_outfile)
 
     # ================================================
     # OBTENER VALORES DE PSET: psfex

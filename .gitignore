@@ -1,5 +1,4 @@
 alpha_*/
-tables/
 abs_*/
 rms_*/
 outer_*/
@@ -19,3 +18,4 @@ config/psfex/prepsfex/my_prepsfex.sex
 config/psfex/my_default.psfex
 config/sextractor/my_default.sex
 config/sextractor/my_prepsfex.psf
+config/sextractor/obj

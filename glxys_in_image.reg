@@ -1,51 +1,57 @@
 # Region file format: DS9 version 4.1
 global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
 fk5
-box(68.25835,-12.7166,87.9",89.1",360) # color=green  text={ID_2MFGC_03705}
-ellipse(68.25835,-12.7166,23.0364",5.2218",-45.57) # color=green dash=1 text={SEx fit}
-ellipse(68.25835,-12.7166,20.272032",4.595184",-45.57) # color=red dash=1 text={1}
-ellipse(68.25835,-12.7166,30.408048",6.892776",-45.57) # color=red dash=1 text={1.5}
-ellipse(68.25835,-12.7166,40.544064",9.190368",-45.57) # color=blue text={2}
-ellipse(68.25835,-12.7166,60.816096",13.785552",-45.57) # color=blue text={3rp}
+box(68.25835,-12.7166,87.3",88.5",360) # color=green  text={ID_2MFGC_03705}
+ellipse(68.25835,-12.7166,22.9824",5.0292",-45.51) # color=green dash=1 text={SEx fit}
+ellipse(68.25835,-12.7166,20.224512",4.425696",-45.51) # color=red dash=1 text={1}
+ellipse(68.25835,-12.7166,30.336768",6.638544",-45.51) # color=red dash=1 text={1.5}
+ellipse(68.25835,-12.7166,40.449024",8.851392",-45.51) # color=blue text={2}
+ellipse(68.25835,-12.7166,60.673536",13.277088",-45.51) # color=blue text={3rp}
 box(68.34734,-13.3391,53.7",91.5",360) # color=green  text={ID_AGC_440535}
-ellipse(68.34734,-13.3391,19.3689",4.8879",-61.92) # color=green dash=1 text={SEx fit}
-ellipse(68.34734,-13.3391,17.044632",4.301352",-61.92) # color=red dash=1 text={1}
-ellipse(68.34734,-13.3391,25.566948",6.452028",-61.92) # color=red dash=1 text={1.5}
-ellipse(68.34734,-13.3391,34.089264",8.602704",-61.92) # color=blue text={2}
-ellipse(68.34734,-13.3391,51.133896",12.904056",-61.92) # color=blue text={3rp}
-box(68.42297,-13.1702,53.1",48.3",360) # color=green  text={ID_GIN_194}
-ellipse(68.42297,-13.1702,12.1293",9.6723",32.77) # color=green dash=1 text={SEx fit}
-ellipse(68.42297,-13.1702,9.339561",7.447671",32.77) # color=red dash=1 text={1}
-ellipse(68.42297,-13.1702,14.0093415",11.1715065",32.77) # color=red dash=1 text={1.5}
-ellipse(68.42297,-13.1702,18.679122",14.895342",32.77) # color=blue text={2}
-ellipse(68.42297,-13.1702,28.018683",22.343013",32.77) # color=blue text={3rp}
-box(67.76312,-12.9739,76.5",64.5",360) # color=green  text={ID_IC_0375}
-ellipse(67.76312,-12.9739,18.7956",10.5957",-35.43) # color=green dash=1 text={SEx fit}
-ellipse(67.76312,-12.9739,14.472612",8.158689",-35.43) # color=red dash=1 text={1}
-ellipse(67.76312,-12.9739,21.708918",12.2380335",-35.43) # color=red dash=1 text={1.5}
-ellipse(67.76312,-12.9739,28.945224",16.317378",-35.43) # color=blue text={2}
-ellipse(67.76312,-12.9739,43.417836",24.476067",-35.43) # color=blue text={3rp}
-box(68.50864,-13.2964,84.9",80.1",360) # color=green  text={ID_J0434020_131747}
-ellipse(68.50864,-13.2964,16.4349",14.6664",-30.53) # color=green dash=1 text={SEx fit}
-ellipse(68.50864,-13.2964,14.462712",12.906432",-30.53) # color=red dash=1 text={1}
-ellipse(68.50864,-13.2964,21.694068",19.359648",-30.53) # color=red dash=1 text={1.5}
-ellipse(68.50864,-13.2964,28.925424",25.812864",-30.53) # color=blue text={2}
-ellipse(68.50864,-13.2964,43.388136",38.719296",-30.53) # color=blue text={3rp}
-box(68.32459,-13.383,60.3",61.5",360) # color=green  text={ID_J04331787_1322584}
-ellipse(68.32459,-13.383,10.6119",9.8406",-51.21) # color=green dash=1 text={SEx fit}
-ellipse(68.32459,-13.383,10.505781",9.742194",-51.21) # color=red dash=1 text={1}
-ellipse(68.32459,-13.383,15.7586715",14.613291",-51.21) # color=red dash=1 text={1.5}
-ellipse(68.32459,-13.383,21.011562",19.484388",-51.21) # color=blue text={2}
-ellipse(68.32459,-13.383,31.517343",29.226582",-51.21) # color=blue text={3rp}
+ellipse(68.34734,-13.3391,19.4112",4.9419",-61.86) # color=green dash=1 text={SEx fit}
+ellipse(68.34734,-13.3391,17.081856",4.348872",-61.86) # color=red dash=1 text={1}
+ellipse(68.34734,-13.3391,25.622784",6.523308",-61.86) # color=red dash=1 text={1.5}
+ellipse(68.34734,-13.3391,34.163712",8.697744",-61.86) # color=blue text={2}
+ellipse(68.34734,-13.3391,51.245568",13.046616",-61.86) # color=blue text={3rp}
+box(68.42297,-13.1702,47.1",42.3",360) # color=green  text={ID_GIN_194}
+ellipse(68.42297,-13.1702,12.4767",9.7749",32.6) # color=green dash=1 text={SEx fit}
+ellipse(68.42297,-13.1702,8.234622",6.451434",32.6) # color=red dash=1 text={1}
+ellipse(68.42297,-13.1702,12.351933",9.677151",32.6) # color=red dash=1 text={1.5}
+ellipse(68.42297,-13.1702,16.469244",12.902868",32.6) # color=blue text={2}
+ellipse(68.42297,-13.1702,24.703866",19.354302",32.6) # color=blue text={3rp}
+box(67.76312,-12.9739,81.3",63.3",360) # color=green  text={ID_IC_0375}
+ellipse(67.76312,-12.9739,17.6373",8.2782",-33.85) # color=green dash=1 text={SEx fit}
+ellipse(67.76312,-12.9739,15.520824",7.284816",-33.85) # color=red dash=1 text={1}
+ellipse(67.76312,-12.9739,23.281236",10.927224",-33.85) # color=red dash=1 text={1.5}
+ellipse(67.76312,-12.9739,31.041648",14.569632",-33.85) # color=blue text={2}
+ellipse(67.76312,-12.9739,46.562472",21.854448",-33.85) # color=blue text={3rp}
+box(68.50864,-13.2964,86.1",90.3",360) # color=green  text={ID_J0434020_131747}
+ellipse(68.50864,-13.2964,16.1073",13.3002",-52.07) # color=green dash=1 text={SEx fit}
+ellipse(68.50864,-13.2964,15.946227",13.167198",-52.07) # color=red dash=1 text={1}
+ellipse(68.50864,-13.2964,23.9193405",19.750797",-52.07) # color=red dash=1 text={1.5}
+ellipse(68.50864,-13.2964,31.892454",26.334396",-52.07) # color=blue text={2}
+ellipse(68.50864,-13.2964,47.838681",39.501594",-52.07) # color=blue text={3rp}
+box(68.32459,-13.383,58.5",59.7",360) # color=green  text={ID_J04331787_1322584}
+ellipse(68.32459,-13.383,10.3158",9.4743",-53.98) # color=green dash=1 text={SEx fit}
+ellipse(68.32459,-13.383,10.212642",9.379557",-53.98) # color=red dash=1 text={1}
+ellipse(68.32459,-13.383,15.318963",14.0693355",-53.98) # color=red dash=1 text={1.5}
+ellipse(68.32459,-13.383,20.425284",18.759114",-53.98) # color=blue text={2}
+ellipse(68.32459,-13.383,30.637926",28.138671",-53.98) # color=blue text={3rp}
 box(68.68519,-13.0859,29.1",53.7",360) # color=green  text={ID_J04344444_1305087}
-ellipse(68.68519,-13.0859,11.07",2.97",64.7) # color=green dash=1 text={SEx fit}
-ellipse(68.68519,-13.0859,9.7416",2.6136",64.7) # color=red dash=1 text={1}
-ellipse(68.68519,-13.0859,14.6124",3.9204",64.7) # color=red dash=1 text={1.5}
-ellipse(68.68519,-13.0859,19.4832",5.2272",64.7) # color=blue text={2}
-ellipse(68.68519,-13.0859,29.2248",7.8408",64.7) # color=blue text={3rp}
-box(68.23666,-12.7781,107.7",68.7",360) # color=green  text={ID_MCG_02_12_037}
-ellipse(68.23666,-12.7781,25.0506",11.4912",-24.8) # color=green dash=1 text={SEx fit}
-ellipse(68.23666,-12.7781,19.288962",8.848224",-24.8) # color=red dash=1 text={1}
-ellipse(68.23666,-12.7781,28.933443",13.272336",-24.8) # color=red dash=1 text={1.5}
-ellipse(68.23666,-12.7781,38.577924",17.696448",-24.8) # color=blue text={2}
-ellipse(68.23666,-12.7781,57.866886",26.544672",-24.8) # color=blue text={3rp}
+ellipse(68.68519,-13.0859,11.1213",2.9718",64.82) # color=green dash=1 text={SEx fit}
+ellipse(68.68519,-13.0859,9.786744",2.615184",64.82) # color=red dash=1 text={1}
+ellipse(68.68519,-13.0859,14.680116",3.922776",64.82) # color=red dash=1 text={1.5}
+ellipse(68.68519,-13.0859,19.573488",5.230368",64.82) # color=blue text={2}
+ellipse(68.68519,-13.0859,29.360232",7.845552",64.82) # color=blue text={3rp}
+box(68.23666,-12.778,105.9",67.5",360) # color=green  text={ID_MCG_02_12_037}
+ellipse(68.23666,-12.778,24.7968",11.0052",-25.35) # color=green dash=1 text={SEx fit}
+ellipse(68.23666,-12.778,19.093536",8.474004",-25.35) # color=red dash=1 text={1}
+ellipse(68.23666,-12.778,28.640304",12.711006",-25.35) # color=red dash=1 text={1.5}
+ellipse(68.23666,-12.778,38.187072",16.948008",-25.35) # color=blue text={2}
+ellipse(68.23666,-12.778,57.280608",25.422012",-25.35) # color=blue text={3rp}
+box(68.23383,-13.6107,66.9",71.1",360) # color=green  text={ID_J04325613_1336384}
+ellipse(68.23383,-13.6107,14.202",11.7918",54.99) # color=green dash=1 text={SEx fit}
+ellipse(68.23383,-13.6107,12.49776",10.376784",54.99) # color=red dash=1 text={1}
+ellipse(68.23383,-13.6107,18.74664",15.565176",54.99) # color=red dash=1 text={1.5}
+ellipse(68.23383,-13.6107,24.99552",20.753568",54.99) # color=blue text={2}
+ellipse(68.23383,-13.6107,37.49328",31.130352",54.99) # color=blue text={3rp}

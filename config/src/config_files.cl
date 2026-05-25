@@ -5,7 +5,7 @@ struct *list
 begin
 
     struct line
-    string tmp_infile, tmp_outfile
+    string tmp_infile, tmp_outfile, outfile_maprms
     string psf_name
     real aperture_ref
 
@@ -96,9 +96,9 @@ begin
             # lectura de
             if(key_word == "CLEAN_PARAM"){print(line) | scan(key_word, cleanpar_se)}
             # lectura de
-            if(key_word == "WEIGHT_TYPE"){print(line) | scan(key_word, weightty_se)}
+            # if(key_word == "WEIGHT_TYPE"){print(line) | scan(key_word, weightty_se)}
             # lectura de
-            if(key_word == "WEIGHT_IMAGE"){print(line) | scan(key_word, weightim_se)}
+            # if(key_word == "WEIGHT_IMAGE"){print(line) | scan(key_word, weightim_se)}
             # lectura de
             if(key_word == "BACK_SIZE"){print(line) | scan(key_word, backsize_se)}
             # lectura de
@@ -280,19 +280,20 @@ begin
     print("\nDEBLEND_NTHRESH 32", >> tmp_outfile)
     printf("DEBLEND_MINCONT   %s\n", dmincont_se, >> tmp_outfile)
 
-    printf("\nCLEAN %s\n", cleanspu_se, >> tmp_outfile)
+    if(cleanspu_se == yes){tmp_string = "Y"}else{tmp_string = "N"}
+    printf("\nCLEAN %s\n", "Y", >> tmp_outfile)
     printf("CLEAN_PARAM %s\n", cleanpar_se, >> tmp_outfile)
 
     print("\nMASK_TYPE CORRECT", >> tmp_outfile)
 
     print("\n#-------------------------------- WEIGHTing ----------------------------------", >> tmp_outfile)
 
-    printf("\nWEIGHT_TYPE %s\n", weightty_se, >> tmp_outfile)
+    # printf("\nWEIGHT_TYPE %s\n", weightty_se, >> tmp_outfile)
 
-    print("\nRESCALE_WEIGHTS Y", >> tmp_outfile)
-    printf("WEIGHT_IMAGE %s\n", weightim_se, >> tmp_outfile)
-    print("WEIGHT_GAIN Y", >> tmp_outfile)
-    print("WEIGHT_THRESH", >> tmp_outfile)
+    # print("\nRESCALE_WEIGHTS Y", >> tmp_outfile)
+    # printf("WEIGHT_IMAGE %s\n", weightim_se, >> tmp_outfile)
+    # print("WEIGHT_GAIN Y", >> tmp_outfile)
+    # print("WEIGHT_THRESH", >> tmp_outfile)
 
     print("\n#-------------------------------- FLAGging -----------------------------------", >> tmp_outfile)
 
@@ -349,6 +350,17 @@ begin
     print("BACKPHOTO_THICK 24", >> tmp_outfile)
     print("BACK_FILTTHRESH 0.0", >> tmp_outfile)
 
+    # -------------- COPY FILE.SEX TO BGRMS ONLY --------------------------
+    outfile_maprms = "config/sextractor/maprms_default.sex"
+    copy("config/sextractor/my_default.sex", outfile_maprms)
+
+    print("\n#------------------------------ Check Image ----------------------------------", >> outfile_maprms)
+
+    print("\nCHECKIMAGE_TYPE BACKGROUND_RMS", >> outfile_maprms)
+
+    print("\nCHECKIMAGE_NAME data/results_sex/maprms.fits", >> outfile_maprms)
+    # -------------- COPY FILE.SEX TO BGRMS ONLY --------------------------
+
     print("\n#------------------------------ Check Image ----------------------------------", >> tmp_outfile)
 
     print("\nCHECKIMAGE_TYPE BACKGROUND, BACKGROUND_RMS, MODELS, -MODELS, SEGMENTATION, FILTERED, -OBJECTS", >> tmp_outfile)
@@ -356,44 +368,72 @@ begin
     print("\nCHECKIMAGE_NAME data/results_sex/check_bg.fits, data/results_sex/check_bgrms.fits, data/results_sex/check_mod.fits, data/results_sex/check_res.fits, data/results_sex/check_seg.fits, data/results_sex/check_fil.fits, data/results_sex/check_no_objs.fits", >> tmp_outfile)
 
     print("\n#--------------------- Memory (change with caution!) -------------------------", >> tmp_outfile)
+    print("\n#--------------------- Memory (change with caution!) -------------------------", >> outfile_maprms)
 
     print("\nMEMORY_OBJSTACK 3000", >> tmp_outfile)
+    print("\nMEMORY_OBJSTACK 3000", >> outfile_maprms)
     print("MEMORY_PIXSTACK 300000", >> tmp_outfile)
+    print("MEMORY_PIXSTACK 300000", >> outfile_maprms)
     print("MEMORY_BUFSIZE 1024", >> tmp_outfile)
+    print("MEMORY_BUFSIZE 1024", >> outfile_maprms)
 
     print("\n#------------------------------- ASSOCiation ---------------------------------", >> tmp_outfile)
+    print("\n#------------------------------- ASSOCiation ---------------------------------", >> outfile_maprms)
 
     print("\nASSOC_NAME sky.list", >> tmp_outfile)
+    print("\nASSOC_NAME sky.list", >> outfile_maprms)
     print("ASSOC_DATA 2,3,4", >> tmp_outfile)
+    print("ASSOC_DATA 2,3,4", >> outfile_maprms)
     print("ASSOC_PARAMS 2,3,4", >> tmp_outfile)
+    print("ASSOC_PARAMS 2,3,4", >> outfile_maprms)
     print("ASSOCCOORD_TYPE PIXEL", >> tmp_outfile)
+    print("ASSOCCOORD_TYPE PIXEL", >> outfile_maprms)
     print("ASSOC_RADIUS 2.0", >> tmp_outfile)
+    print("ASSOC_RADIUS 2.0", >> outfile_maprms)
     print("ASSOC_TYPE NEAREST", >> tmp_outfile)
+    print("ASSOC_TYPE NEAREST", >> outfile_maprms)
 
     print("\nASSOCSELEC_TYPE MATCHED", >> tmp_outfile)
+    print("\nASSOCSELEC_TYPE MATCHED", >> outfile_maprms)
 
     print("\n#----------------------------- Miscellaneous ---------------------------------", >> tmp_outfile)
+    print("\n#----------------------------- Miscellaneous ---------------------------------", >> outfile_maprms)
 
     printf("\nVERBOSE_TYPE %s\n", verbotyp_se, >> tmp_outfile)
+    printf("\nVERBOSE_TYPE %s\n", verbotyp_se, >> outfile_maprms)
     print("HEADER_SUFFIX .head", >> tmp_outfile)
+    print("HEADER_SUFFIX .head", >> outfile_maprms)
     print("WRITE_XML N", >> tmp_outfile)
+    print("WRITE_XML N", >> outfile_maprms)
     print("XML_NAME data/results_sex/sex.xml", >> tmp_outfile)
+    print("XML_NAME data/results_sex/sex.xml", >> outfile_maprms)
     print("XSL_URL file:///usr/local/share/sextractor/sextractor.xsl", >> tmp_outfile)
+    print("XSL_URL file:///usr/local/share/sextractor/sextractor.xsl", >> outfile_maprms)
 
     print("\nNTHREADS 1", >> tmp_outfile)
+    print("\nNTHREADS 1", >> outfile_maprms)
 
     print("\nFITS_UNSIGNED N", >> tmp_outfile)
+    print("\nFITS_UNSIGNED N", >> outfile_maprms)
     print("INTERP_MAXXLAG 16", >> tmp_outfile)
+    print("INTERP_MAXXLAG 16", >> outfile_maprms)
     print("INTERP_MAXYLAG 16", >> tmp_outfile)
+    print("INTERP_MAXYLAG 16", >> outfile_maprms)
     print("INTERP_TYPE ALL", >> tmp_outfile)
+    print("INTERP_TYPE ALL", >> outfile_maprms)
 
     print("\n#--------------------------- Experimental Stuff -----------------------------", >> tmp_outfile)
+    print("\n#--------------------------- Experimental Stuff -----------------------------", >> outfile_maprms)
 
     printf("\nPSF_NAME %s\n", psf_name, >> tmp_outfile)
+    printf("\nPSF_NAME %s\n", psf_name, >> outfile_maprms)
     print("PSF_NMAX 1", >> tmp_outfile)
+    print("PSF_NMAX 1", >> outfile_maprms)
     print("PATTERN_TYPE RINGS-HARMONIC", >> tmp_outfile)
+    print("PATTERN_TYPE RINGS-HARMONIC", >> outfile_maprms)
 
     print("\nSOM_NAME default.som", >> tmp_outfile)
+    print("\nSOM_NAME default.som", >> outfile_maprms)
 
     flpr
     flpr

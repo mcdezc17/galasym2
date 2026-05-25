@@ -373,8 +373,8 @@ begin
             #print("\n Viejos parametros: ", a_img[i], b_img[i], theta_img[i])
 
             # Nuevos parametros:
-            a_img[i] = a_int / (1.5 * petro_r[i])
-            b_img[i] = b_int / (1.5 * petro_r[i])
+            a_img[i] = a_int / (2.0 * petro_r[i])
+            b_img[i] = b_int / (2.0 * petro_r[i])
             theta_img[i] = ell_angle
             theta_rad[i] = theta_img[i] * const_pi / 180
 
@@ -391,9 +391,17 @@ begin
             if((tmp_real - ro_ann_force) >= 0.5){ro_ann_force += 1}
             # Actualizar nuevo parametro:
             ro_ann[i] = ro_ann_force
-            # La elipse interior para extraer el cielo,
-            # por definicion se toma como (1.7 r/rp):
-            ri_ann[i] = 30
+            # # La elipse interior para extraer el cielo,
+            # # por definicion se toma como (1.7 r/rp):
+            # ri_ann[i] = 30
+            # ---------- MODIFICACIÓN (SAT.23/05/26):
+            # Elipse exterior para extraer cielo:
+            tmp_real = (((a_int / (a_img[i] * petro_r[i])) - scale_r_offset) / scale_r_step) + 1
+            ri_ann_force = int(tmp_real)
+            # Asegurar entero proximo mas grande:
+            if((tmp_real - ri_ann_force) >= 0.5){ri_ann_force += 1}
+            # Actualizar nuevo parametro:
+            ri_ann[i] = ri_ann_force + scale_r_step
 
             # Recorta tamaño a la elipse exterior "forzada"
             A_outer = a_ext + 5
@@ -534,7 +542,7 @@ begin
     if(!access(rotation_alpha_dir)){mkdir(rotation_alpha_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
 
-    for(i=1;i<=30;i+=1){
+    for(i=1;i<=35;i+=1){
 
         if(i == 1){
 
@@ -557,7 +565,7 @@ begin
             print("# NOTE: SNR_set for annular if bulge_clip != 'off'", > files_dir//"/"//"SNR_ann_set.cat")
             printf("#%31s ⟨SNR⟩_%4.2frp", "ID_OBJ", scale_r[i], > files_dir//"/"//"SNR_ann_set.cat")
 
-        }else if(i == 30){
+        }else if(i == 35){
 
             #  I.     %Nasymm_last (I. N asymm. pixels SET: last)
             printf(" N_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"asymmpix_set.cat")
@@ -599,13 +607,13 @@ begin
         }
 
         # EXPERIMENTAL ---------------------------
-        if(i%2==0 && i<30){
+        if(i%2==0 && i<35){
             if(i==2){
                 printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"prfl_index_set.cat")
             }else if(i>2){
                 printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
             }
-        }else if(i==30){
+        }else if(i==35){
             printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
         }
         # END EXPERIME ...........................
@@ -819,7 +827,7 @@ begin
             }
 
             # Para ampliar la apertura de medida:
-            for(j=1;j<=30;j+=1){
+            for(j=1;j<=35;j+=1){
 
                 # Asymmetrical pixel image in aperture scale_r[]
                 imdelete(cache_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
@@ -830,7 +838,7 @@ begin
 
                 # =========== EXPERIMENTAL STUFF PROFILE INDEX =====================
                 # Asymmetrical pixel image in annullus aperture scale_r[]
-                if(j % 2 == 0 && j < 30){
+                if(j % 2 == 0 && j < 35){
 
                     if(j==2){
 
@@ -875,7 +883,7 @@ begin
 
                     }
 
-                }else if(j == 30){
+                }else if(j == 35){
 
                     # NUMERATOR PROFILE:
                     imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
@@ -982,7 +990,7 @@ begin
                     # IV. CUMULATIVE Asymmetry area SET: first
                     printf("%32s %11.4f", id_obj[i], cum_index_alpha, >> out_cat//"cum_index_set.cat")
 
-                }else if(j == 30){
+                }else if(j == 35){
 
                     # I. Asymmetrical pixel SET: last
                     printf(" %8d\n", n_asymmpix, >> out_cat//"asymmpix_set.cat")
@@ -1012,13 +1020,13 @@ begin
                 }
 
                 # EXPERIMENTAL ---------------------------
-                if(j%2==0 && j<30){
+                if(j%2==0 && j<35){
                     if(j==2){
                         printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
                     }else if(j>2){
                         printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
                     }
-                }else if(j==30){
+                }else if(j==35){
                     printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
                 }
                 # END EXPERIME ...........................
@@ -1026,7 +1034,7 @@ begin
                 # ====================================================================================
                 # PRINT CATALOGS: Tree fixed apertures
                 # ====================================================================================
-                if(j == 16){
+                if(j == 15){
 
                     # PROFILE Main catalog Asymetry
                     printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], prfl_index_alpha, >> out_cat//"prfl_index_main.cat")
@@ -1034,7 +1042,7 @@ begin
                     # CUMULATIVE Main catalog Asymetry
                     printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], cum_index_alpha, >> out_cat//"cum_index_main.cat")
 
-                }else if(j == 26){
+                }else if(j == 25){
 
                     # PROFILE MAIN catalog Asymmetry
                     printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_main.cat")
@@ -1050,7 +1058,7 @@ begin
                     expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(cum_index_alpha)//'}'
                     print(expr, >> out_ds9_cat//"cum_index.reg")
 
-                }else if(j == 30){
+                }else if(j == 35){
 
                     # PROFILE MAIN catalog Asymmetry
                     printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_main.cat")

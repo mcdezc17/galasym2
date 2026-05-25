@@ -21,7 +21,7 @@ begin
     # pset exp_pset
     string kw_python
     # temporals
-    string tmp_file, tmp_infile, tmp_infile2, tmp_outfile
+    string tmp_file, myconfig_se, tmp_infile, tmp_infile2, tmp_outfile
     bool tmp_bool
     string tmp_string, tmp_string2
     int tmp_int, tmp_int2
@@ -38,6 +38,9 @@ begin
     int px1, px2, py1, py2, l_frame, side_frame[999]
     int xc, yc
     string trimsection
+    # To IMEDIT task
+    int seg_id_obj[999]
+    real xmin_seg, ymin_seg, xmax_seg, ymax_seg
 
     # pset_datapar
     bool single_data
@@ -571,8 +574,10 @@ begin
     delete(outsex_dir//"/test.cat", ver-, >& "dev$null")
 
     # Archivo de configuracion SExtractor '*.sex'
-    tmp_infile = "config/sextractor/my_default.sex"
+    myconfig_se = "config/sextractor/my_default.sex"
     # Verificar si se creo?
+    # Carpeta para guardar config.sex por objeto:
+    if(!access("config/sextractor/obj")){mkdir("config/sextractor/obj")}
 
     # salida lista de lineas con parametros:
     #delete(outsex_dir//"/"//"inlist.lis", ver-, >& "dev$null")
@@ -588,10 +593,30 @@ begin
 
             if(!access(tmp_file)){
 
+
+                print(" ------------------------------------------")
+                print(" RUNNING SExtractor to RMS_MAP:")
+                printf(" - img: %4d | OBJ: %s \n", i, tmp_id_obj)
+                printf("! %s %s -c %s \n", key_run_se, extract_img, "config/sextractor/maprms_default.sex") | cl
+                # Renombrar MAPA RMS
+                rename("data/results_sex/maprms.fits", "data/results_sex/"//tmp_id_obj//"_rmsmap.fits")
+
+                # Agregar al archivo principal de SEX información de WEGHT_TYPE:
+                tmp_infile = "config/sextractor/obj/"//tmp_id_obj//"_default.sex"
+                copy(myconfig_se, tmp_infile)
+                # =========== ELIMINAR LOS ARCHIVOS ANTERIORES MAP_RMS ============
+
+                print("\n#--------------------- WEIGHTing ---------------------------", >> tmp_infile)
+                printf("\nWEIGHT_TYPE %s\n", "MAP_RMS", >> tmp_infile)
+                print("\nRESCALE_WEIGHTS Y", >> tmp_infile)
+                printf("WEIGHT_IMAGE %s\n", "data/results_sex/"//tmp_id_obj//"_rmsmap.fits", >> tmp_infile)
+                print("WEIGHT_GAIN Y", >> tmp_infile)
+                print("WEIGHT_THRESH", >> tmp_infile)
+                # Agregar al archivo principal de SEX información de WEGHT_TYPE.
+
                 print(" ------------------------------------------")
                 print(" RUNNING SExtractor to model-fitting:")
                 printf(" - img: %4d | OBJ: %s \n", i, tmp_id_obj)
-
                 printf("! %s %s -c %s \n", key_run_se, extract_img, tmp_infile) | cl
 
                 tmp_outfile = observed_dir//"/"//tmp_id_obj//"_smooth.fits"
@@ -688,6 +713,9 @@ begin
             # Se ajustara x/ywin_img -> x/yc ==> tmp_ra/dec[] -> ra/dec_j00[]
             print(line) | scan(tmp_id_obj, seg_number, tmp_ra, tmp_dec, xwin_img, ywin_img, a_img, b_img, ellip, theta_j00, theta_img, petro_r, iso_areaf)
 
+            # Guardar Numero de Segmentacion:
+            seg_id_obj[i] = seg_number
+
             # correcciones (i). radio Petrosian:
             petro_r = (petro_r / 2)
             # (ii). theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
@@ -697,11 +725,11 @@ begin
             # imagen de segmentacion para cada objeo:
             tmp_file = segmen_dir//"/"//tmp_id_obj//"_segmen.fits"
 
-            # Realizar masking a la observacion:
-            tmp_infile = observed_dir//"/"//tmp_id_obj//".fits"
-            tmp_outfile = observed_dir//"/"//tmp_id_obj//"_obs_setmask.fits"
-            imdelete(tmp_outfile, ver-, >& "dev$null")
-            imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
+            # # Realizar masking a la observacion:
+            # tmp_infile = observed_dir//"/"//tmp_id_obj//".fits"
+            # tmp_outfile = observed_dir//"/"//tmp_id_obj//"_obs_setmask.fits"
+            # imdelete(tmp_outfile, ver-, >& "dev$null")
+            # imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
 
             # Realizar masking a los modelos (de SEx):
             tmp_infile = model_dir//"/"//tmp_id_obj//"_mod.fits"
@@ -709,11 +737,11 @@ begin
             imdelete(tmp_outfile, ver-, >& "dev$null")
             imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
 
-            # Realizar masking a los residuos (de SEx):
-            tmp_infile = residual_dir//"/"//tmp_id_obj//"_res.fits"
-            tmp_outfile = residual_dir//"/"//tmp_id_obj//"_res_setmask.fits"
-            imdelete(tmp_outfile, ver-, >& "dev$null")
-            imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
+            # # Realizar masking a los residuos (de SEx):
+            # tmp_infile = residual_dir//"/"//tmp_id_obj//"_res.fits"
+            # tmp_outfile = residual_dir//"/"//tmp_id_obj//"_res_setmask.fits"
+            # imdelete(tmp_outfile, ver-, >& "dev$null")
+            # imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
 
             # VERIFICACION DE TAMAÑO Y CENTRO --------------------------------------------
             # imagenes creadas por SEx tienen el tamaño de la original (tmp_file=segmentation):
@@ -820,6 +848,101 @@ begin
     }
     list = ""
     n_list = i
+
+    # ============================================
+    # To IMEDIT task
+    # ============================================
+    if(!access("data/data_files/imedit_logfiles")){mkdir("data/data_files/imedit_logfiles")}
+
+    for(i=1;i<=n_list;i+=1){
+
+
+        tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_log"
+        # Cabecera del log_file to imedit:
+        print(":aperture circular", > tmp_outfile)
+        print(":search 2.", >> tmp_outfile)
+        print(":radius 2.", >> tmp_outfile)
+        print(":buffer 1.", >> tmp_outfile)
+        print(":width 2.", >> tmp_outfile)
+        print(":value 0.", >> tmp_outfile)
+        print(":sigma INDEF", >> tmp_outfile)
+        print(":xorder 2", >> tmp_outfile)
+        print(":yorder 2", >> tmp_outfile)
+        print("# Input object image: "//id_obj[i], >> tmp_outfile)
+
+        list = outsex_dir//"/"//id_obj[i]//"_test.cat"
+        while(fscan(list,line) != EOF){
+            if(line != "" && substr(line,1,1) != "#"){
+
+                # Lee la linea de ID_test.cat
+                print(line) | scan (seg_number, tmp_ra, tmp_dec, xwin_img, ywin_img, a_img, b_img, ellip, theta_j00, theta_img, petro_r, iso_areaf, xmin_seg, ymin_seg, xmax_seg, ymax_seg)
+
+                # correcciones (i). radio Petrosian:
+                petro_r = (petro_r / 2)
+                # (ii). theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
+                theta_rad = theta_img * const_pi / 180
+
+                # Crear el archivo ID_log para IMEDIT task:
+                if(seg_number != seg_id_obj[i]){            # Todos los otros objetos
+
+                    #  # Tamaño minimo aceptado para extraer cielo:
+                    #  A_outer = 1.0 * petro_r * a_img
+                    #  B_outer = 1.0 * petro_r * b_img
+                    #  xlen_min = 2 * sqrt((A_outer * cos(theta_rad))**2 + (B_outer * sin(theta_rad))**2)
+                    #  ylen_min = 2 * sqrt((A_outer * sin(theta_rad))**2 + (B_outer * cos(theta_rad))**2)
+                    #  # asegurar len_min entero impar:
+                    #  if(xlen_min % 2 == 0){xlen_min += 1}
+                    #  if(ylen_min % 2 == 0){ylen_min += 1}
+                    #
+                    #  # Vertices que cricunscriben el objeto:
+                    #  px1 = xwin_img - int((xlen_min - 1) / 2)
+                    #  px2 = xwin_img + int((xlen_min - 1) / 2)
+                    #  py1 = ywin_img - int((ylen_min - 1) / 2)
+                    #  py2 = ywin_img + int((ylen_min - 1) / 2)
+                    #  # Seccion:
+                    #  trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
+                    #  tmp_infile = bckgrnd_dir//"/"//id_obj[i]//"_bg.fits"//trimsection
+                    #  imstat(tmp_infile, fields="mean", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(local_bg)
+                    #  tmp_infile = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"//trimsection
+                    #  imstat(tmp_infile, fields="midpt", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(local_rms)
+
+                    printf("%d %d 1 a\n", xmin_seg, ymin_seg, >> tmp_outfile)
+                    printf("%d %d 1 a\n", xmax_seg, ymax_seg, >> tmp_outfile)
+                }
+
+            # END IF: lineas validas
+            }
+        # END WHILE: lectura lista
+        }
+        list = ""
+    # END FOR:
+    }
+    # ============================================
+
+    # ============================================
+    # APLICACION IMEDIT task:
+    # ============================================
+    for(i=1;i<=n_list;i+=1){
+
+        tmp_file = "data/data_files/imedit_logfiles/"//id_obj[i]//"_log"
+
+        tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
+        tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        if(!imaccess(tmp_outfile)){
+            imdelete(tmp_outfile, ver-, >& "dev$null")
+            imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
+        }
+
+        tmp_infile = residual_dir//"/"//id_obj[i]//"_res.fits"
+        tmp_outfile = residual_dir//"/"//id_obj[i]//"_res_setmask.fits"
+        if(!imaccess(tmp_outfile)){
+            imdelete(tmp_outfile, ver-, >& "dev$null")
+            imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
+        }
+
+    }
+    # END FOR:
+    # ============================================
 
     # ============================================
     # Lectura de posiciones ajustadas:
