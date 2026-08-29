@@ -119,7 +119,7 @@ begin
             theta_rad[i] = theta_img[i] * const_pi / 180
 
             # La imagen de partida es la observada con MASKING!
-            obs_setmask_img[i] = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+            obs_setmask_img[i] = observed_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
 
         # END IF: lineas validas
         }
@@ -157,10 +157,6 @@ begin
     }
     list = ""
 
-    # ===================================================
-    #
-    # ===================================================
-
     # # SEGUIMIENTO:
     # print("# SEGUIMIENTO: REGISTRO DE CORRECCION DE CENTRO", > datafiles_dir//"/"//"history_center_corr.txt")
     # print("# Busqueda del pixel que minimiza la suma del residuo abs(I-I_180) y (I-I_180)**2", >> datafiles_dir//"/"//"history_center_corr.txt")
@@ -169,7 +165,7 @@ begin
     # print("# o las imagenes de entrada si son una lista de imagenes!", >> datafiles_dir//"/"//"history_center_corr.txt")
 
     # La busqueda de centro dentro de una caja del tamaño del SEEING_FWHM
-    delta_pix = seeing_pix
+    delta_pix = seeing_pix + 1
     # Asegurar una caja cuadrada:
     if(delta_pix % 2 == 0){delta_pix += 1}
     # expresion de una elipse rotada y des-centrada:
@@ -297,12 +293,12 @@ begin
                 # Imagen residual abs(I-I_180) dentro de apertura (1.5rp):
                 tmp_outfile = cache_dir//"/"//id_obj[k]//"_"//i//j//"_rot_abs_res.fits"
                 imdelete(tmp_outfile, ver-, >& "dev$null")
-                imexpr((ellip_expr + " <=1 ? abs(f-g) : 0"), tmp_outfile, tmp_xc, tmp_yc, (scale_r[16] * a_img[k] * petro_r[k]), (scale_r[16] * b_img[k] * petro_r[k]), theta_rad[k], measure_img[k], measure_img_180, verb-)
+                imexpr((ellip_expr + " <=1 ? abs(f-g) : 0"), tmp_outfile, tmp_xc, tmp_yc, (scale_r[15] * a_img[k] * petro_r[k]), (scale_r[15] * b_img[k] * petro_r[k]), theta_rad[k], measure_img[k], measure_img_180, verb-)
 
                 # Imagen residual (I-I_180)**2 (rms) dentro de apertura (1.5rp):
                 tmp_outfile = cache_dir//"/"//id_obj[k]//"_"//i//j//"_rot_rms_res.fits"
                 imdelete(tmp_outfile, ver-, >& "dev$null")
-                imexpr((ellip_expr + " <=1 ? (f-g)**2 : 0"), tmp_outfile, tmp_xc, tmp_yc, (scale_r[16] * a_img[k] * petro_r[k]), (scale_r[16] * b_img[k] * petro_r[k]), theta_rad[k], measure_img[k], measure_img_180, verb-)
+                imexpr((ellip_expr + " <=1 ? (f-g)**2 : 0"), tmp_outfile, tmp_xc, tmp_yc, (scale_r[15] * a_img[k] * petro_r[k]), (scale_r[15] * b_img[k] * petro_r[k]), theta_rad[k], measure_img[k], measure_img_180, verb-)
 
                 # Tomar la suma de los abs(Flux) pixeles:
                 tmp_infile = cache_dir//"/"//id_obj[k]//"_"//i//j//"_rot_abs_res.fits"
@@ -470,7 +466,6 @@ begin
 
     }
 
-    # print("Exit task.")
     print("\n\n END TASK: find_center (min)")
     print(" ------------------------------------------")
     print("")

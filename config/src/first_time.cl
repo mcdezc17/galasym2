@@ -31,7 +31,8 @@ begin
 
     # Declaracion de variables para pset 'sexpar'
     string key_run_se
-    int    minarea_se
+    # --- cold mode ---
+    int    minarea_se, maxarea_se
     real   dthresh_se, athresh_se
     bool   bfilter_se
     string namefilt_se
@@ -41,6 +42,11 @@ begin
     string weightty_se, weightim_se
     int    backsize_se, bckfilsz_se
     string verbotyp_se
+    # --- hot mode ---
+    int    ht_minarea_se
+    real   ht_dthresh_se
+    real   ht_dmincont_se
+    real   ht_cleanpar_se
 
     # Declaracion de variables para pset 'psfexp'
     string key_run_psf
@@ -201,12 +207,12 @@ begin
     print("#--------------- PSET: config/src/photimg.par ---------------", >> tmp_outfile)
     printf("PHOT_APERTURES\t%s\n", n_apert_phot, >> tmp_outfile)
     printf("SATUR_LEVEL\t%s\n", saturlev_phot, >> tmp_outfile)
-    printf("SATUR_KEY\t%s\n", saturkey_phot, >> tmp_outfile)
-    printf("MAG_ZEROPOINT\t%s\n", mag_zero_phot, >> tmp_outfile)
-    printf("GAIN\t%s\n", gain_lev_phot, >> tmp_outfile)
+    printf("SATUR_KEY\t%.3f\n", saturkey_phot, >> tmp_outfile)
+    printf("MAG_ZEROPOINT\t%.4f\n", mag_zero_phot, >> tmp_outfile)
+    printf("GAIN\t%.6f\n", gain_lev_phot, >> tmp_outfile)
     printf("GAIN_KEY\t%s\n", gain_key_phot, >> tmp_outfile)
     printf("PIXEL_SCALE\t%s\n", pix_scal_phot, >> tmp_outfile)
-    printf("SEEING_FWHM\t%s\n", seeingfw_phot, >> tmp_outfile)
+    printf("SEEING_FWHM\t%.3f\n", seeingfw_phot, >> tmp_outfile)
 
     # ================================================
     # OBTENER VALORES DE PSET: sexpar
@@ -214,6 +220,7 @@ begin
 
     key_run_se  = sexpar.key_run
     minarea_se  = sexpar.minarea
+    maxarea_se  = sexpar.maxarea
     dthresh_se  = sexpar.dthresh
     athresh_se  = sexpar.athresh
     bfilter_se  = sexpar.bfilter
@@ -228,26 +235,38 @@ begin
     backsize_se = sexpar.backsize
     bckfilsz_se = sexpar.bckfilsz
     verbotyp_se = sexpar.verbotyp
+    # --------- HOT MODE SEXTRACTIONS -----------
+    ht_minarea_se  = sexpar.ht_minarea
+    ht_dthresh_se  = sexpar.ht_dthresh
+    ht_dmincont_se = sexpar.ht_dmincont
+    ht_cleanpar_se = sexpar.ht_cleanpar
 
     # Si la verificacion continua, imprime archivo full parametros:
     print("#------------------------------------------------------------", >> tmp_outfile)
     print("#--------------- PSET: config/src/sexpar.par ----------------", >> tmp_outfile)
     printf("KW_SE\t%s\n", key_run_se, >> tmp_outfile)
-    printf("DETECT_MINAREA\t%s\n", minarea_se, >> tmp_outfile)
-    printf("DETECT_THRESH\t%s\n", dthresh_se, >> tmp_outfile)
-    printf("ANALYSIS_THRESH\t%s\n", athresh_se, >> tmp_outfile)
+    printf("DETECT_MINAREA\t%d\n", minarea_se, >> tmp_outfile)
+    printf("DETECT_MAXAREA\t%d\n", maxarea_se, >> tmp_outfile)
+    printf("DETECT_THRESH\t%.4f\n", dthresh_se, >> tmp_outfile)
+    printf("ANALYSIS_THRESH\t%.4f\n", athresh_se, >> tmp_outfile)
     printf("FILTER\t%b\n", bfilter_se, >> tmp_outfile)
     printf("FILTER_NAME\t%s\n", namefilt_se, >> tmp_outfile)
     # printf("DEBLEND_NTHRESH\t%s\n", , >> tmp_outfile)
-    printf("DEBLEND_MINCONT\t%s\n", dmincont_se, >> tmp_outfile)
+    printf("DEBLEND_MINCONT\t%.6f\n", dmincont_se, >> tmp_outfile)
     printf("CLEAN\t%b\n", cleanspu_se, >> tmp_outfile)
-    printf("CLEAN_PARAM\t%s\n", cleanpar_se, >> tmp_outfile)
+    printf("CLEAN_PARAM\t%.3f\n", cleanpar_se, >> tmp_outfile)
     # printf("MASK_TYPE\t%s\n", , >> tmp_outfile)
     printf("BACK_SIZE\t%s\n", backsize_se, >> tmp_outfile)
     printf("BACK_FILTERSIZE\t%s\n", bckfilsz_se, >> tmp_outfile)
     printf("VERBOSE_TYPE\t%s\n", verbotyp_se, >> tmp_outfile)
     # printf("WEIGHT_TYPE\t%s\n", weightty_se, >> tmp_outfile)
     # printf("WEIGHT_IMAGE\t%s\n", weightim_se, >> tmp_outfile)
+
+    # ------------- HOT MOE SEXTRACTIONS ---------------------
+    printf("HT_DETECT_MINAREA\t%d\n", ht_minarea_se, >> tmp_outfile)
+    printf("HT_DETECT_THRESH\t%.4f\n", ht_dthresh_se, >> tmp_outfile)
+    printf("HT_DEBLEND_MINCONT\t%.6f\n", ht_dmincont_se, >> tmp_outfile)
+    printf("HT_CLEAN_PARAM\t%.3f\n", ht_cleanpar_se, >> tmp_outfile)
 
     # ================================================
     # OBTENER VALORES DE PSET: psfex
@@ -264,8 +283,8 @@ begin
     print("#------------------------------------------------------------", >> tmp_outfile)
     print("#--------------- PSET: config/src/psfexp.par ----------------", >> tmp_outfile)
     printf("KW_PSFEX\t%s\n", key_run_psf, >> tmp_outfile)
-    printf("DTHRESH_PSF\t%f\n", dthresh_psf, >> tmp_outfile)
-    printf("ATHRES_PSF\t%f\n", athresh_psf, >> tmp_outfile)
+    printf("DTHRESH_PSF\t%.4f\n", dthresh_psf, >> tmp_outfile)
+    printf("ATHRES_PSF\t%.4f\n", athresh_psf, >> tmp_outfile)
     printf("DFLT_PSF\t%b\n", defaultf_psf, >> tmp_outfile)
     printf("SAME_IMG\t%b\n", same_img_psf, >> tmp_outfile)
     printf("IMG_NAME\t%s\n", img_name_psf, >> tmp_outfile)
@@ -283,7 +302,8 @@ begin
     printf("KW_DS9\t%s\n", kw_ds9_exp, >> tmp_outfile)
     printf("KW_PYTHON\t%s\n", kw_py_exp, >> tmp_outfile)
 
-    # config_files
+    # --- Files configuration ----
+    print(" - se ejecuto config_files")
     config_files
 
     flpr

@@ -2,7 +2,7 @@
 
 # Load necessary packages
 
-set direc = "/home/sloan/galasym2/test/A496/J_band/config/src/"
+set direc = "/home/sloan/galasym2-master/config/src/"
 
 package galasym2
 
@@ -17,12 +17,15 @@ task exp_pst = "direc$exp_pst.par"
 # pre-procesamiento de las imagenes:
 task first_time      = "direc$first_time.cl"
 # lista de indices disponibles:
+task outer_res_index = "direc$outer_res_index.cl"
 task alpha_index     = "direc$alpha_index.cl"
 task abs_index       = "direc$abs_index.cl"
 task outer_abs_index = "direc$outer_abs_index.cl"
 task rms_index       = "direc$rms_index.cl"
 task outer_rms_index = "direc$outer_rms_index.cl"
 task a180_index      = "direc$a180_index.cl"
+task shape_index     = "direc$shape_index.cl"
+task snr_task        = "direc$snr_task.cl"
 
 # No visibles:
 task config_files   = "direc$config_files.cl"

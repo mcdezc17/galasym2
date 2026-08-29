@@ -13,9 +13,15 @@ corr_prfl_galasym2_96.cl
 .DS_Store
 .DS
 config/src/dont_src
+config/src/.dont_src
 config/psfex/prepsfex/my_prepsfex.cat
 config/psfex/prepsfex/my_prepsfex.sex
 config/psfex/my_default.psfex
 config/sextractor/my_default.sex
 config/sextractor/my_prepsfex.psf
 config/sextractor/obj
+config/sextractor/cold_default.sex
+config/sextractor/hot_default.sex
+config/sextractor/third_config.sex
+config/sextractor/my_shape.sex
+config/sextractor/tmp_shape.sex

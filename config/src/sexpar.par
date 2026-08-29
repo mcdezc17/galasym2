@@ -2,21 +2,27 @@
 # Archivo de parametros para pset 'sexpar.par'
 # nombre,tipo,modo,valor_default,min,max,prompt
 key_run,s,h,"sex",,,                 the keyword to run SExtractor in shell
-minarea,i,h,5,2,INDEF,               DETECT_MINAREA  (min. number pixels)
-dthresh,r,h,1.0,0.5,INDEF,           DETECT_THRESH   (in sigmas)
+minarea,i,h,5,2,INDEF,               COLD DETECT_MINAREA  (min. number pixels)
+maxarea,i,h,0,0,INDEF,               COLD DETECT_MAXAREA  (max. number pixels)
+dthresh,r,h,1.0,0.5,INDEF,           COLD DETECT_THRESH   (in sigmas)
 athresh,r,h,1.0,0.5,INDEF,           ANALYSIS_THRESH (in sigmas)
 bfilter,b,h,y,,,                     FILTER apply filter (Y/N)?
 namefilt,s,h,"gauss_2.0_3x3.conv",,, FILTER_NAME       (/*.conv)
 # dnthresh,i,h,32,0,INDEF,            DEBLEND_NTHRESH
-dmincont,r,h,0.005,0,1,              DEBLEND_MINCONT
+dmincont,r,h,0.005,0,1,              COLD DEBLEND_MINCONT
 cleanspu,b,h,y,,,                    CLEAN clean spurious detections?
-cleanpar,r,h,1.0,0.001,10,          CLEAN_PARAM cleaning efficiency
+cleanpar,r,h,1.0,0.001,10,           COLD CLEAN_PARAM cleaning efficiency
 # masktype,s,h,CORRECT,,,              MASK_TYPE also: NONE or BLANK
 weightty,s,h,NONE,,,                "WEIGHT_TYPE also:BACKGROUND MAP_RMS MAP_VAR MAP_WEIGHT"
 weightim,s,h,"weight.fits",,,        WEIGHT_IMAGE weight-map filename
 backsize,i,h,32,32,,                 BACK_SIZE Background mesh size
 bckfilsz,i,h,3,3,,                   BACK_FILTERSIZE Background filter size
 verbotyp,s,h,QUIET,,,                VERBOSE_TYPE also: NORMAL or FULL
+# ------- HOT MODE SEXTRACTIONS ---------
+ht_minarea,i,h,5,2,INDEF,            HOT DETECT_MINAREA  (min. number pixels)
+ht_dthresh,r,h,1.0,0.5,INDEF,        HOT DETECT_THRESH   (in sigmas)
+ht_dmincont,r,h,0.005,0,1,           HOT DEBLEND_MINCONT
+ht_cleanpar,r,h,1.0,0.001,10,        HOT CLEAN_PARAM cleaning efficiency
 mode,s,h,al
 # ========================================================
 #
@@ -24,6 +30,7 @@ mode,s,h,al
 # VARIABLES (las siguientes lineas siempre comentadas):
 #  sexpar.key_run
 #  sexpar.minarea
+#  sexpar.maxarea
 #  sexpar.dthresh
 #  sexpar.athresh
 #  sexpar.bfilter
@@ -38,4 +45,8 @@ mode,s,h,al
 #  sexpar.backsize
 #  sexpar.bckfilsz
 #  sexpar.verbotyp
-#
+#  ## ---- HOT MODE ---##
+#  sexpar.ht_minarea,
+#  sexpar.ht_dthresh,
+#  sexpar.ht_dmincont
+#  sexpar.ht_cleanpar

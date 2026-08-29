@@ -7,7 +7,7 @@ begin
 
     # ************* DEFINICIÓN DE VARIABLES *************
     # System variables
-    int i
+    int i, j
     struct line
     string key_word
     real const_pi
@@ -25,6 +25,7 @@ begin
     bool tmp_bool
     string tmp_string, tmp_string2
     int tmp_int, tmp_int2
+    string tmp_wait
 
     # Parametros de lista de objtos a analizar:
     string id_obj[999]
@@ -36,11 +37,21 @@ begin
     int x_limit[10], y_limit[10]
     # recorte de imagenes:
     int px1, px2, py1, py2, l_frame, side_frame[999]
+    # # ---- Modficacion: centro tomado como entero (xc,yc) -----
     int xc, yc
+    # ---- NewModif: centro comado como real (xc,yc): -----
+    # real xc, yc
     string trimsection
     # To IMEDIT task
     int seg_id_obj[999]
+    real obj_rpetro[999], obj_thetarad[999], obj_aimg[999], obj_bimg[999], obj_isoareaf[999]
     real xmin_seg, ymin_seg, xmax_seg, ymax_seg
+    real dist_obj, theta_obj, dist_ell
+    real area_box
+    # forzar medida:
+    string force_obj
+    real a_int, b_int, a_ext, b_ext, ell_angle
+    int ri_ann_force, ro_ann_force
 
     # pset_datapar
     bool single_data
@@ -353,16 +364,22 @@ begin
                 side_frame[i] = side_frame[i] + 1
             }
 
-            # Centro entero más cercano al sub-pixel estimado
+            # # Centro entero más cercano al sub-pixel estimado (OJO! xc,yc dejaron de ser enteros)
+            # xc = ximg_pos[i]
+            # if((ximg_pos[i] - xc) >= 0.5){
+            #     xc += 1
+            # }
+            # # para y:
+            # yc = yimg_pos[i]
+            # if((yimg_pos[i] - yc) >= 0.5){
+            #     yc += 1
+            # }
+            # ----- BefModif: Centro entero más cercano al sub-pixel estimado
+            # ----- NewModif: Centro real:
             xc = ximg_pos[i]
-            if((ximg_pos[i] - xc) >= 0.5){
-                xc += 1
-            }
             # para y:
             yc = yimg_pos[i]
-            if((yimg_pos[i] - yc) >= 0.5){
-                yc += 1
-            }
+
 
             # Vertices del recorte
             px1 = xc - int((side_frame[i] - 1) / 2)
@@ -372,6 +389,7 @@ begin
             # Seccion a recortar:
             trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
+            # Recorte de observaciones:
             tmp_file = "data/data_images/observed/"//id_obj[i]
             if(!imaccess(tmp_file)){
                 imcopy(pathname_data//trimsection, tmp_file, verb-)
@@ -564,86 +582,32 @@ begin
     if(!access(residual_dir)){mkdir(residual_dir)}
 
     # limpieza de achivos residuales
-    delete(outsex_dir//"/check_fil.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/check_seg.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/check_bg.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/check_no_objs.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/check_bgrms.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/check_mod.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/check_res.fits", ver-, >& "dev$null")
-    delete(outsex_dir//"/test.cat", ver-, >& "dev$null")
+    # --- cold mode SEx ---
+    delete(outsex_dir//"/cold_test.cat", ver-, >& "dev$null")
+    # delete(outsex_dir//"/cold_bgrms.fits", ver-, >& "dev$null")
+    # delete(segmen_dir//"/cold_filt.fits", ver-, >& "dev$null")
+    delete(segmen_dir//"/cold_segmen.fits", ver-, >& "dev$null")
 
-    # Archivo de configuracion SExtractor '*.sex'
-    myconfig_se = "config/sextractor/my_default.sex"
-    # Verificar si se creo?
-    # Carpeta para guardar config.sex por objeto:
-    if(!access("config/sextractor/obj")){mkdir("config/sextractor/obj")}
+    # *****************************************************************************************************************
+    # INICIO ************************** PRIMERA EJECUCIÓN DE SEXTRACTOR (MODELOS) *************************************
+    # *****************************************************************************************************************
 
-    # salida lista de lineas con parametros:
-    #delete(outsex_dir//"/"//"inlist.lis", ver-, >& "dev$null")
+    # Archivo de configuracion modo frio:
+    myconfig_se = "config/sextractor/cold_default.sex"
 
+    # Lista de recortes:
     list = "data/data_files/accepted_imgs.txt"
     i = 0
+    # Bucle para ejecutar SEx modo COLD:
     while(fscan(list, line) != EOF){
         if (line != "" && substr(line, 1, 1) != "#") {
             i += 1
-            print(line) | scan(tmp_id_obj, extract_img)
+            print(line) | scan(id_obj[i], extract_img)
 
-            tmp_file = outsex_dir//"/"//tmp_id_obj//"_sextracted.cat"
+            # tmp_file = outsex_dir//"/"//id_obj[i]//"_sextracted.cat"
+            tmp_file = outsex_dir//"/"//id_obj[i]//"_cold_sextracted.cat"
 
             if(!access(tmp_file)){
-
-
-                print(" ------------------------------------------")
-                print(" RUNNING SExtractor to RMS_MAP:")
-                printf(" - img: %4d | OBJ: %s \n", i, tmp_id_obj)
-                printf("! %s %s -c %s \n", key_run_se, extract_img, "config/sextractor/maprms_default.sex") | cl
-                # Renombrar MAPA RMS
-                rename("data/results_sex/maprms.fits", "data/results_sex/"//tmp_id_obj//"_rmsmap.fits")
-
-                # Agregar al archivo principal de SEX información de WEGHT_TYPE:
-                tmp_infile = "config/sextractor/obj/"//tmp_id_obj//"_default.sex"
-                copy(myconfig_se, tmp_infile)
-                # =========== ELIMINAR LOS ARCHIVOS ANTERIORES MAP_RMS ============
-
-                print("\n#--------------------- WEIGHTing ---------------------------", >> tmp_infile)
-                printf("\nWEIGHT_TYPE %s\n", "MAP_RMS", >> tmp_infile)
-                print("\nRESCALE_WEIGHTS Y", >> tmp_infile)
-                printf("WEIGHT_IMAGE %s\n", "data/results_sex/"//tmp_id_obj//"_rmsmap.fits", >> tmp_infile)
-                print("WEIGHT_GAIN Y", >> tmp_infile)
-                print("WEIGHT_THRESH", >> tmp_infile)
-                # Agregar al archivo principal de SEX información de WEGHT_TYPE.
-
-                print(" ------------------------------------------")
-                print(" RUNNING SExtractor to model-fitting:")
-                printf(" - img: %4d | OBJ: %s \n", i, tmp_id_obj)
-                printf("! %s %s -c %s \n", key_run_se, extract_img, tmp_infile) | cl
-
-                tmp_outfile = observed_dir//"/"//tmp_id_obj//"_smooth.fits"
-                rename(outsex_dir//"/check_fil.fits", tmp_outfile)
-
-                tmp_outfile = segmen_dir//"/"//tmp_id_obj//"_segmen.fits"
-                rename(outsex_dir//"/check_seg.fits", tmp_outfile)
-
-                tmp_outfile = bckgrnd_dir//"/"//tmp_id_obj//"_bg.fits"
-                rename(outsex_dir//"/check_bg.fits", tmp_outfile)
-
-                tmp_outfile = bckgrnd_dir//"/"//tmp_id_obj//"_no_objs.fits"
-                rename(outsex_dir//"/check_no_objs.fits", tmp_outfile)
-
-                tmp_outfile = bckgrnd_dir//"/"//tmp_id_obj//"_bgrms.fits"
-                rename(outsex_dir//"/check_bgrms.fits", tmp_outfile)
-
-                tmp_outfile = model_dir//"/"//tmp_id_obj//"_mod.fits"
-                rename(outsex_dir//"/check_mod.fits", tmp_outfile)
-
-                tmp_outfile = residual_dir//"/"//tmp_id_obj//"_res.fits"
-                rename(outsex_dir//"/check_res.fits", tmp_outfile)
-
-                tmp_outfile = outsex_dir//"/"//tmp_id_obj//"_test.cat"
-                rename(outsex_dir//"/test.cat", tmp_outfile)
-
-                print(" - Identifying object...")
 
                 # captura el centro de la imagen:
                 imgets(extract_img, "naxis1")
@@ -651,59 +615,685 @@ begin
                 imgets(extract_img, "naxis2")
                 fit_yc = real(imgets.value) / 2
 
+                # ========= RUNNING FIRST SEXTRACTION ====================
+                print(" ------------------------------------------")
+                print(" RUNNING FIRST SExtraction:")
+                printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
+                printf("! %s %s -c %s \n", key_run_se, extract_img, myconfig_se) | cl
+
+                # Renombrar tes.cat
+                rename("data/results_sex/cold_test.cat", "data/results_sex/"//id_obj[i]//"_cold_test.cat")
+                # Renombrar MAPA RMS
+                # rename("data/results_sex/cold_bgrms.fits", "data/results_sex/"//id_obj[i]//"_rmsmap.fits")
+                # Renombrar IMG Filered
+                # rename("data/data_images/segmentation/cold_filt.fits", "data/data_images/segmentation/"//id_obj[i]//"_cold_filt.fits")
+                # Renombrar IMG Segmentacion
+                rename("data/data_images/segmentation/cold_segmen.fits", "data/data_images/segmentation/"//id_obj[i]//"_cold_segmen.fits")
+                # =================================================================
+
+                # Identificar el objeto en el centro de la imagen (asume que la galaxa siempre sera):
+                print(" - Identifying object (cold-mode)...")
                 # columna para identificador (# ID):
-                printf("# ID\n %s\n", tmp_id_obj, > outsex_dir//"/"//"tmp_col_id.cat")
+                printf("# ID\n %s\n", id_obj[i], > outsex_dir//"/"//"tmp_col_id.cat")
 
                 # STILTS > obj in center of image:
                 expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='addcol dist \"sqrt(($4-%.2f)*($4-%.2f) + ($5-%.2f)*($5-%.2f))\"; sorthead 1 dist' in=%s > %s/tmp_line.cat"
-                tmp_infile2 = outsex_dir//"/"//tmp_id_obj//"_test.cat"
-                printf(expre, fit_xc, fit_xc, fit_yc, fit_yc, tmp_infile2, outsex_dir, tmp_id_obj) | cl
+                tmp_infile2 = outsex_dir//"/"//id_obj[i]//"_cold_test.cat"
+                printf(expre, fit_xc, fit_xc, fit_yc, fit_yc, tmp_infile2, outsex_dir, id_obj[i]) | cl
 
                 # Agrega columna ID(col1_1):
-                expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/%s_sextracted.cat"
-                printf(expre, outsex_dir, outsex_dir, outsex_dir, tmp_id_obj) | cl
+                expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/%s_cold_sextracted.cat"
+                printf(expre, outsex_dir, outsex_dir, outsex_dir, id_obj[i]) | cl
 
-                # imprime archivo que contiene la linea en una lista de (directorios) archivos
-                printf("%s/%s_sextracted.cat\n", outsex_dir, tmp_id_obj, >> outsex_dir//"/"//"inlist.lis")
+                # Imprime archivo que contiene LA LINEA DEL OBJETO en una lista de (directorios) archivos
+                printf("%s/%s_cold_sextracted.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"cold_inlist.lis")
 
                 delete(outsex_dir//"/"//"tmp_col_id.cat", ver-, >& "dev$null")
                 delete(outsex_dir//"/"//"tmp_line.cat", ver-, >& "dev$null")
 
-            # END IF: si ya existe la sextraccion
+
             }else{
                 print(" ------------------------------------------")
-                print(" This object has already been SExtracted!")
-                printf(" - img: %4d | OBJ: %s \n", i, tmp_id_obj)
+                print(" This object has already been COLD-SExtracted!")
+                printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
             }
-        # END If: lineas validas
+        # END IF
         }
-    # END WHILE: lectura lista 'accepted_imgs.txt'
+    # END WHILE
     }
     list = ""
     print(" ------------------------------------------")
 
-    printf("\r - Concatenating SExtractions...")
+    # ************************* CONCATENACION COLD SEXTRACTIONS *******************************
+    print(" - Concatenating COLD-SExtractions...")
 
     # CONCATENACION
-    delete(outsex_dir//"/"//"sextracted.cat", ver-, >& "dev$null")
-    expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/inlist.lis) > %s/sextracted.cat"
+    delete(outsex_dir//"/"//"cold_sextracted.cat", ver-, >& "dev$null")
+    expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/cold_inlist.lis) > %s/cold_sextracted.cat"
     printf(expre, outsex_dir, outsex_dir) | cl
 
-    printf("\r - Concatenating SExtractions... Ok.")
+    print(" - Concatenating COLD-SExtractions... Ok.")
+    # **************************** TERMINA ETAPA COLD MODE ************************************
 
-    # ==================================================
-    # END OF SExtractor SPACE
-    # ==================================================
+    # Leer la lista de objetos cold-sextracted para proceder a limpiar cold-spurious:
+    print("\n ------------------------------------------")
+    print(" - Prepare to cold-cleaning (identify)...")
+    list = outsex_dir//"/"//"cold_sextracted.cat"
+    i = 0
+    while(fscan(list,line) != EOF){
+        if(line != "" && substr(line,1,1) != "#" ){
+            i += 1
+
+            # Se ajustara x/ywin_img -> x/yc ==> tmp_ra/dec[] -> ra/dec_j00[]
+            print(line) | scan(tmp_id_obj, seg_id_obj[i], tmp_ra, tmp_dec, xwin_img, ywin_img, obj_aimg[i], obj_bimg[i], ellip, theta_j00, theta_img, petro_r, obj_isoareaf[i])
+
+            theta_rad = theta_img * const_pi / 180
+            obj_thetarad[i] = theta_rad
+            obj_rpetro[i] = (petro_r / 2)
+
+        # END if: lines no comentadas no vacias
+        }
+    #ENd WHILE: Lectura lista SEx
+    }
+    list = ""
+    n_list = i
+
+    print(" - Prepare to cold-cleaning (create imeditfiles)...")
+
+    # -------------------------------------------------------------------
+    # ----------- LOGFILES TO IMEDIT FIRST SEXTRACTION ------------------
+    # -------------------------------------------------------------------
+
+    if(!access("data/data_files/imedit_logfiles")){mkdir("data/data_files/imedit_logfiles")}
+
+    # cabecera regiones ds9:
+    print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"cold_masking.reg")
+    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"cold_masking.reg")
+    print("fk5", >> datafiles_dir//"/"//"cold_masking.reg")
+
+    # tmp_int = 0
+    for(i=1;i<=n_list;i+=1){
+
+        # Capturar el tamaño de la imagen respectiva:
+        extract_img = observed_dir//"/"//id_obj[i]//".fits"
+        # captura el centro de la imagen:
+        imgets(extract_img, "naxis1")
+        fit_xc = real(imgets.value) / 2
+        imgets(extract_img, "naxis2")
+        fit_yc = real(imgets.value) / 2
+
+        #   # ========== MODIFICACION (19 Junio 10:33) ====================
+        #   # /** Para editar regiones en base a la apertura forzada **/
+        #   force_obj = "force_reg/force_"//id_obj[i]//".reg"
+        #   if(access(force_obj)){
+        #       tmp_int += 1
+        #       # extraer nuevos parametros de medida:
+        #       expre = "! awk '/^ellipse\\(/ {split($0,a,\"[(),]\"); print a[4],a[5],a[6],a[7],a[8]}' %s\n"
+        #       print("\n  - (Masking) Object to force measure: ", id_obj[i])
+        #       printf(expre, force_obj) | cl | scan(a_int, b_int, a_ext, b_ext, ell_angle)
+        #       # Nuevos parametros:
+        #       # Para tarea LOGFILES to IMEDIT TASK
+        #       obj_aimg[i] = a_int / (2.0 * obj_rpetro[i])
+        #       obj_bimg[i] = b_int / (2.0 * obj_rpetro[i])
+        #       obj_thetarad[i] = ell_angle * const_pi / 180
+        #   }
+        #   # =============================================================
+
+        tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_cold_log"
+        # Cabecera del COLD-log_file to IMEDIT:
+        print(":aperture circular", > tmp_outfile)
+        print(":search 2.", >> tmp_outfile)
+        print(":radius 2.", >> tmp_outfile)
+        print(":buffer 1.", >> tmp_outfile)
+        print(":width 2.", >> tmp_outfile)
+        print(":value 0.", >> tmp_outfile)
+        print(":sigma INDEF", >> tmp_outfile)
+        print(":xorder 2", >> tmp_outfile)
+        print(":yorder 2", >> tmp_outfile)
+        print("# Input object image: "//id_obj[i], >> tmp_outfile)
+
+        # Ordenar la lista por flujo (descendente):
+        # STILTS > obj in center of image:
+        expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='sort -down $30' in=%s > %s/%s_cold_test_sortdownflux.cat"
+        tmp_infile = outsex_dir//"/"//id_obj[i]//"_cold_test.cat"
+        printf(expre, tmp_infile, outsex_dir, id_obj[i]) | cl
+
+        list = outsex_dir//"/"//id_obj[i]//"_cold_test_sortdownflux.cat"
+
+        while(fscan(list,line) != EOF){
+            if(line != "" && substr(line,1,1) != "#"){
+
+                # Lee la linea de ID_test.cat
+                print(line) | scan (seg_number, tmp_ra, tmp_dec, xwin_img, ywin_img, a_img, b_img, ellip, theta_j00, theta_img, petro_r, iso_areaf, xmin_seg, ymin_seg, xmax_seg, ymax_seg)
+
+                # Crear el archivo ID_log para IMEDIT task:
+                if(seg_number != seg_id_obj[i]){
+
+                    dist_obj  = sqrt((fit_xc - xwin_img)**2 + (fit_yc - ywin_img)**2)
+                    theta_obj = atan2((ywin_img - fit_yc), (xwin_img - fit_xc))
+
+                    # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+                    # A_outer = (obj_rpetro[i] * obj_aimg[i])
+                    # B_outer = (obj_rpetro[i] * obj_bimg[i])
+                    A_outer = (3.0 * obj_aimg[i])
+                    B_outer = (3.0 * obj_bimg[i])
+
+                    # Elipse:
+                    dist_ell = (A_outer * B_outer) / sqrt((B_outer**2 * cos(theta_obj - obj_thetarad[i])**2) + (A_outer**2 * sin(theta_obj - obj_thetarad[i])**2))
+                    # Circulo:
+                    # dist_ell = A_outer
+
+                    area_box = (xmax_seg - xmin_seg) * (ymax_seg - ymin_seg)
+
+                    # Descartar objetos por dstancia a la galaxia:
+                    # Si esta afuera de 3Rp (elipse):
+                    if(dist_obj > (1.15* dist_ell)){
+
+                        # Borra cualquier obj menor a 4 veces el area de la galaxia
+                        if(iso_areaf < (3.0 * obj_isoareaf[i]) && area_box < (4.0 * obj_isoareaf[i]) ){
+                            printf("%d %d 1 a\n", (xmin_seg - 2.0), (ymin_seg - 2.0), >> tmp_outfile)
+                            printf("%d %d 1 a\n", (xmax_seg + 2.0), (ymax_seg + 2.0), >> tmp_outfile)
+                        }
+                    }
+                    # Si esta dentro de 3Rp (elipse):
+                    #   else{
+                    #
+                    #       # Borra mas pequeños que el 20% del tamaño de la galaxia:
+                    #       #if(iso_areaf < (0.2 * obj_isoareaf[i])){
+                    #       printf("%d %d 1 a\n", (xmin_seg - 3.0), (ymin_seg - 3.0), >> tmp_outfile)
+                    #       printf("%d %d 1 a\n", (xmax_seg + 3.0), (ymax_seg + 3.0), >> tmp_outfile)
+                    #       #}
+                    #   }
+
+                # END IF: segment_number
+                }else if(seg_number == seg_id_obj[i]){
+
+                    # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+                    A_outer = (3.0 * obj_aimg[i])
+                    B_outer = (3.0 * obj_bimg[i])
+
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=green dash=1'
+                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+
+                    # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+                    A_outer = (obj_rpetro[i] * obj_aimg[i])
+                    B_outer = (obj_rpetro[i] * obj_bimg[i])
+
+                    # caja que inscribe la elipse rotada:
+                    # refrence (3A,3B) aperture: eliptical
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=red dash=1'
+                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//2.05 * A_outer * pix_scal_phot//'",'//2.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
+                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//3.05 * A_outer * pix_scal_phot//'",'//3.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
+                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                }
+            # END IF: lineas validas
+            }
+        # END WHILE: lectura lista
+        }
+        list = ""
+    # END FOR:
+    }
+    # print(" - total forced apertures: ", tmp_int)
+
+    print(" - pausa antes de aplicar de cold-cleaning...")
+    sleep(1)
+    # scan(tmp_wait)
+
+    # --------------------------------------------------------------
+    # -------- APLICACION IMEDIT task FIRST SEXTRACTION ------------
+    # --------------------------------------------------------------
+
+    for(i=1;i<=n_list;i+=1){
+
+        tmp_file = "data/data_files/imedit_logfiles/"//id_obj[i]//"_cold_log"
+
+        if(single_data == no){
+            tmp_infile = pathname_data//"/"//id_obj[i]//".fits"
+            print("here!")
+        }else{
+            tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
+        }
+
+        tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_coldmask.fits"
+        if(!imaccess(tmp_outfile)){
+            tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
+            imdelete(tmp_outfile, ver-, >& "dev$null")
+            imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
+        }else{print(" - exist first cleaning...")}
+
+        #tmp_outfile = residual_dir//"/"//id_obj[i]//"_res_coldmask.fits"
+        #if(!imaccess(tmp_outfile)){
+            #tmp_infile = residual_dir//"/"//id_obj[i]//"_res.fits"
+            #imdelete(tmp_outfile, ver-, >& "dev$null")
+            #imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
+        #}
+
+        #tmp_outfile = model_dir//"/"//id_obj[i]//"_mod_coldmask.fits"
+        #if(!imaccess(tmp_outfile)){
+            #tmp_infile = model_dir//"/"//id_obj[i]//"_mod.fits"
+            #imdelete(tmp_outfile, ver-, >& "dev$null")
+            #imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
+        #}
+    # END FOR:
+    }
+
+    print(" - pausa antes de aplicar segundo SEx...")
+    sleep(1)
+    # scan(tmp_wait)
+
+    # ******************************************************************************************************
+    # INICIO ************************** SEGUNDA ITERACIÓN SEXTRACTOR ***************************************
+    # ******************************************************************************************************
+
+    # ---- hot mode SEx ---
+    delete(outsex_dir//"/hot_test.cat", ver-, >& "dev$null")
+    delete(outsex_dir//"/hot_seg.fits", ver-, >& "dev$null")
+    # delete(outsex_dir//"/hot_mod.fits", ver-, >& "dev$null")
+    # delete(outsex_dir//"/hot_res.fits", ver-, >& "dev$null")
+
+    # Archivo de configuracion modo frio:
+    myconfig_se = "config/sextractor/hot_default.sex"
+
+    for(i=1;i<=n_list;i+=1){
+
+        tmp_file = outsex_dir//"/"//id_obj[i]//"_second_sextracted.cat"
+
+        if(!access(tmp_file)){
+
+            extract_img = observed_dir//"/"//id_obj[i]//"_obs_coldmask.fits"
+
+            # captura el centro de la imagen:
+            imgets(extract_img, "naxis1")
+            fit_xc = real(imgets.value) / 2
+            imgets(extract_img, "naxis2")
+            fit_yc = real(imgets.value) / 2
+
+            # ========= RUNNING SECOND SEXTRACTION ====================
+            print(" ------------------------------------------")
+            print(" RUNNING SECOND SExtraction:")
+            printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
+            printf("! %s %s -c %s \n", key_run_se, extract_img, myconfig_se) | cl
+
+            # Renombrar tes.cat
+            rename("data/results_sex/hot_test.cat", "data/results_sex/"//id_obj[i]//"_second_test.cat")
+            # Renombrar SEG IMG
+            rename("data/results_sex/hot_seg.fits", "data/data_images/segmentation/"//id_obj[i]//"_second_seg.fits")
+            # Renombrar
+            # rename("data/results_sex/hot_mod.fits", "data/data_images/model/"//id_obj[i]//"_mod.fits")
+            # Renombrar RES IMG
+            # rename("data/results_sex/hot_res.fits", "data/data_images/residual/"//id_obj[i]//"_res.fits")
+            # =================================================================
+
+            # Identificar el objeto en el centro de la imagen (asume que la galaxa siempre sera):
+            print(" - Identifying object (second-sextraction)...")
+            # columna para identificador (# ID):
+            printf("# ID\n %s\n", id_obj[i], > outsex_dir//"/"//"tmp_col_id.cat")
+
+            # STILTS > obj in center of image:
+            expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='addcol dist \"sqrt(($4-%.2f)*($4-%.2f) + ($5-%.2f)*($5-%.2f))\"; sorthead 1 dist' in=%s > %s/tmp_line.cat"
+            tmp_infile2 = outsex_dir//"/"//id_obj[i]//"_second_test.cat"
+            printf(expre, fit_xc, fit_xc, fit_yc, fit_yc, tmp_infile2, outsex_dir, id_obj[i]) | cl
+
+            # Agrega columna ID(col1_1):
+            expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/%s_second_sextracted.cat"
+            printf(expre, outsex_dir, outsex_dir, outsex_dir, id_obj[i]) | cl
+
+            # Imprime archivo que contiene LA LINEA DEL OBJETO en una lista de (directorios) archivos
+            printf("%s/%s_second_sextracted.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"second_inlist.lis")
+
+            delete(outsex_dir//"/"//"tmp_col_id.cat", ver-, >& "dev$null")
+            delete(outsex_dir//"/"//"tmp_line.cat", ver-, >& "dev$null")
+
+
+        # END IF: acces to second sextracted
+        }else{
+            print(" ------------------------------------------")
+            print(" This object has already been SECOND-SExtracted!")
+            printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
+        }
+
+    # END FOR: second iteration of SEx
+    }
+
+    print(" ------------------------------------------")
+    # ************************* CONCATENACION SECOND SEXTRACTIONS *******************************
+    print(" - Concatenating SECOND-SExtractions...")
+
+    # CONCATENACION
+    delete(outsex_dir//"/"//"second_sextracted.cat", ver-, >& "dev$null")
+    expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/second_inlist.lis) > %s/second_sextracted.cat"
+    printf(expre, outsex_dir, outsex_dir) | cl
+
+    print(" - Concatenating SECOND-SExtractions... Ok.")
+    # **************************** TERMINA ETAPA SECOND SEXTRACTION ************************************
+
+    # Leer la lista de objetos second-sextracted para proceder a limpiar second-spurious:
+    print("\n ------------------------------------------")
+    print(" - Prepare to second-cleaning (identify)...")
+    tmp_file = "config/sextractor/obj"
+    if(!access(tmp_file)){mkdir(tmp_file)}
+
+    list = outsex_dir//"/"//"second_sextracted.cat"
+    i = 0
+    while(fscan(list,line) != EOF){
+        if(line != "" && substr(line,1,1) != "#" ){
+            i += 1
+
+            # Se ajustara x/ywin_img -> x/yc ==> tmp_ra/dec[] -> ra/dec_j00[]
+            print(line) | scan(tmp_id_obj, seg_id_obj[i], tmp_ra, tmp_dec, xwin_img, ywin_img, obj_aimg[i], obj_bimg[i], ellip, theta_j00, theta_img, petro_r, obj_isoareaf[i])
+
+            theta_rad = theta_img * const_pi / 180
+            obj_thetarad[i] = theta_rad
+            obj_rpetro[i] = (petro_r / 2)
+
+            # Escribir el area de la galaxia en el configfile de SE (third_config.sex)
+
+            tmp_infile = "config/sextractor/third_config.sex"
+            tmp_outfile = "config/sextractor/obj/"//tmp_id_obj//"_third_config.sex"
+            delete(tmp_outfile, ver-, >& "dev$null")
+            copy(tmp_infile, tmp_outfile)
+
+            printf("DETECT_MINAREA %d\n", (obj_isoareaf[i] - 100), >> tmp_outfile)
+
+        # END if: lines no comentadas no vacias
+        }
+    #ENd WHILE: Lectura lista SEx
+    }
+    list = ""
+    n_list = i
+
+    print(" - Prepare to SECOND-cleaning (create imeditfiles)...")
+
+    # -------------------------------------------------------------------
+    # ------------- LOGFILES TO IMEDIT SECOND SEXTRACTION ---------------
+    # -------------------------------------------------------------------
+
+    # cabecera regiones ds9:
+    print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"second_masking.reg")
+    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"second_masking.reg")
+    print("fk5", >> datafiles_dir//"/"//"second_masking.reg")
+
+    for(i=1;i<=n_list;i+=1){
+
+        # Capturar el tamaño de la imagen respectiva:
+        extract_img = observed_dir//"/"//id_obj[i]//".fits"
+        # captura el centro de la imagen:
+        imgets(extract_img, "naxis1")
+        fit_xc = real(imgets.value) / 2
+        imgets(extract_img, "naxis2")
+        fit_yc = real(imgets.value) / 2
+
+        tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_second_log"
+        # Cabecera del COLD-log_file to IMEDIT:
+        print(":aperture circular", > tmp_outfile)
+        print(":search 2.", >> tmp_outfile)
+        print(":radius 2.", >> tmp_outfile)
+        print(":buffer 1.", >> tmp_outfile)
+        print(":width 2.", >> tmp_outfile)
+        print(":value 0.", >> tmp_outfile)
+        print(":sigma INDEF", >> tmp_outfile)
+        print(":xorder 2", >> tmp_outfile)
+        print(":yorder 2", >> tmp_outfile)
+        print("# Input object image: "//id_obj[i], >> tmp_outfile)
+
+        # NECESARIO ORDENAR POR FLUJO?
+
+        list = outsex_dir//"/"//id_obj[i]//"_second_test.cat"
+
+        while(fscan(list,line) != EOF){
+            if(line != "" && substr(line,1,1) != "#"){
+
+                # Lee la linea de ID_test.cat
+                print(line) | scan (seg_number, tmp_ra, tmp_dec, xwin_img, ywin_img, a_img, b_img, ellip, theta_j00, theta_img, petro_r, iso_areaf, xmin_seg, ymin_seg, xmax_seg, ymax_seg)
+
+                # Crear el archivo ID_log para IMEDIT task:
+                if(seg_number != seg_id_obj[i]){
+
+                    dist_obj  = sqrt((fit_xc - xwin_img)**2 + (fit_yc - ywin_img)**2)
+                    theta_obj = atan2((ywin_img - fit_yc), (xwin_img - fit_xc))
+
+                    # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+                    # A_outer = (obj_rpetro[i] * obj_aimg[i])
+                    # B_outer = (obj_rpetro[i] * obj_bimg[i])
+                    A_outer = (3.0 * obj_aimg[i])
+                    B_outer = (3.0 * obj_bimg[i])
+
+                    # Elipse:
+                    dist_ell = (A_outer * B_outer) / sqrt((B_outer**2 * cos(theta_obj - obj_thetarad[i])**2) + (A_outer**2 * sin(theta_obj - obj_thetarad[i])**2))
+                    # Circulo:
+                    # dist_ell = A_outer
+
+                    area_box = (xmax_seg - xmin_seg) * (ymax_seg - ymin_seg)
+
+                    # Descartar objetos por dstancia a la galaxia:
+                    # Si esta afuera de 3Rp (elipse):
+                    #if(dist_obj > (1.0* dist_ell)){
+
+                        # Borra cualquier obj menor a 4 veces el area de la galaxia
+                        if(iso_areaf < 80 && area_box < 100){
+                            printf("%d %d 1 a\n", (xmin_seg - 2.0), (ymin_seg - 2.0), >> tmp_outfile)
+                            printf("%d %d 1 a\n", (xmax_seg + 2.0), (ymax_seg + 2.0), >> tmp_outfile)
+                        }
+                    #}
+
+                # ENF IF: seg_number
+                }else if(seg_number == seg_id_obj[i]){
+
+                    # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+                    A_outer = (3.0 * obj_aimg[i])
+                    B_outer = (3.0 * obj_bimg[i])
+
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=green dash=1'
+                    print(expre, >> datafiles_dir//"/"//"second_masking.reg")
+
+                    # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+                    A_outer = (obj_rpetro[i] * obj_aimg[i])
+                    B_outer = (obj_rpetro[i] * obj_bimg[i])
+
+                    # caja que inscribe la elipse rotada:
+                    # refrence (3A,3B) aperture: eliptical
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=red dash=1'
+                    print(expre, >> datafiles_dir//"/"//"second_masking.reg")
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//2.05 * A_outer * pix_scal_phot//'",'//2.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
+                    print(expre, >> datafiles_dir//"/"//"second_masking.reg")
+                    expre = 'ellipse('//tmp_ra//','//tmp_dec//','//3.05 * A_outer * pix_scal_phot//'",'//3.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
+                    print(expre, >> datafiles_dir//"/"//"second_masking.reg")
+                }
+
+            # END IF: lineas validas de lista (while)
+            }
+
+        # END WHILE: lee lista de second-sextractions
+        }
+        list = ""
+
+    # END FOR: To imedit task (logfiles)
+    }
+
+    print(" - pausa antes de aplicar de cold-cleaning...")
+    # scan(tmp_wait)
+    sleep(1)
+
+    # -------------------------------------------------------------------
+    # ---------- APLICACION IMEDIT SECOND-SEXTRACTION -------------------
+    # -------------------------------------------------------------------
+
+    for(i=1;i<=n_list;i+=1){
+
+        tmp_file = "data/data_files/imedit_logfiles/"//id_obj[i]//"_second_log"
+
+        tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
+        if(!imaccess(tmp_outfile)){
+            tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_coldmask.fits"
+            imdelete(tmp_outfile, ver-, >& "dev$null")
+            imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
+        }else{print(" - exist second cleaning...")}
+
+    # END FOR:
+    }
+
+    print(" - pausa despues de SECOND-cleaning...")
+    scan(tmp_wait)
+    scan(tmp_wait)
+
+    # *****************************************************************************************************************
+    # INICIO ************************** TERCERA EJECUCIÓN DE SEXTRACTOR (MODELOS) *************************************
+    # *****************************************************************************************************************
+
+    delete(outsex_dir//"/third_test.cat", ver-, >& "dev$null")
+    delete(outsex_dir//"/third_bg.fits", ver-, >& "dev$null")
+    delete(outsex_dir//"/third_bgrms.fits", ver-, >& "dev$null")
+    delete(outsex_dir//"/third_filt.fits", ver-, >& "dev$null")
+    delete(outsex_dir//"/third_seg.fits", ver-, >& "dev$null")
+    delete(outsex_dir//"/third_mod.fits", ver-, >& "dev$null")
+    delete(outsex_dir//"/third_res.fits", ver-, >& "dev$null")
+
+    for(i=1;i<=n_list;i+=1){
+
+        # Archivo de configuracion modo frio:
+        myconfig_se = "config/sextractor/obj/"//id_obj[i]//"_third_config.sex"
+
+        tmp_file = outsex_dir//"/"//id_obj[i]//"_third_sextracted.cat"
+
+        if(!access(tmp_file)){
+
+            extract_img = observed_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
+
+            # captura el centro de la imagen:
+            imgets(extract_img, "naxis1")
+            fit_xc = real(imgets.value) / 2
+            imgets(extract_img, "naxis2")
+            fit_yc = real(imgets.value) / 2
+
+            # ========= RUNNING THIRD SEXTRACTION ====================
+            print(" ------------------------------------------")
+            print(" RUNNING THIRD SExtraction:")
+            printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
+            printf("! %s %s -c %s \n", key_run_se, extract_img, myconfig_se) | cl
+
+            # Renombrar tes.cat
+            rename("data/results_sex/third_test.cat", "data/results_sex/"//id_obj[i]//"_third_test.cat")
+            # Renombrar SEG BG
+            rename("data/results_sex/third_bg.fits", "data/data_images/background/"//id_obj[i]//"_bg.fits")
+            # Renombrar SEG BGRMS
+            rename("data/results_sex/third_bgrms.fits", "data/data_images/background/"//id_obj[i]//"_bgrms.fits")
+            # Renombrar SEG FILTERED
+            rename("data/results_sex/third_filt.fits", "data/data_images/observed/"//id_obj[i]//"_filt.fits")
+            # Renombrar SEG IMG
+            rename("data/results_sex/third_seg.fits", "data/data_images/segmentation/"//id_obj[i]//"_third_seg.fits")
+            # Renombrar MOD IMG
+            rename("data/results_sex/third_mod.fits", "data/data_images/model/"//id_obj[i]//"_mod.fits")
+            # Renombrar RES IMG
+            rename("data/results_sex/third_res.fits", "data/data_images/residual/"//id_obj[i]//"_res.fits")
+            # =================================================================
+
+            # Identificar el objeto en el centro de la imagen (asume que la galaxa siempre sera):
+            print(" - Identifying object (third-sextraction)...")
+            # columna para identificador (# ID):
+            printf("# ID\n %s\n", id_obj[i], > outsex_dir//"/"//"tmp_col_id.cat")
+
+            # STILTS > obj in center of image:
+            expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='addcol dist \"sqrt(($4-%.2f)*($4-%.2f) + ($5-%.2f)*($5-%.2f))\"; sorthead 1 dist' in=%s > %s/tmp_line.cat"
+            tmp_infile2 = outsex_dir//"/"//id_obj[i]//"_third_test.cat"
+            printf(expre, fit_xc, fit_xc, fit_yc, fit_yc, tmp_infile2, outsex_dir, id_obj[i]) | cl
+
+            # Agrega columna ID(col1_1):
+            expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/%s_third_sextracted.cat"
+            printf(expre, outsex_dir, outsex_dir, outsex_dir, id_obj[i]) | cl
+
+            # Imprime archivo que contiene LA LINEA DEL OBJETO en una lista de (directorios) archivos
+            printf("%s/%s_third_sextracted.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"third_inlist.lis")
+
+            delete(outsex_dir//"/"//"tmp_col_id.cat", ver-, >& "dev$null")
+            delete(outsex_dir//"/"//"tmp_line.cat", ver-, >& "dev$null")
+
+
+        # END IF: acces to third sextracted
+        }else{
+            print(" ------------------------------------------")
+            print(" This object has already been THIRD-SExtracted!")
+            printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
+        }
+
+    # END FOR: third iteration of SEx
+    }
+
+    print(" ------------------------------------------")
+    # ************************* CONCATENACION THIRD SEXTRACTIONS *******************************
+    print(" - Concatenating THIRD-SExtractions...")
+
+    delete(outsex_dir//"/"//"third_sextracted.cat", ver-, >& "dev$null")
+    expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/third_inlist.lis) > %s/third_sextracted.cat"
+    printf(expre, outsex_dir, outsex_dir) | cl
+
+    print(" - Concatenating THIRD-SExtractions... Ok.")
+    # **************************** TERMINA ETAPA THIRD SEXTRACTION ************************************
+
+    # # cabecera regiones ds9:
+    # print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"third_masking.reg")
+    # print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"third_masking.reg")
+    # print("fk5", >> datafiles_dir//"/"//"third_masking.reg")
+
+    # # Leer la lista de objetos third-sextracted para proceder a limpiar third-spurious:
+    # print("\n ------------------------------------------")
+    # print(" - Read third sextracted list...")
+    # list = outsex_dir//"/"//"third_sextracted.cat"
+    # i = 0
+    # while(fscan(list,line) != EOF){
+    #     if(line != "" && substr(line,1,1) != "#" ){
+    #         i += 1
+    #
+    #         # Se ajustara x/ywin_img -> x/yc ==> tmp_ra/dec[] -> ra/dec_j00[]
+    #         print(line) | scan(tmp_id_obj, seg_id_obj[i], tmp_ra, tmp_dec, xwin_img, ywin_img, obj_aimg[i], obj_bimg[i], ellip, theta_j00, theta_img, petro_r, obj_isoareaf[i])
+    #
+    #         theta_rad = theta_img * const_pi / 180
+    #         obj_thetarad[i] = theta_rad
+    #         obj_rpetro[i] = (petro_r / 2)
+    #
+    #         # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+    #         A_outer = (3.0 * obj_aimg[i])
+    #         B_outer = (3.0 * obj_bimg[i])
+    #
+    #         expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=green dash=1'
+    #         print(expre, >> datafiles_dir//"/"//"third_masking.reg")
+    #
+    #         # Enmascarar los objetos afuera de la segmentacion de la galaxia:
+    #         A_outer = (obj_rpetro[i] * obj_aimg[i])
+    #         B_outer = (obj_rpetro[i] * obj_bimg[i])
+    #
+    #         # caja que inscribe la elipse rotada:
+    #         # refrence (3A,3B) aperture: eliptical
+    #         expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=red dash=1'
+    #         print(expre, >> datafiles_dir//"/"//"third_masking.reg")
+    #         expre = 'ellipse('//tmp_ra//','//tmp_dec//','//2.05 * A_outer * pix_scal_phot//'",'//2.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
+    #         print(expre, >> datafiles_dir//"/"//"third_masking.reg")
+    #         expre = 'ellipse('//tmp_ra//','//tmp_dec//','//3.05 * A_outer * pix_scal_phot//'",'//3.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
+    #         print(expre, >> datafiles_dir//"/"//"third_masking.reg")
+    #
+    #     # END if: lines no comentadas no vacias
+    #     }
+    # #ENd WHILE: Lectura lista SEx
+    # }
+    # list = ""
+    # n_list = i
+
+    # *****************************************************************************************************************
+    # FIN ***************************** TERCERA EJECUCIÓN DE SEXTRACTOR (MODELOS) *************************************
+    # *****************************************************************************************************************
+
+
     # DETERMINAR TAMAÑOS Y REGIONES OBTENIDAS POR SEx
     # ==================================================
     print("\n ------------------------------------------")
     printf("\r - solving parameters...")
 
     # Cabereca:
-    printf("#%31s %5d %5d\n", "ID", "Xc", "Yc", > outsex_dir//"/"//"xycenter_images.txt")
+    printf("#%31s %9s %9s\n", "ID", "Xc", "Yc", > outsex_dir//"/"//"xycenter_images.txt")
 
     # leer resultados de SEx:
-    list = outsex_dir//"/"//"sextracted.cat"
+    list = outsex_dir//"/"//"third_sextracted.cat"
     i = 0
     while(fscan(list,line) != EOF){
         if(line != "" && substr(line,1,1) != "#" ){
@@ -718,30 +1308,18 @@ begin
 
             # correcciones (i). radio Petrosian:
             petro_r = (petro_r / 2)
+
             # (ii). theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
             theta_rad = theta_img * const_pi / 180
 
-            # REALIZANDO MASKING A LAS IMAGENES -----------------------------------------
-            # imagen de segmentacion para cada objeo:
-            tmp_file = segmen_dir//"/"//tmp_id_obj//"_segmen.fits"
+            # Para tarea LOGFILES to IMEDIT TASK
+            obj_aimg[i] = a_img
+            obj_bimg[i] = b_img
+            obj_thetarad[i] = theta_rad
+            obj_rpetro[i] = petro_r
 
-            # # Realizar masking a la observacion:
-            # tmp_infile = observed_dir//"/"//tmp_id_obj//".fits"
-            # tmp_outfile = observed_dir//"/"//tmp_id_obj//"_obs_setmask.fits"
-            # imdelete(tmp_outfile, ver-, >& "dev$null")
-            # imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
-
-            # Realizar masking a los modelos (de SEx):
-            tmp_infile = model_dir//"/"//tmp_id_obj//"_mod.fits"
-            tmp_outfile = model_dir//"/"//tmp_id_obj//"_mod_setmask.fits"
-            imdelete(tmp_outfile, ver-, >& "dev$null")
-            imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
-
-            # # Realizar masking a los residuos (de SEx):
-            # tmp_infile = residual_dir//"/"//tmp_id_obj//"_res.fits"
-            # tmp_outfile = residual_dir//"/"//tmp_id_obj//"_res_setmask.fits"
-            # imdelete(tmp_outfile, ver-, >& "dev$null")
-            # imexpr("a == b || a == 0 ? c : 0", tmp_outfile, tmp_file, seg_number, tmp_infile, verb-)
+            # imagen ejemplo para tamaño de recortes:
+            tmp_file = observed_dir//"/"//tmp_id_obj//".fits"
 
             # VERIFICACION DE TAMAÑO Y CENTRO --------------------------------------------
             # imagenes creadas por SEx tienen el tamaño de la original (tmp_file=segmentation):
@@ -751,12 +1329,17 @@ begin
             ylenght_data = int(imgets.value)
             # se reusaron las varaiables x/ylenght_data
 
-            # pixel mayor mas cercano al centro:
+            # ----- pixel mayor mas cercano al centro: ------
             xc = xwin_img
-            if((xwin_img - xc) >= 0.5){xc += 1}
-            # para y:
+            # if((xwin_img - xc) >= 0.5){xc += 1}
+            # # para y:
             yc = ywin_img
-            if((ywin_img - yc) >= 0.5){yc += 1}
+            # if((ywin_img - yc) >= 0.5){yc += 1}
+            # --------------------------------------------------------
+            # ------ o el pixel menor mas cercano al centro: ------
+            # xc = xwin_img
+            # yc = ywin_img
+            # ====== LO IDEAL SERIA MANEJAR LA PRECISION DECIMAL ======
 
             # Tamaño minimo aceptado para extraer cielo:
             A_outer = scale_r[46] * petro_r * a_img + 0.5
@@ -815,9 +1398,15 @@ begin
             #END condicional: verificacion de tamaño
             }
 
+            # HASTA AHORA NO HA HABIDO PROBLEMA CON OBJETOS CUYAS RP's SEAN MAS MAS GRANDES QUE EL RECORTE
+            # INICIAL EN Kpc (150). SI ES POSIBLE QUE LAS APERTURAS EXCEDAN EL TAMAÑO DEL RECORTE SIN CAUSAR
+            # PROBLEMA, ENTONCES SE PODRAN MANTENER FIJOS:
+            ri_ann = 36
+            ro_ann = 56
+
             # Tamaño minimo aceptado para extraer cielo:
-            A_outer = scale_r[ro_ann] * petro_r * a_img + 0.5
-            B_outer = scale_r[ro_ann] * petro_r * b_img + 0.5
+            A_outer = scale_r[56] * petro_r * a_img + 0.5
+            B_outer = scale_r[56] * petro_r * b_img + 0.5
             # imagen que circunscribe la elipse rotada:
             xlen_min = 2 * sqrt((A_outer * cos(theta_rad))**2 + (B_outer * sin(theta_rad))**2)
             ylen_min = 2 * sqrt((A_outer * sin(theta_rad))**2 + (B_outer * cos(theta_rad))**2)
@@ -825,11 +1414,24 @@ begin
             if(xlen_min % 2 == 0){xlen_min += 1}
             if(ylen_min % 2 == 0){ylen_min += 1}
 
-            # Centros de la imagen a transformar:
+            if(xlen_min > xlenght_data){
+                xlen_min = xlenght_data
+            }
+            if(ylen_min > ylenght_data){
+                ylen_min = ylenght_data
+            }
+
+            # # Centros de la imagen a transformar: ==== REALES (interpolar) ====
+            # # lista para wcstran:
+            # printf("%32s %9f %9f\n", tmp_id_obj, xc, yc, > outsex_dir//"/"//i//"_xycenter.txt")
+            # # y para verificar (seguimiento):
+            # printf("%32s %9f %9f\n", tmp_id_obj, xc, yc, >> outsex_dir//"/"//"xycenter_images.txt")
+            # -------------------------------------
+            # Centros de la imagen a transformar: ==== ENTEROS (reflexion) ====
             # lista para wcstran:
-            printf("%32s %5d %5d\n", tmp_id_obj, xc, yc, > outsex_dir//"/"//i//"_xycenter.txt")
+            printf("%32s %9d %9d\n", tmp_id_obj, xc, yc, > outsex_dir//"/"//i//"_xycenter.txt")
             # y para verificar (seguimiento):
-            printf("%32s %5d %5d\n", tmp_id_obj, xc, yc, >> outsex_dir//"/"//"xycenter_images.txt")
+            printf("%32s %9d %9d\n", tmp_id_obj, xc, yc, >> outsex_dir//"/"//"xycenter_images.txt")
 
             # ============================================
             # WCSCTRAN: Transformar coordenadas X,Y -> RA,DEC
@@ -850,107 +1452,12 @@ begin
     n_list = i
 
     # ============================================
-    # To IMEDIT task
-    # ============================================
-    if(!access("data/data_files/imedit_logfiles")){mkdir("data/data_files/imedit_logfiles")}
-
-    for(i=1;i<=n_list;i+=1){
-
-
-        tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_log"
-        # Cabecera del log_file to imedit:
-        print(":aperture circular", > tmp_outfile)
-        print(":search 2.", >> tmp_outfile)
-        print(":radius 2.", >> tmp_outfile)
-        print(":buffer 1.", >> tmp_outfile)
-        print(":width 2.", >> tmp_outfile)
-        print(":value 0.", >> tmp_outfile)
-        print(":sigma INDEF", >> tmp_outfile)
-        print(":xorder 2", >> tmp_outfile)
-        print(":yorder 2", >> tmp_outfile)
-        print("# Input object image: "//id_obj[i], >> tmp_outfile)
-
-        list = outsex_dir//"/"//id_obj[i]//"_test.cat"
-        while(fscan(list,line) != EOF){
-            if(line != "" && substr(line,1,1) != "#"){
-
-                # Lee la linea de ID_test.cat
-                print(line) | scan (seg_number, tmp_ra, tmp_dec, xwin_img, ywin_img, a_img, b_img, ellip, theta_j00, theta_img, petro_r, iso_areaf, xmin_seg, ymin_seg, xmax_seg, ymax_seg)
-
-                # correcciones (i). radio Petrosian:
-                petro_r = (petro_r / 2)
-                # (ii). theta_img[] from SEx en grados (degrees, °) [-const_pi/2,+const_pi/2]
-                theta_rad = theta_img * const_pi / 180
-
-                # Crear el archivo ID_log para IMEDIT task:
-                if(seg_number != seg_id_obj[i]){            # Todos los otros objetos
-
-                    #  # Tamaño minimo aceptado para extraer cielo:
-                    #  A_outer = 1.0 * petro_r * a_img
-                    #  B_outer = 1.0 * petro_r * b_img
-                    #  xlen_min = 2 * sqrt((A_outer * cos(theta_rad))**2 + (B_outer * sin(theta_rad))**2)
-                    #  ylen_min = 2 * sqrt((A_outer * sin(theta_rad))**2 + (B_outer * cos(theta_rad))**2)
-                    #  # asegurar len_min entero impar:
-                    #  if(xlen_min % 2 == 0){xlen_min += 1}
-                    #  if(ylen_min % 2 == 0){ylen_min += 1}
-                    #
-                    #  # Vertices que cricunscriben el objeto:
-                    #  px1 = xwin_img - int((xlen_min - 1) / 2)
-                    #  px2 = xwin_img + int((xlen_min - 1) / 2)
-                    #  py1 = ywin_img - int((ylen_min - 1) / 2)
-                    #  py2 = ywin_img + int((ylen_min - 1) / 2)
-                    #  # Seccion:
-                    #  trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
-                    #  tmp_infile = bckgrnd_dir//"/"//id_obj[i]//"_bg.fits"//trimsection
-                    #  imstat(tmp_infile, fields="mean", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(local_bg)
-                    #  tmp_infile = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"//trimsection
-                    #  imstat(tmp_infile, fields="midpt", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(local_rms)
-
-                    printf("%d %d 1 a\n", xmin_seg, ymin_seg, >> tmp_outfile)
-                    printf("%d %d 1 a\n", xmax_seg, ymax_seg, >> tmp_outfile)
-                }
-
-            # END IF: lineas validas
-            }
-        # END WHILE: lectura lista
-        }
-        list = ""
-    # END FOR:
-    }
-    # ============================================
-
-    # ============================================
-    # APLICACION IMEDIT task:
-    # ============================================
-    for(i=1;i<=n_list;i+=1){
-
-        tmp_file = "data/data_files/imedit_logfiles/"//id_obj[i]//"_log"
-
-        tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
-        tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        if(!imaccess(tmp_outfile)){
-            imdelete(tmp_outfile, ver-, >& "dev$null")
-            imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
-        }
-
-        tmp_infile = residual_dir//"/"//id_obj[i]//"_res.fits"
-        tmp_outfile = residual_dir//"/"//id_obj[i]//"_res_setmask.fits"
-        if(!imaccess(tmp_outfile)){
-            imdelete(tmp_outfile, ver-, >& "dev$null")
-            imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
-        }
-
-    }
-    # END FOR:
-    # ============================================
-
-    # ============================================
     # Lectura de posiciones ajustadas:
     # ============================================
     printf("\r - solving parameters... 50%%")
 
     # Cabecera de SKYcoord ajustadas
-    printf("#%31s %14s %14s\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.txt")
+    printf("#%31s %16s %16s\n", "ID", "RA_c", "DEC_c", > outsex_dir//"/"//"skycenter_images.txt")
 
     for(i=1;i<=n_list;i+=1){
 
@@ -961,7 +1468,7 @@ begin
                 # ¡¡CUIDADO!! SE ESTAN RECICLANDO LAS VARIABLES
                 # 'find_x' y 'find_y' para leer RA y DEC!
                 print(line) | scan (id_obj[i], find_x[i], find_y[i])
-                printf("%32s %14f %14f\n", id_obj[i], find_x[i], find_y[i], >> outsex_dir//"/"//"skycenter_images.txt")
+                printf("%32s %16f %16f\n", id_obj[i], find_x[i], find_y[i], >> outsex_dir//"/"//"skycenter_images.txt")
             # END IF: lineas validas
             }
         # END WHILE: lectura lista
