@@ -6,8 +6,10 @@ string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
 string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
 bool     force      = yes     {prompt = "force measure with ds9 regions"}
 bool     min_corr   = yes     {prompt = "minimize the sky correction"}
-string   res_filter = "none"  {prompt = "residualfilter none, boxcar or gaussian"}
+string   res_filter = "boxcar"  {prompt = "residualfilter none, boxcar or gaussian"}
 bool     den_seg    = yes     {prompt = "Total area segmented(yes) or obs(no)"}
+bool     both_alpha = no      {prompt = "compute both alpha indices, old+rotational (yes) or rotational only (no, default)"}
+string   ctl_aper    = "2"  {prompt = "'all' (full loop, 1..36) or space-separated Rp list, e.g. '1 1.5 2'"}
 # Experimental stuff:
 # bool   sky_imgs    = no    {prompt = "'yes' usefull to experimental"}
 struct *list
@@ -16,7 +18,7 @@ begin
 
     # ************* Variables Definition *************
     # System variables:
-    int i, j, k
+    int i, j, k, k_start, count
     struct line
     string key_word
     string extract_img
@@ -28,6 +30,11 @@ begin
     real hiblg_clip, hidsk_clip
     real scale_r_offset, scale_r_step
     real scale_r[99]
+    # PSET: ctl_aper (control de aperturas a calcular)
+    int n_aper, aper_list[99]
+    string remaining
+    int sp_pos
+    real tmp_rp
     string expr, expre1, expre2, ellip_expr
     int xlenght_data, ylenght_data
 
@@ -371,6 +378,49 @@ begin
     if(!access(frames_dir)){mkdir(frames_dir)}
     if(!access(cache_dir)){mkdir(cache_dir)}
 
+    # ================================================
+    # CTL_APER: resolver que aperturas (indices de scale_r[]) se calculan.
+    # 'all' -> las 36 aperturas originales [1..36], tal como antes; si no,
+    # se interpreta 'ctl_aper' como una lista de radios petrosianos (Rp)
+    # separados por espacio (p.ej. "1 1.5 2") y se aproxima cada uno al
+    # indice entero mas cercano en scale_r[] (Rp = scale_r_offset +
+    # scale_r_step*(idx-1) => idx = ((Rp-scale_r_offset)/scale_r_step)+1).
+    # ================================================
+    if(strlwr(ctl_aper) == "all"){
+        n_aper = 36
+        for(count=1; count<=36; count+=1){
+            aper_list[count] = count
+        }
+    }else{
+        # Tokeniza 'ctl_aper' (separado por espacios) sin invocar shell:
+        remaining = ctl_aper
+        n_aper = 0
+
+        while(remaining != ""){
+
+            # Recortar espacios iniciales:
+            while(remaining != "" && substr(remaining,1,1) == " "){
+                remaining = substr(remaining, 2, 200)
+            }
+
+            if(remaining != ""){
+                sp_pos = stridx(" ", remaining)
+
+                if(sp_pos == 0){
+                    tmp_rp = real(remaining)
+                    remaining = ""
+                }else{
+                    tmp_rp = real(substr(remaining, 1, sp_pos-1))
+                    remaining = substr(remaining, sp_pos+1, 200)
+                }
+
+                n_aper += 1
+                aper_list[n_aper] = int(((tmp_rp - scale_r_offset) / scale_r_step) + 1 + 0.5)
+            }
+        }
+    }
+
+
     # name of image observed area without bulge:
     if(strlwr(bulge_clip) == "off"){
         printf("_obs_area_%.1f_nn", low_sigma) | scan(obs_area)
@@ -617,29 +667,6 @@ begin
         # area en pixeles del bulbo:
         cum_n_areattl[i] = int(mean_val * n_pix)
 
-        #  # recorta tamaño optimo (RES AREA):
-        #  tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels.fits"//trimsection
-        #  tmp_outfile = area_dir//"/"//id_obj[i]//"_areapixels.fits"
-        #  imcopy(tmp_infile, tmp_outfile, ver-)
-        #  # recorta tamaño optimo (RES AREA 180 rot):
-        #  tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"//trimsection
-        #  tmp_outfile = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
-        #  imcopy(tmp_infile, tmp_outfile, ver-)
-        #  # recorta tamaño optimo (ASYMMETRYCAL AREA PIXELS):
-        #  tmp_infile = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"//trimsection
-        #  tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"
-        #  imcopy(tmp_infile, tmp_outfile, ver-)
-        #  # recorta tamaño optimo (NEGATIVE ASYMMETRYCAL AREA PIXELS):
-        #  tmp_infile = asymm_area_dir//"/"//id_obj[i]//"_negative_asymm_areapixels.fits"//trimsection
-        #  tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_negative_asymm_areapixels.fits"
-        #  imcopy(tmp_infile, tmp_outfile, ver-)
-
-        # (SEGUIMIENTO) observed_setmask:
-        tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_secondmask.fits"//trimsection
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
-        imdelete(tmp_outfile, ver-, >& "dev$null")
-        imcopy(tmp_infile, tmp_outfile, ver-)
-
         # Progress bar proccess:
         printf("\r - Process (cutting images): %d%%", (i*100/n_list))
     }
@@ -653,30 +680,33 @@ begin
     if(!access(rotation_alpha_dir)){mkdir(rotation_alpha_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
 
-    for(i=1;i<=36;i+=1){
+    for(count=1;count<=n_aper;count+=1){
 
-        if(i == 1){
+        i = aper_list[count]
 
-            # I.      %ID  %fr %Nt %Nasymm_1 (I. N asymm. pixels SET: first)
-            printf("#%31s %6s %6s N_%4.2frp", "ID_OBJ", "3/rp", "Nttl", scale_r[i], > residual_alpha_dir//"/"//"asymmpix_set.cat")
+        # Prefijo (columna ID_OBJ, etc.): solo en la primer apertura de la lista.
+        if(count == 1){
 
-            # II.      %ID  %Nb %db %fr %Nt %Areacorr_1 (II. Noise pixels SET: first)
-            printf("#%31s %6s %7s %6s %6s d_%4.2frp", "ID_OBJ", "Nbg", "rho_bg", "3/rp", "Nttl", scale_r[i], > residual_alpha_dir//"/"//"noisepix_set.cat")
+            # I.      %ID  %fr %Nt (I. N asymm. pixels SET: prefijo)
+            printf("#%31s %6s %6s", "ID_OBJ", "3/rp", "Nttl", > residual_alpha_dir//"/"//"asymmpix_set.cat")
 
-            # # III. PROFILE Asymmetry area SET: first
-            # printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"prfl_index_set.cat")
+            # II.      %ID  %Nb %db %fr %Nt (II. Noise pixels SET: prefijo)
+            printf("#%31s %6s %7s %6s %6s", "ID_OBJ", "Nbg", "rho_bg", "3/rp", "Nttl", > residual_alpha_dir//"/"//"noisepix_set.cat")
 
-            # IV. CUMULATIVE Asymmetry area SET: first
-            printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"cum_index_set.cat")
+            # IV. CUMULATIVE Asymmetry area SET: prefijo
+            printf("#%31s", "ID_OBJ", > residual_alpha_dir//"/"//"cum_index_set.cat")
 
-            # V. NORMAL SNR CATALOG
-            #printf("#%31s ⟨SNR⟩_%4.2frp", "ID_OBJ", scale_r[i], > files_dir//"/"//"SNR_set.cat")
+            # COMPACT: prefijo con posicion del objeto (ID_OBJ + coordenadas):
+            printf("#%31s %11s %11s %11s %11s", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > residual_alpha_dir//"/"//"prfl_main_alpha.cat")
+            printf("#%31s %11s %11s %11s %11s", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > residual_alpha_dir//"/"//"cum_main_alpha.cat")
 
-            # VI. ANULLAR SNR CATALOG
-            #print("# NOTE: SNR_set for annular if bulge_clip != 'off'", > files_dir//"/"//"SNR_ann_set.cat")
-            #printf("#%31s ⟨SNR⟩_%4.2frp", "ID_OBJ", scale_r[i], > files_dir//"/"//"SNR_ann_set.cat")
+        }
 
-        }else if(i == 36){
+        # Etiqueta de columna de ESTA apertura: en cada iteracion, con o sin
+        # salto de linea segun sea la ultima apertura seleccionada o no
+        # (independiente de 'count==1', para que ambas ramas se ejecuten
+        # cuando solo hay una apertura seleccionada, n_aper==1):
+        if(count == n_aper){
 
             #  I.     %Nasymm_last (I. N asymm. pixels SET: last)
             printf(" N_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"asymmpix_set.cat")
@@ -684,17 +714,12 @@ begin
             # II. Noise pixel SET: last
             printf(" d_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"noisepix_set.cat")
 
-            # # III. PROFILE Asymmetry area SET: first
-            # printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
+            # IV. CUMULATIVE Asymmetry area SET: last
+            printf(" alpha_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
 
-            # IV. CUMULATIVE Asymmetry area SET: first
-            printf(" cum_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
-
-            # V. SNR CATALOG
-            #printf(" ⟨SNR⟩_%4.2frp %11s\n", scale_r[i], "SNR_ttl_1rp", >> files_dir//"/"//"SNR_set.cat")
-
-            # VI. ANULLAR SNR CATALOG
-            #printf(" ⟨SNR⟩_%4.2frp %11s\n", scale_r[i], "SNR_ttl_1rp", >> files_dir//"/"//"SNR_ann_set.cat")
+            # COMPACT: ultima columna, con salto de linea:
+            printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_main_alpha.cat")
+            printf(" alpha_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"cum_main_alpha.cat")
 
         }else{
             # I.     %Nasymm_i (All parameters catalog:)
@@ -703,17 +728,12 @@ begin
             # II. Noise pixel SET: mid
             printf(" d_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"noisepix_set.cat")
 
-            # # III. PROFILE Asymmetry area SET: mid
-            # printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
-
             # IV. CUMULATIVE Asymmetry area SET: mid
-            printf(" cum_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
+            printf(" alpha_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
 
-            # V. SNR CATALOG
-            #printf(" ⟨SNR⟩_%4.2frp", scale_r[i], >> files_dir//"/"//"SNR_set.cat")
-
-            # VI. ANULLAR SNR CATALOG
-            #printf(" ⟨SNR⟩_%4.2frp", scale_r[i], >> files_dir//"/"//"SNR_ann_set.cat")
+            # COMPACT: columna intermedia, sin salto de linea:
+            printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_main_alpha.cat")
+            printf(" alpha_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"cum_main_alpha.cat")
 
         }
 
@@ -738,26 +758,14 @@ begin
     delete(rotation_alpha_dir//"/"//"rot_noisepix_set.cat", >& "dev$null")
     delete(rotation_alpha_dir//"/"//"rot_prfl_index_set.cat", >& "dev$null")
     delete(rotation_alpha_dir//"/"//"rot_cum_index_set.cat", >& "dev$null")
+    delete(rotation_alpha_dir//"/"//"rot_prfl_main_alpha.cat", >& "dev$null")
+    delete(rotation_alpha_dir//"/"//"rot_cum_main_alpha.cat", >& "dev$null")
     copy(residual_alpha_dir//"/"//"asymmpix_set.cat", rotation_alpha_dir//"/"//"rot_asymmpix_set.cat")
     copy(residual_alpha_dir//"/"//"noisepix_set.cat", rotation_alpha_dir//"/"//"rot_noisepix_set.cat")
     copy(residual_alpha_dir//"/"//"prfl_index_set.cat", rotation_alpha_dir//"/"//"rot_prfl_index_set.cat")
     copy(residual_alpha_dir//"/"//"cum_index_set.cat", rotation_alpha_dir//"/"//"rot_cum_index_set.cat")
-
-    # COMPACT RESIDUAL AREA INDEX:
-
-    # VII. Residual Area with center (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s prf%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > residual_alpha_dir//"/"//"prfl_main_alpha.cat")
-
-    # IV. Residual area with center (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s cum%3.1f_1.0rp cum%3.1f_1.5rp cum%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > residual_alpha_dir//"/"//"cum_main_alpha.cat")
-
-    # COMPACT RESIDUAL ROTATION AREA INDEX:
-
-    # VIII. Residual Rotated Area with center (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s prfl%3.1f_1.0rp prfl%3.1f_1.5rp prfl%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_prfl_main_alpha.cat")
-
-    # IX. Residual Rotated Area with center (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s alpha%3.1f_1.0rp alpha%3.1f_1.5rp alpha%3.1f_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", low_sigma, low_sigma, low_sigma, > rotation_alpha_dir//"/"//"rot_cum_main_alpha.cat")
+    copy(residual_alpha_dir//"/"//"prfl_main_alpha.cat", rotation_alpha_dir//"/"//"rot_prfl_main_alpha.cat")
+    copy(residual_alpha_dir//"/"//"cum_main_alpha.cat", rotation_alpha_dir//"/"//"rot_cum_main_alpha.cat")
 
     # DENSITY NOISE CATALOG:
     printf("#%31s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s %8s\n", "ID_OBJ", "min_rho", "ttl_rho", "A1_ann", "N1_ann", "rho1", "A2_ann", "N2_ann", "rho2", "A3_ann", "N3_ann", "rho3", "A4_ann", "N4_ann", "rho4", > residual_alpha_dir//"/"//"patch_bg_set.cat")
@@ -778,7 +786,14 @@ begin
     # ===============================================================
     print("\n\n --------- Computing alpha index ----------\n")
 
-    for(k=1;k<=2;k+=1){
+    # both_alpha=yes -> corre old(k=1) + rotational(k=2); both_alpha=no -> solo rotational(k=2):
+    if(both_alpha == yes){
+        k_start = 1
+    }else{
+        k_start = 2
+    }
+
+    for(k=k_start;k<=2;k+=1){
 
         for(i=1;i<=n_list;i+=1){
 
@@ -929,7 +944,9 @@ begin
             }
 
             # Para ampliar la apertura de medida:
-            for(j=1;j<=36;j+=1){
+            for(count=1;count<=n_aper;count+=1){
+
+                j = aper_list[count]
 
                 # Asymmetrical pixel image in aperture scale_r[]
                 imdelete(cache_dir//"/"//"tmp_asymmpix_ap", >& "dev$null")
@@ -1021,7 +1038,24 @@ begin
                 delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30] * petro_r[i])**2) - bulge_area[i]
 
                 if(den_seg == yes){
-                    n_ttl_cum = iso_areaf[i] - bulge_area[i]
+                    #n_ttl_cum = iso_areaf[i] - bulge_area[i]
+
+                    printf("pawlik_%.1f/binary_masks/%s_binarymask.fits", low_sigma, id_obj[i]) | scan(tmp_infile)
+
+                    if(!access(tmp_infile)){
+                        printf("\n\n - WRNNG: Doesn't exist pawlik seg %.1f sigma\n", low_sigma)
+                        print(" - pause...(press enter)")
+                        scan(tmp_wait)
+                        scan(tmp_wait)
+
+                        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        n_ttl_cum =  (mean_val * n_pix) - bulge_area[i]
+
+                    }else{
+                        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                        n_ttl_cum =  (mean_val * n_pix) - bulge_area[i]
+                    }
+
                 }else{
                     n_ttl_cum = (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
                 }
@@ -1090,20 +1124,22 @@ begin
                 # PRINT CATALOGS
                 # ====================================================================================
 
-                if(j == 1){
-                    #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: first)
-                    printf("%32s %6.3f %6d %8d", id_obj[i], (3/petro_r[i]), n_ttl_cum, n_asymmpix, >> out_cat//"asymmpix_set.cat")
+                # Prefijo (ID_OBJ y columnas fijas): solo en la primer apertura de la lista.
+                if(count == 1){
+                    #       %ID  %fcor %Nt (# I. Asymmetrical pixel SET: prefijo)
+                    printf("%32s %6.3f %6d", id_obj[i], (3/petro_r[i]), n_ttl_cum, >> out_cat//"asymmpix_set.cat")
 
-                    #       %ID  %Nb %db   %fr   %Nt %Areacorr_1 (II. Noise pixel SET: first)
-                    printf("%32s %6d %7.4f %6.3f %6d %8.2f", id_obj[i], nbg_noisepix, min_densitybg, (3/petro_r[i]), n_ttl_cum, delta_area, >> out_cat//"noisepix_set.cat")
+                    #       %ID  %Nb %db   %fr   %Nt (II. Noise pixel SET: prefijo)
+                    printf("%32s %6d %7.4f %6.3f %6d", id_obj[i], nbg_noisepix, min_densitybg, (3/petro_r[i]), n_ttl_cum, >> out_cat//"noisepix_set.cat")
 
-                    # # III. PROFILE Asymmetry area SET: first
-                    # #printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
+                    # IV. CUMULATIVE Asymmetry area SET: prefijo
+                    printf("%32s", id_obj[i], >> out_cat//"cum_index_set.cat")
+                }
 
-                    # IV. CUMULATIVE Asymmetry area SET: first
-                    printf("%32s %11.4f", id_obj[i], cum_index_alpha, >> out_cat//"cum_index_set.cat")
-
-                }else if(j == 36){
+                # Valor de ESTA apertura: en cada iteracion, con o sin salto de
+                # linea segun sea la ultima seleccionada o no (independiente de
+                # 'count==1', para que ambas ramas corran si n_aper==1):
+                if(count == n_aper){
 
                     # I. Asymmetrical pixel SET: last
                     printf(" %8d\n", n_asymmpix, >> out_cat//"asymmpix_set.cat")
@@ -1111,11 +1147,8 @@ begin
                     # II. Noise pixel SET: last
                     printf(" %8.2f\n", delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # # III. PROFILE Asymmetry area SET: last
-                    # printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
-
                     # IV. CUMULATIVE Asymmetry area SET: last
-                    printf(" %11.4f\n", cum_index_alpha, >> out_cat//"cum_index_set.cat")
+                    printf(" %12.4f\n", cum_index_alpha, >> out_cat//"cum_index_set.cat")
 
                 }else{
 
@@ -1125,11 +1158,8 @@ begin
                     # II. Noise pixel SET: mid
                     printf(" %8.2f", delta_area, >> out_cat//"noisepix_set.cat")
 
-                    # # III. PROFILE Asymmetry area SET: mid
-                    # printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
-
                     # IV. CUMULATIVE Asymmetry area SET: mid
-                    printf(" %11.4f", cum_index_alpha, >> out_cat//"cum_index_set.cat")
+                    printf(" %12.4f", cum_index_alpha, >> out_cat//"cum_index_set.cat")
                 }
 
                 # EXPERIMENTAL ---------------------------
@@ -1145,41 +1175,29 @@ begin
                 # END EXPERIME ...........................
 
                 # ====================================================================================
-                # PRINT CATALOGS: Tree fixed apertures
+                # PRINT CATALOGS: main_alpha (ID_OBJ + coordenadas + una columna por apertura)
                 # ====================================================================================
-                if(j == 16){
 
-                    # PROFILE Main catalog Asymetry
-                    printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
-
-                    # CUMULATIVE Main catalog Asymetry
-                    printf("%32s %11.4f %11.4f %11.8f %11.8f %15.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
-
-                }else if(j == 26){
-
-                    # PROFILE MAIN catalog Asymmetry
-                    printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
-
-                    # CUMULATIVE MAIN catalog Asymmetry
-                    printf(" %15.4f", cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
-
-                    # ALPHA INDEX DS9 REGION: measurement (1.5xRp) aperture: eliptical
-                    expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(cum_index_alpha)//'}'
-                    print(expr, >> out_ds9_cat//"alpha_index.reg")
-
-                }else if(j == 36){
-
-                    # PROFILE MAIN catalog Asymmetry
-                    printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
-
-                    # CUMULATIVE MAIN catalog Asymmetry
-                    printf(" %15.4f\n", cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
-
-                    # CUMULATIVE INDEX DS9 REGION: measurement (2xRp) aperture: eliptical
-                    expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(1rp): '//str(cum_index_alpha)//'}'
-                    print(expr, >> out_ds9_cat//"alpha_index.reg")
-
+                # Prefijo (ID_OBJ + coordenadas): solo en la primer apertura de la lista.
+                if(count == 1){
+                    printf("%32s %11.4f %11.4f %11.8f %11.8f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], >> out_cat//"prfl_main_alpha.cat")
+                    printf("%32s %11.4f %11.4f %11.8f %11.8f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], >> out_cat//"cum_main_alpha.cat")
                 }
+
+                # Valor de ESTA apertura (con o sin salto de linea segun sea la ultima o no,
+                # independiente de 'count==1' para que ambas ramas corran si n_aper==1):
+                if(count == n_aper){
+                    printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
+                    printf(" %12.4f\n", cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
+                }else{
+                    printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
+                    printf(" %12.4f", cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
+                }
+
+                # ALPHA INDEX DS9 REGION: una elipse por cada apertura seleccionada:
+                expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(scale_r[j] * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(scale_r[j] * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//' cum_'//str(scale_r[j])//'rp: '//str(cum_index_alpha)//'}'
+                print(expr, >> out_ds9_cat//"alpha_index.reg")
+
                 # END PRINT CATALOGS ===============================================================
 
 

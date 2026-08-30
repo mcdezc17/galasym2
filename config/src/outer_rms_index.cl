@@ -1,8 +1,9 @@
 procedure outer_rms_index()
 
 string center_rot = "rms"   {prompt = "'abs' or 'rms' minimization"}
-real   bulge_clip = 10.0    {prompt = "sigma-clip avoid bulge"}
+string bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge ('off' to disable)"}
 bool   force      = yes     {prompt = "force measure with ds9 regions"}
+string ctl_aper    = "2"  {prompt = "'all' (full loop, 1..36) or space-separated Rp list, e.g. '1 1.5 2'"}
 
 struct *list
 
@@ -10,15 +11,21 @@ begin
 
 # ************* Variables Definition *************
     # System variables:
-    int i, j, k
+    int i, j, k, count
     struct line
     string key_word
     real mean_val, n_pix
     # constants........
     real const_pi
     # patrameters......
+    real hiblg_clip
     real scale_r_offset, scale_r_step
     real scale_r[99]
+    # PSET: ctl_aper (control de aperturas a calcular)
+    int n_aper, aper_list[99]
+    string remaining
+    int sp_pos
+    real tmp_rp
     string expr, expre1, expre2, ellip_expr
 
     # PSET: datapar
@@ -85,7 +92,14 @@ begin
     string tmp_infile, tmp_infile2, tmp_infile3, tmp_outfile
 
     # ASIGNACIÓN DE  OTROS DIRECTORIOS ------------------------
-    printf("outer_rms_index_%.1f", bulge_clip) | scan(rms_dir)
+    if(strlwr(bulge_clip) == "off"){
+        # 'off' -> no crea hueco (clip "infinito"):
+        hiblg_clip = 1.0e6
+        printf("outer_rms_index_nn") | scan(rms_dir)
+    }else{
+        hiblg_clip = real(bulge_clip)
+        printf("outer_rms_index_%.1f", hiblg_clip) | scan(rms_dir)
+    }
     cache_dir = rms_dir//"/"//"cache"
     # images:
     rmsimg_dir = rms_dir//"/"//"images"
@@ -252,6 +266,48 @@ begin
     if(!access(frames_dir)){mkdir(frames_dir)}
     if(!access(residualimg_dir)){mkdir(residualimg_dir)}
 
+    # ================================================
+    # CTL_APER: resolver que aperturas (indices de scale_r[]) se calculan.
+    # 'all' -> las 36 aperturas originales [1..36], tal como antes; si no,
+    # se interpreta 'ctl_aper' como una lista de radios petrosianos (Rp)
+    # separados por espacio (p.ej. "1 1.5 2") y se aproxima cada uno al
+    # indice entero mas cercano en scale_r[] (Rp = scale_r_offset +
+    # scale_r_step*(idx-1) => idx = ((Rp-scale_r_offset)/scale_r_step)+1).
+    # ================================================
+    if(strlwr(ctl_aper) == "all"){
+        n_aper = 36
+        for(count=1; count<=36; count+=1){
+            aper_list[count] = count
+        }
+    }else{
+        # Tokeniza 'ctl_aper' (separado por espacios) sin invocar shell:
+        remaining = ctl_aper
+        n_aper = 0
+
+        while(remaining != ""){
+
+            # Recortar espacios iniciales:
+            while(remaining != "" && substr(remaining,1,1) == " "){
+                remaining = substr(remaining, 2, 200)
+            }
+
+            if(remaining != ""){
+                sp_pos = stridx(" ", remaining)
+
+                if(sp_pos == 0){
+                    tmp_rp = real(remaining)
+                    remaining = ""
+                }else{
+                    tmp_rp = real(substr(remaining, 1, sp_pos-1))
+                    remaining = substr(remaining, sp_pos+1, 200)
+                }
+
+                n_aper += 1
+                aper_list[n_aper] = int(((tmp_rp - scale_r_offset) / scale_r_step) + 1 + 0.5)
+            }
+        }
+    }
+
     for(i=1;i<=n_list;i+=1){
 
         force_obj = "force_"//id_obj[i]//".reg"
@@ -321,7 +377,7 @@ begin
         imstat(tmp_infile2, fields="midpt", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(local_rms)
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr("(a >= b*c) && (d == e)", tmp_outfile, tmp_infile, bulge_clip, local_rms, tmp_infile3, seg_number[i], verb-)
+        imexpr("(a >= b*c) && (d == e)", tmp_outfile, tmp_infile, hiblg_clip, local_rms, tmp_infile3, seg_number[i], verb-)
 
         # recorta tamaño optimo (BULBO a evitar):
         tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"//trimsection
@@ -374,50 +430,65 @@ begin
     if(!access(rmscat_dir)){mkdir(rmscat_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
 
-    for(i=1;i<=36;i+=1){
+    for(count=1;count<=n_aper;count+=1){
 
-        if(i == 1){
+        i = aper_list[count]
 
-            # I.      %ID  %fr %Nt %Nasymm_1 (I. N asymm. pixels SET: first)
-            printf("#%31s sumF_%4.2frp", "ID_OBJ", scale_r[i], > rmscat_dir//"/"//"set_flux_outer_rms.cat")
+        # Prefijo (columna ID_OBJ): solo en la primer apertura de la lista.
+        if(count == 1){
 
-            # II. PROFILE Asymmetry area SET: first
-            printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > rmscat_dir//"/"//"prfl_set_outer_rms.cat")
+            # I. Flux SET: prefijo
+            printf("#%31s", "ID_OBJ", > rmscat_dir//"/"//"set_flux_outer_rms.cat")
 
-            # III. CUMULATIVE Asymmetry area SET: first
-            printf("#%31s cum_%4.2frp", "ID_OBJ", scale_r[i], > rmscat_dir//"/"//"cum_set_outer_rms.cat")
+            # II. PROFILE index SET: prefijo
+            printf("#%31s", "ID_OBJ", > rmscat_dir//"/"//"prfl_set_outer_rms.cat")
 
-        }else if(i == 36){
+            # III. CUMULATIVE index SET: prefijo
+            printf("#%31s", "ID_OBJ", > rmscat_dir//"/"//"cum_set_outer_rms.cat")
 
-            #  I.     %Nasymm_last (I. N asymm. pixels SET: last)
+            # COMPACT: prefijo con posicion del objeto (ID_OBJ + coordenadas):
+            printf("#%31s %11s %11s %11s %11s", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > rmscat_dir//"/"//"prfl_main_outer_rms.cat")
+            printf("#%31s %11s %11s %11s %11s", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > rmscat_dir//"/"//"cum_main_outer_rms.cat")
+
+        }
+
+        # Etiqueta de columna de ESTA apertura: en cada iteracion, con o sin
+        # salto de linea segun sea la ultima apertura seleccionada o no
+        # (independiente de 'count==1', para que ambas ramas se ejecuten
+        # cuando solo hay una apertura seleccionada, n_aper==1):
+        if(count == n_aper){
+
+            # I. Flux SET: last
             printf(" sumF_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"set_flux_outer_rms.cat")
 
-            # II. PROFILE Asymmetry area SET: first
+            # II. PROFILE index SET: last
             printf(" prfl_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"prfl_set_outer_rms.cat")
 
-            # III. CUMULATIVE Asymmetry area SET: first
+            # III. CUMULATIVE index SET: last
             printf(" cum_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"cum_set_outer_rms.cat")
 
+            # COMPACT: ultima columna, con salto de linea:
+            printf(" prfl_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
+            printf(" cum_%4.2frp\n", scale_r[i], >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
+
         }else{
-            # I.     %Nasymm_i (All parameters catalog:)
+
+            # I. Flux SET: mid
             printf(" sumF_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"set_flux_outer_rms.cat")
 
-            # II. PROFILE Asymmetry area SET: mid
+            # II. PROFILE index SET: mid
             printf(" prfl_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"prfl_set_outer_rms.cat")
 
-            # III. CUMULATIVE Asymmetry area SET: mid
+            # III. CUMULATIVE index SET: mid
             printf(" cum_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"cum_set_outer_rms.cat")
+
+            # COMPACT: columna intermedia, sin salto de linea:
+            printf(" prfl_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
+            printf(" cum_%4.2frp", scale_r[i], >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
 
         }
     # END FOR: header catalogs
     }
-
-    # COMPACT CATALOG ABS INDEX:
-    # IV. (PROFILE CURVE)
-    printf("#%31s %11s %11s %11s %11s prfl_1.0rp prfl_1.5rp prfl_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > rmscat_dir//"/"//"prfl_main_outer_rms.cat")
-
-    # V. (CUMMULATIVE CURVE)
-    printf("#%31s %11s %11s %11s %11s cum_1.0rp cum_1.5rp cum_2.0rp\n", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > rmscat_dir//"/"//"cum_main_outer_rms.cat")
 
     #   # DS9 HEADER ACATALOG INDEX VALUE (PROFILE CURVE):
     #   print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"prfl_index.reg")
@@ -484,7 +555,9 @@ begin
         printf("\r - Analysing object........: %d / %d", i, n_list)
 
         # AUMENTO DE APERTURAS:
-        for(j=1;j<=36;j+=1){
+        for(count=1;count<=n_aper;count+=1){
+
+            j = aper_list[count]
 
             # Flujo residual dentro de apertura:
             tmp_infile = residualimg_dir//"/"//id_obj[i]//"_min_rms_residual.fits"
@@ -596,18 +669,23 @@ begin
             # ====================================================================================
             # IMPRIMIR CATALOGOS
             # ====================================================================================
-            if(j == 1){
+            if(count == 1){
 
-                #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: first)
+                #       %ID  %fcor %Nt %Nasymm_1 (# I. Asymmetrical pixel SET: prefijo)
                 printf("%32s %11f", id_obj[i], numerator_ttl_cumm, >> rmscat_dir//"/"//"set_flux_outer_rms.cat")
 
-                # II. PROFILE index SET: first
+                # II. PROFILE index SET: prefijo
                 printf("%32s %11.4f", id_obj[i], rms_prfl_index, >> rmscat_dir//"/"//"prfl_set_outer_rms.cat")
 
-                # III. CUMULATIVE index SET: first
+                # III. CUMULATIVE index SET: prefijo
                 printf("%32s %11.4f", id_obj[i], rms_cumm_index, >> rmscat_dir//"/"//"cum_set_outer_rms.cat")
 
-            }else if(j == 36){
+            }
+
+            # Valor de ESTA apertura: en cada iteracion, con o sin salto de
+            # linea segun sea la ultima seleccionada o no (independiente de
+            # 'count==1', para que ambas ramas corran si n_aper==1):
+            if(count == n_aper){
 
                 # I. Asymmetrical pixel SET: last
                 printf(" %11f\n", numerator_ttl_cumm, >> rmscat_dir//"/"//"set_flux_outer_rms.cat")
@@ -632,49 +710,32 @@ begin
             }
 
             # ====================================================================================
-            # PRINT CATALOGS: Tree fixed apertures
+            # PRINT CATALOGS: main_outer_rms (ID_OBJ + coordenadas + una columna por apertura)
             # ====================================================================================
-            if(j == 16){
 
-                # PROFILE Main catalog Asymetry
-                printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], rms_prfl_index, >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
-
-                # CUMULATIVE Main catalog Asymetry
-                printf("%32s %11.4f %11.4f %11.8f %11.8f %11.4f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], rms_cumm_index, >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
-
-            }else if(j == 26){
-
-                # PROFILE MAIN catalog Asymmetry
-                printf(" %11.4f", rms_prfl_index, >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
-
-                # CUMULATIVE MAIN catalog Asymmetry
-                printf(" %11.4f", rms_cumm_index, >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
-
-                #   # ALPHA INDEX DS9 REGION: measurement (1.5xRp) aperture: eliptical
-                #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(prfl_index_alpha)//'}'
-                #   print(expr, >> out_ds9_cat//"prfl_index.reg")
-                #
-                #   # ALPHA INDEX DS9 REGION: measurement (1.5xRp) aperture: eliptical
-                #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(1.5 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(1.5 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//', (1.55rp): '//str(cum_index_alpha)//'}'
-                #   print(expr, >> out_ds9_cat//"cum_index.reg")
-
-            }else if(j == 36){
-
-                # PROFILE MAIN catalog Asymmetry
-                printf(" %11.4f\n", rms_prfl_index, >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
-
-                # CUMULATIVE MAIN catalog Asymmetry
-                printf(" %11.4f\n", rms_cumm_index, >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
-
-                #   # PROFILE INDEX DS9 REGION: measurement (2xRp) aperture: eliptical
-                #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(1rp): '//str(prfl_index_alpha)//'}'
-                #   print(expr, >> out_ds9_cat//"prfl_index.reg")
-                #
-                #   # CUMULATIVE INDEX DS9 REGION: measurement (2xRp) aperture: eliptical
-                #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(2 * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(2 * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={(1rp): '//str(cum_index_alpha)//'}'
-                #   print(expr, >> out_ds9_cat//"cum_index.reg")
-
+            # Prefijo (ID_OBJ + coordenadas): solo en la primer apertura de la lista.
+            if(count == 1){
+                printf("%32s %11.4f %11.4f %11.8f %11.8f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
+                printf("%32s %11.4f %11.4f %11.8f %11.8f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
             }
+
+            # Valor de ESTA apertura (con o sin salto de linea segun sea la ultima o no,
+            # independiente de 'count==1' para que ambas ramas corran si n_aper==1):
+            if(count == n_aper){
+                printf(" %11.4f\n", rms_prfl_index, >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
+                printf(" %11.4f\n", rms_cumm_index, >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
+            }else{
+                printf(" %11.4f", rms_prfl_index, >> rmscat_dir//"/"//"prfl_main_outer_rms.cat")
+                printf(" %11.4f", rms_cumm_index, >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
+            }
+
+            #   # OUTER RMS INDEX DS9 REGION: una elipse por cada apertura seleccionada:
+            #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(scale_r[j] * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(scale_r[j] * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//' prfl_'//str(scale_r[j])//'rp: '//str(rms_prfl_index)//'}'
+            #   print(expr, >> ds9_dir//"/"//"prfl_index.reg")
+            #
+            #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(scale_r[j] * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(scale_r[j] * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//' cum_'//str(scale_r[j])//'rp: '//str(rms_cumm_index)//'}'
+            #   print(expr, >> ds9_dir//"/"//"cum_index.reg")
+
             # END PRINT CATALOGS ===============================================================
 
         # END FOR: aumento de aperturas
