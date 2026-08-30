@@ -995,7 +995,7 @@ begin
             delete(tmp_outfile, ver-, >& "dev$null")
             copy(tmp_infile, tmp_outfile)
 
-            printf("DETECT_MINAREA %d\n", (obj_isoareaf[i] - 100), >> tmp_outfile)
+            printf("DETECT_MINAREA %d\n", (obj_isoareaf[i]/2), >> tmp_outfile)
 
         # END if: lines no comentadas no vacias
         }
@@ -1135,8 +1135,8 @@ begin
     }
 
     print(" - pausa despues de SECOND-cleaning...")
-    scan(tmp_wait)
-    scan(tmp_wait)
+    # scan(tmp_wait)
+    # scan(tmp_wait)
 
     # *****************************************************************************************************************
     # INICIO ************************** TERCERA EJECUCIÓN DE SEXTRACTOR (MODELOS) *************************************
