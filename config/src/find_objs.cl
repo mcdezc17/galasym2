@@ -582,30 +582,30 @@ begin
     if(!access(residual_dir)){mkdir(residual_dir)}
 
     # limpieza de achivos residuales
-    # --- cold mode SEx ---
-    delete(outsex_dir//"/cold_test.cat", ver-, >& "dev$null")
-    # delete(outsex_dir//"/cold_bgrms.fits", ver-, >& "dev$null")
-    # delete(segmen_dir//"/cold_filt.fits", ver-, >& "dev$null")
-    delete(segmen_dir//"/cold_segmen.fits", ver-, >& "dev$null")
+    # --- first mode SEx ---
+    delete(outsex_dir//"/first_test.cat", ver-, >& "dev$null")
+    # delete(outsex_dir//"/first_bgrms.fits", ver-, >& "dev$null")
+    # delete(segmen_dir//"/first_filt.fits", ver-, >& "dev$null")
+    delete(segmen_dir//"/first_segmen.fits", ver-, >& "dev$null")
 
     # *****************************************************************************************************************
     # INICIO ************************** PRIMERA EJECUCIÓN DE SEXTRACTOR (MODELOS) *************************************
     # *****************************************************************************************************************
 
     # Archivo de configuracion modo frio:
-    myconfig_se = "config/sextractor/cold_default.sex"
+    myconfig_se = "config/sextractor/first_default.sex"
 
     # Lista de recortes:
     list = "data/data_files/accepted_imgs.txt"
     i = 0
-    # Bucle para ejecutar SEx modo COLD:
+    # Bucle para ejecutar SEx modo FIRST:
     while(fscan(list, line) != EOF){
         if (line != "" && substr(line, 1, 1) != "#") {
             i += 1
             print(line) | scan(id_obj[i], extract_img)
 
             # tmp_file = outsex_dir//"/"//id_obj[i]//"_sextracted.cat"
-            tmp_file = outsex_dir//"/"//id_obj[i]//"_cold_sextracted.cat"
+            tmp_file = outsex_dir//"/"//id_obj[i]//"_first_sextracted.cat"
 
             if(!access(tmp_file)){
 
@@ -622,31 +622,31 @@ begin
                 printf("! %s %s -c %s \n", key_run_se, extract_img, myconfig_se) | cl
 
                 # Renombrar tes.cat
-                rename("data/results_sex/cold_test.cat", "data/results_sex/"//id_obj[i]//"_cold_test.cat")
+                rename("data/results_sex/first_test.cat", "data/results_sex/"//id_obj[i]//"_first_test.cat")
                 # Renombrar MAPA RMS
-                # rename("data/results_sex/cold_bgrms.fits", "data/results_sex/"//id_obj[i]//"_rmsmap.fits")
+                # rename("data/results_sex/first_bgrms.fits", "data/results_sex/"//id_obj[i]//"_rmsmap.fits")
                 # Renombrar IMG Filered
-                # rename("data/data_images/segmentation/cold_filt.fits", "data/data_images/segmentation/"//id_obj[i]//"_cold_filt.fits")
+                # rename("data/data_images/segmentation/first_filt.fits", "data/data_images/segmentation/"//id_obj[i]//"_first_filt.fits")
                 # Renombrar IMG Segmentacion
-                rename("data/data_images/segmentation/cold_segmen.fits", "data/data_images/segmentation/"//id_obj[i]//"_cold_segmen.fits")
+                rename("data/data_images/segmentation/first_segmen.fits", "data/data_images/segmentation/"//id_obj[i]//"_first_segmen.fits")
                 # =================================================================
 
                 # Identificar el objeto en el centro de la imagen (asume que la galaxa siempre sera):
-                print(" - Identifying object (cold-mode)...")
+                print(" - Identifying object (first-mode)...")
                 # columna para identificador (# ID):
                 printf("# ID\n %s\n", id_obj[i], > outsex_dir//"/"//"tmp_col_id.cat")
 
                 # STILTS > obj in center of image:
                 expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='addcol dist \"sqrt(($4-%.2f)*($4-%.2f) + ($5-%.2f)*($5-%.2f))\"; sorthead 1 dist' in=%s > %s/tmp_line.cat"
-                tmp_infile2 = outsex_dir//"/"//id_obj[i]//"_cold_test.cat"
+                tmp_infile2 = outsex_dir//"/"//id_obj[i]//"_first_test.cat"
                 printf(expre, fit_xc, fit_xc, fit_yc, fit_yc, tmp_infile2, outsex_dir, id_obj[i]) | cl
 
                 # Agrega columna ID(col1_1):
-                expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/%s_cold_sextracted.cat"
+                expre = "! stilts tjoin nin=2 ifmt1=ascii ifmt2=ascii in1=%s/tmp_col_id.cat in2=%s/tmp_line.cat ofmt=ascii out=%s/%s_first_sextracted.cat"
                 printf(expre, outsex_dir, outsex_dir, outsex_dir, id_obj[i]) | cl
 
                 # Imprime archivo que contiene LA LINEA DEL OBJETO en una lista de (directorios) archivos
-                printf("%s/%s_cold_sextracted.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"cold_inlist.lis")
+                printf("%s/%s_first_sextracted.cat\n", outsex_dir, id_obj[i], >> outsex_dir//"/"//"first_inlist.lis")
 
                 delete(outsex_dir//"/"//"tmp_col_id.cat", ver-, >& "dev$null")
                 delete(outsex_dir//"/"//"tmp_line.cat", ver-, >& "dev$null")
@@ -654,7 +654,7 @@ begin
 
             }else{
                 print(" ------------------------------------------")
-                print(" This object has already been COLD-SExtracted!")
+                print(" This object has already been FIRST-SExtracted!")
                 printf(" - img: %4d | OBJ: %s \n", i, id_obj[i])
             }
         # END IF
@@ -664,21 +664,21 @@ begin
     list = ""
     print(" ------------------------------------------")
 
-    # ************************* CONCATENACION COLD SEXTRACTIONS *******************************
-    print(" - Concatenating COLD-SExtractions...")
+    # ************************* CONCATENACION FIRST SEXTRACTIONS *******************************
+    print(" - Concatenating FIRST-SExtractions...")
 
     # CONCATENACION
-    delete(outsex_dir//"/"//"cold_sextracted.cat", ver-, >& "dev$null")
-    expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/cold_inlist.lis) > %s/cold_sextracted.cat"
+    delete(outsex_dir//"/"//"first_sextracted.cat", ver-, >& "dev$null")
+    expre = "! awk 'FNR==1 && NR==1 {print; next} /^#/ {next} {print}' $(<%s/first_inlist.lis) > %s/first_sextracted.cat"
     printf(expre, outsex_dir, outsex_dir) | cl
 
-    print(" - Concatenating COLD-SExtractions... Ok.")
-    # **************************** TERMINA ETAPA COLD MODE ************************************
+    print(" - Concatenating FIRST-SExtractions... Ok.")
+    # **************************** TERMINA ETAPA FIRST MODE ************************************
 
-    # Leer la lista de objetos cold-sextracted para proceder a limpiar cold-spurious:
+    # Leer la lista de objetos first-sextracted para proceder a limpiar first-spurious:
     print("\n ------------------------------------------")
-    print(" - Prepare to cold-cleaning (identify)...")
-    list = outsex_dir//"/"//"cold_sextracted.cat"
+    print(" - Prepare to first-cleaning (identify)...")
+    list = outsex_dir//"/"//"first_sextracted.cat"
     i = 0
     while(fscan(list,line) != EOF){
         if(line != "" && substr(line,1,1) != "#" ){
@@ -698,7 +698,7 @@ begin
     list = ""
     n_list = i
 
-    print(" - Prepare to cold-cleaning (create imeditfiles)...")
+    print(" - Prepare to first-cleaning (create imeditfiles)...")
 
     # -------------------------------------------------------------------
     # ----------- LOGFILES TO IMEDIT FIRST SEXTRACTION ------------------
@@ -707,9 +707,9 @@ begin
     if(!access("data/data_files/imedit_logfiles")){mkdir("data/data_files/imedit_logfiles")}
 
     # cabecera regiones ds9:
-    print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"cold_masking.reg")
-    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"cold_masking.reg")
-    print("fk5", >> datafiles_dir//"/"//"cold_masking.reg")
+    print("# Region file format: DS9 version 4.1", > datafiles_dir//"/"//"first_masking.reg")
+    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> datafiles_dir//"/"//"first_masking.reg")
+    print("fk5", >> datafiles_dir//"/"//"first_masking.reg")
 
     # tmp_int = 0
     for(i=1;i<=n_list;i+=1){
@@ -739,8 +739,8 @@ begin
         #   }
         #   # =============================================================
 
-        tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_cold_log"
-        # Cabecera del COLD-log_file to IMEDIT:
+        tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_first_log"
+        # Cabecera del FIRST-log_file to IMEDIT:
         print(":aperture circular", > tmp_outfile)
         print(":search 2.", >> tmp_outfile)
         print(":radius 2.", >> tmp_outfile)
@@ -754,11 +754,11 @@ begin
 
         # Ordenar la lista por flujo (descendente):
         # STILTS > obj in center of image:
-        expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='sort -down $30' in=%s > %s/%s_cold_test_sortdownflux.cat"
-        tmp_infile = outsex_dir//"/"//id_obj[i]//"_cold_test.cat"
+        expre = "! stilts tpipe ifmt=ascii ofmt=ascii cmd='sort -down $30' in=%s > %s/%s_first_test_sortdownflux.cat"
+        tmp_infile = outsex_dir//"/"//id_obj[i]//"_first_test.cat"
         printf(expre, tmp_infile, outsex_dir, id_obj[i]) | cl
 
-        list = outsex_dir//"/"//id_obj[i]//"_cold_test_sortdownflux.cat"
+        list = outsex_dir//"/"//id_obj[i]//"_first_test_sortdownflux.cat"
 
         while(fscan(list,line) != EOF){
             if(line != "" && substr(line,1,1) != "#"){
@@ -813,7 +813,7 @@ begin
                     B_outer = (3.0 * obj_bimg[i])
 
                     expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=green dash=1'
-                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                    print(expre, >> datafiles_dir//"/"//"first_masking.reg")
 
                     # Enmascarar los objetos afuera de la segmentacion de la galaxia:
                     A_outer = (obj_rpetro[i] * obj_aimg[i])
@@ -822,11 +822,11 @@ begin
                     # caja que inscribe la elipse rotada:
                     # refrence (3A,3B) aperture: eliptical
                     expre = 'ellipse('//tmp_ra//','//tmp_dec//','//1.0 * A_outer * pix_scal_phot//'",'//1.0 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=red dash=1'
-                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                    print(expre, >> datafiles_dir//"/"//"first_masking.reg")
                     expre = 'ellipse('//tmp_ra//','//tmp_dec//','//2.05 * A_outer * pix_scal_phot//'",'//2.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
-                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                    print(expre, >> datafiles_dir//"/"//"first_masking.reg")
                     expre = 'ellipse('//tmp_ra//','//tmp_dec//','//3.05 * A_outer * pix_scal_phot//'",'//3.05 * B_outer * pix_scal_phot//'",'// obj_thetarad[i] * 180 / const_pi //') # color=blue dash=1'
-                    print(expre, >> datafiles_dir//"/"//"cold_masking.reg")
+                    print(expre, >> datafiles_dir//"/"//"first_masking.reg")
                 }
             # END IF: lineas validas
             }
@@ -837,7 +837,7 @@ begin
     }
     # print(" - total forced apertures: ", tmp_int)
 
-    print(" - pausa antes de aplicar de cold-cleaning...")
+    print(" - pausa antes de aplicar de first-cleaning...")
     sleep(1)
     # scan(tmp_wait)
 
@@ -847,7 +847,7 @@ begin
 
     for(i=1;i<=n_list;i+=1){
 
-        tmp_file = "data/data_files/imedit_logfiles/"//id_obj[i]//"_cold_log"
+        tmp_file = "data/data_files/imedit_logfiles/"//id_obj[i]//"_first_log"
 
         if(single_data == no){
             tmp_infile = pathname_data//"/"//id_obj[i]//".fits"
@@ -856,21 +856,21 @@ begin
             tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
         }
 
-        tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_coldmask.fits"
+        tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_firstmask.fits"
         if(!imaccess(tmp_outfile)){
             tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
             imdelete(tmp_outfile, ver-, >& "dev$null")
             imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
         }else{print(" - exist first cleaning...")}
 
-        #tmp_outfile = residual_dir//"/"//id_obj[i]//"_res_coldmask.fits"
+        #tmp_outfile = residual_dir//"/"//id_obj[i]//"_res_firstmask.fits"
         #if(!imaccess(tmp_outfile)){
             #tmp_infile = residual_dir//"/"//id_obj[i]//"_res.fits"
             #imdelete(tmp_outfile, ver-, >& "dev$null")
             #imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
         #}
 
-        #tmp_outfile = model_dir//"/"//id_obj[i]//"_mod_coldmask.fits"
+        #tmp_outfile = model_dir//"/"//id_obj[i]//"_mod_firstmask.fits"
         #if(!imaccess(tmp_outfile)){
             #tmp_infile = model_dir//"/"//id_obj[i]//"_mod.fits"
             #imdelete(tmp_outfile, ver-, >& "dev$null")
@@ -887,14 +887,14 @@ begin
     # INICIO ************************** SEGUNDA ITERACIÓN SEXTRACTOR ***************************************
     # ******************************************************************************************************
 
-    # ---- hot mode SEx ---
-    delete(outsex_dir//"/hot_test.cat", ver-, >& "dev$null")
-    delete(outsex_dir//"/hot_seg.fits", ver-, >& "dev$null")
-    # delete(outsex_dir//"/hot_mod.fits", ver-, >& "dev$null")
-    # delete(outsex_dir//"/hot_res.fits", ver-, >& "dev$null")
+    # ---- second mode SEx ---
+    delete(outsex_dir//"/second_test.cat", ver-, >& "dev$null")
+    delete(outsex_dir//"/second_seg.fits", ver-, >& "dev$null")
+    # delete(outsex_dir//"/second_mod.fits", ver-, >& "dev$null")
+    # delete(outsex_dir//"/second_res.fits", ver-, >& "dev$null")
 
     # Archivo de configuracion modo frio:
-    myconfig_se = "config/sextractor/hot_default.sex"
+    myconfig_se = "config/sextractor/second_default.sex"
 
     for(i=1;i<=n_list;i+=1){
 
@@ -902,7 +902,7 @@ begin
 
         if(!access(tmp_file)){
 
-            extract_img = observed_dir//"/"//id_obj[i]//"_obs_coldmask.fits"
+            extract_img = observed_dir//"/"//id_obj[i]//"_obs_firstmask.fits"
 
             # captura el centro de la imagen:
             imgets(extract_img, "naxis1")
@@ -917,13 +917,13 @@ begin
             printf("! %s %s -c %s \n", key_run_se, extract_img, myconfig_se) | cl
 
             # Renombrar tes.cat
-            rename("data/results_sex/hot_test.cat", "data/results_sex/"//id_obj[i]//"_second_test.cat")
+            rename("data/results_sex/second_test.cat", "data/results_sex/"//id_obj[i]//"_second_test.cat")
             # Renombrar SEG IMG
-            rename("data/results_sex/hot_seg.fits", "data/data_images/segmentation/"//id_obj[i]//"_second_seg.fits")
+            rename("data/results_sex/second_seg.fits", "data/data_images/segmentation/"//id_obj[i]//"_second_seg.fits")
             # Renombrar
-            # rename("data/results_sex/hot_mod.fits", "data/data_images/model/"//id_obj[i]//"_mod.fits")
+            # rename("data/results_sex/second_mod.fits", "data/data_images/model/"//id_obj[i]//"_mod.fits")
             # Renombrar RES IMG
-            # rename("data/results_sex/hot_res.fits", "data/data_images/residual/"//id_obj[i]//"_res.fits")
+            # rename("data/results_sex/second_res.fits", "data/data_images/residual/"//id_obj[i]//"_res.fits")
             # =================================================================
 
             # Identificar el objeto en el centro de la imagen (asume que la galaxa siempre sera):
@@ -1026,7 +1026,7 @@ begin
         fit_yc = real(imgets.value) / 2
 
         tmp_outfile = "data/data_files/imedit_logfiles/"//id_obj[i]//"_second_log"
-        # Cabecera del COLD-log_file to IMEDIT:
+        # Cabecera del FIRST-log_file to IMEDIT:
         print(":aperture circular", > tmp_outfile)
         print(":search 2.", >> tmp_outfile)
         print(":radius 2.", >> tmp_outfile)
@@ -1112,7 +1112,7 @@ begin
     # END FOR: To imedit task (logfiles)
     }
 
-    print(" - pausa antes de aplicar de cold-cleaning...")
+    print(" - pausa antes de aplicar de first-cleaning...")
     # scan(tmp_wait)
     sleep(1)
 
@@ -1126,7 +1126,7 @@ begin
 
         tmp_outfile = observed_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
         if(!imaccess(tmp_outfile)){
-            tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_coldmask.fits"
+            tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_firstmask.fits"
             imdelete(tmp_outfile, ver-, >& "dev$null")
             imedit(input=tmp_infile, output=tmp_outfile, cursor=tmp_file, logfile="", display=no)
         }else{print(" - exist second cleaning...")}

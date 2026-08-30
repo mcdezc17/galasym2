@@ -6,7 +6,7 @@ begin
 
     struct line
     string tmp_infile, tmp_outfile
-    string cold_config, hot_config, third_config
+    string first_config, second_config, third_config
     string psf_name
     real aperture_ref
 
@@ -30,7 +30,7 @@ begin
     real   seeingfw_phot
 
     # -------- Declaracion de variables para pset 'sexpar' --------
-    # --- cold mode ---
+    # --- first mode ---
     int    minarea_se, maxarea_se
     real   dthresh_se, athresh_se
     bool   bfilter_se
@@ -41,11 +41,11 @@ begin
     string weightty_se, weightim_se
     int    backsize_se, bckfilsz_se
     string verbotyp_se
-    # --- hot mode ---
-    int    ht_minarea_se
-    real   ht_dthresh_se
-    real   ht_dmincont_se
-    real   ht_cleanpar_se
+    # --- second mode ---
+    int    sc_minarea_se
+    real   sc_dthresh_se
+    real   sc_dmincont_se
+    real   sc_cleanpar_se
 
     # -------- Declaracion de variables para pset 'psfexp' --------
     bool   defaultf_psf
@@ -120,15 +120,15 @@ begin
             # lectura de
             if(key_word == "VERBOSE_TYPE"){print(line) | scan(key_word, verbotyp_se)}
 
-            # ------------ HOT MODE DEXTRACTIONS --------------
+            # ------------ SECOND MODE DEXTRACTIONS --------------
             # lectura de
-            if(key_word == "HT_DETECT_MINAREA"){print(line) | scan(key_word, ht_minarea_se)}
+            if(key_word == "SC_DETECT_MINAREA"){print(line) | scan(key_word, sc_minarea_se)}
             # lectura de
-            if(key_word == "HT_DETECT_THRESH"){print(line) | scan(key_word, ht_dthresh_se)}
+            if(key_word == "SC_DETECT_THRESH"){print(line) | scan(key_word, sc_dthresh_se)}
             # lectura de
-            if(key_word == "HT_DEBLEND_MINCONT"){print(line) | scan(key_word, ht_dmincont_se)}
+            if(key_word == "SC_DEBLEND_MINCONT"){print(line) | scan(key_word, sc_dmincont_se)}
             # lectura de
-            if(key_word == "HT_CLEAN_PARAM"){print(line) | scan(key_word, ht_cleanpar_se)}
+            if(key_word == "SC_CLEAN_PARAM"){print(line) | scan(key_word, sc_cleanpar_se)}
 
             # ================================================
             # OBTENER VALORES DE PSET: psfex
@@ -275,22 +275,22 @@ begin
     # SEXTRACTOR CONFIG FILE
     # ==============================================================================================
 
-    cold_config = "config/sextractor/cold_default.sex"
+    first_config = "config/sextractor/first_default.sex"
 
-    print("# Default configuration file for SExtractor 2.28.0", > cold_config)
-    printf("# FOR GALASYM ANALYSIS IMG: %s\n", pathname_data, >> cold_config)
+    print("# Default configuration file for SExtractor 2.28.0", > first_config)
+    printf("# FOR GALASYM ANALYSIS IMG: %s\n", pathname_data, >> first_config)
 
-    print("\n#-------------------------------- FLAGging -----------------------------------", >> cold_config)
+    print("\n#-------------------------------- FLAGging -----------------------------------", >> first_config)
 
-    print("\nFLAG_IMAGE flag.fits", >> cold_config)
-    print("FLAG_TYPE OR", >> cold_config)
+    print("\nFLAG_IMAGE flag.fits", >> first_config)
+    print("FLAG_TYPE OR", >> first_config)
 
-    print("\n#----------------------- Differential Geometry Map ---------------------------", >> cold_config)
+    print("\n#----------------------- Differential Geometry Map ---------------------------", >> first_config)
 
-    print("\nDGEO_TYPE NONE", >> cold_config)
-    print("DGEO_IMAGE dgeo.fits", >> cold_config)
+    print("\nDGEO_TYPE NONE", >> first_config)
+    print("DGEO_IMAGE dgeo.fits", >> first_config)
 
-    print("\n#------------------------------ Photometry -----------------------------------", >> cold_config)
+    print("\n#------------------------------ Photometry -----------------------------------", >> first_config)
 
     line = n_apert_phot
     print(line) | scan (aper_1, aper_2, aper_3)
@@ -300,135 +300,135 @@ begin
 
     printf("%.2f, %.2f, %.2f", aper_1, aper_2, aper_3) | scan(n_apert_phot)
 
-    printf("\nPHOT_APERTURES %s\n", n_apert_phot, >> cold_config)
-    print("PHOT_AUTOPARAMS 2.5, 3.5", >> cold_config)
-    print("PHOT_PETROPARAMS 2.0, 3.5", >> cold_config)
+    printf("\nPHOT_APERTURES %s\n", n_apert_phot, >> first_config)
+    print("PHOT_AUTOPARAMS 2.5, 3.5", >> first_config)
+    print("PHOT_PETROPARAMS 2.0, 3.5", >> first_config)
 
-    print("\nPHOT_AUTOAPERS 0.0,0.0", >> cold_config)
+    print("\nPHOT_AUTOAPERS 0.0,0.0", >> first_config)
 
-    print("\nPHOT_FLUXFRAC 0.2 0.5 0.8", >> cold_config)
+    print("\nPHOT_FLUXFRAC 0.2 0.5 0.8", >> first_config)
 
-    printf("\nSATUR_LEVEL %s\n", saturlev_phot, >> cold_config)
-    printf("SATUR_KEY %s\n", saturkey_phot, >> cold_config)
+    printf("\nSATUR_LEVEL %s\n", saturlev_phot, >> first_config)
+    printf("SATUR_KEY %s\n", saturkey_phot, >> first_config)
 
-    printf("\nMAG_ZEROPOINT %s\n", mag_zero_phot, >> cold_config)
-    print("MAG_GAMMA 4.0", >> cold_config)
-    printf("GAIN %s\n", gain_lev_phot, >> cold_config)
-    printf("GAIN_KEY %s\n", gain_key_phot, >> cold_config)
-    printf("PIXEL_SCALE %s\n", pix_scal_phot, >> cold_config)
+    printf("\nMAG_ZEROPOINT %s\n", mag_zero_phot, >> first_config)
+    print("MAG_GAMMA 4.0", >> first_config)
+    printf("GAIN %s\n", gain_lev_phot, >> first_config)
+    printf("GAIN_KEY %s\n", gain_key_phot, >> first_config)
+    printf("PIXEL_SCALE %s\n", pix_scal_phot, >> first_config)
 
-    print("\n#------------------------- Star/Galaxy Separation ----------------------------", >> cold_config)
+    print("\n#------------------------- Star/Galaxy Separation ----------------------------", >> first_config)
 
-    printf("\nSEEING_FWHM %s\n", seeingfw_phot, >> cold_config)
-    print("STARNNW_NAME config/sextractor/default.nnw", >> cold_config)
+    printf("\nSEEING_FWHM %s\n", seeingfw_phot, >> first_config)
+    print("STARNNW_NAME config/sextractor/default.nnw", >> first_config)
 
-    print("\n#------------------------------ Background -----------------------------------", >> cold_config)
+    print("\n#------------------------------ Background -----------------------------------", >> first_config)
 
-    print("\nBACK_TYPE MANUAL", >> cold_config) # def=AUTO
-    print("BACK_VALUE 0.0", >> cold_config)
-    print("BACK_PEARSON 2.5", >> cold_config)
+    print("\nBACK_TYPE MANUAL", >> first_config) # def=AUTO
+    print("BACK_VALUE 0.0", >> first_config)
+    print("BACK_PEARSON 2.5", >> first_config)
 
-    printf("\nBACK_SIZE %s\n", backsize_se, >> cold_config)
-    printf("BACK_FILTERSIZE %s\n", bckfilsz_se, >> cold_config)
+    printf("\nBACK_SIZE %s\n", backsize_se, >> first_config)
+    printf("BACK_FILTERSIZE %s\n", bckfilsz_se, >> first_config)
 
-    print("\nBACKPHOTO_TYPE GLOBAL", >> cold_config)
-    print("BACKPHOTO_THICK 24", >> cold_config)
-    print("BACK_FILTTHRESH 0.0", >> cold_config)
+    print("\nBACKPHOTO_TYPE GLOBAL", >> first_config)
+    print("BACKPHOTO_THICK 24", >> first_config)
+    print("BACK_FILTTHRESH 0.0", >> first_config)
 
-    print("\n#--------------------- Memory (change with caution!) -------------------------", >> cold_config)
+    print("\n#--------------------- Memory (change with caution!) -------------------------", >> first_config)
 
-    print("\nMEMORY_OBJSTACK 3000", >> cold_config)
-    print("MEMORY_PIXSTACK 300000", >> cold_config)
-    print("MEMORY_BUFSIZE 1024", >> cold_config)
+    print("\nMEMORY_OBJSTACK 3000", >> first_config)
+    print("MEMORY_PIXSTACK 300000", >> first_config)
+    print("MEMORY_BUFSIZE 1024", >> first_config)
 
-    print("\n#------------------------------- ASSOCiation ---------------------------------", >> cold_config)
+    print("\n#------------------------------- ASSOCiation ---------------------------------", >> first_config)
 
-    print("\nASSOC_NAME sky.list", >> cold_config)
-    print("ASSOC_DATA 2,3,4", >> cold_config)
-    print("ASSOC_PARAMS 2,3,4", >> cold_config)
-    print("ASSOCCOORD_TYPE PIXEL", >> cold_config)
-    print("ASSOC_RADIUS 2.0", >> cold_config)
-    print("ASSOC_TYPE NEAREST", >> cold_config)
+    print("\nASSOC_NAME sky.list", >> first_config)
+    print("ASSOC_DATA 2,3,4", >> first_config)
+    print("ASSOC_PARAMS 2,3,4", >> first_config)
+    print("ASSOCCOORD_TYPE PIXEL", >> first_config)
+    print("ASSOC_RADIUS 2.0", >> first_config)
+    print("ASSOC_TYPE NEAREST", >> first_config)
 
-    print("\nASSOCSELEC_TYPE MATCHED", >> cold_config)
+    print("\nASSOCSELEC_TYPE MATCHED", >> first_config)
 
-    print("\n#----------------------------- Miscellaneous ---------------------------------", >> cold_config)
+    print("\n#----------------------------- Miscellaneous ---------------------------------", >> first_config)
 
-    printf("\nVERBOSE_TYPE %s\n", verbotyp_se, >> cold_config)
-    print("HEADER_SUFFIX .head", >> cold_config)
-    print("WRITE_XML N", >> cold_config)
-    print("XML_NAME data/results_sex/sex.xml", >> cold_config)
-    print("XSL_URL file:///usr/local/share/sextractor/sextractor.xsl", >> cold_config)
+    printf("\nVERBOSE_TYPE %s\n", verbotyp_se, >> first_config)
+    print("HEADER_SUFFIX .head", >> first_config)
+    print("WRITE_XML N", >> first_config)
+    print("XML_NAME data/results_sex/sex.xml", >> first_config)
+    print("XSL_URL file:///usr/local/share/sextractor/sextractor.xsl", >> first_config)
 
-    print("\nNTHREADS 1", >> cold_config)
+    print("\nNTHREADS 1", >> first_config)
 
-    print("\nFITS_UNSIGNED N", >> cold_config)
-    print("INTERP_MAXXLAG 16", >> cold_config)
-    print("INTERP_TYPE ALL", >> cold_config)
+    print("\nFITS_UNSIGNED N", >> first_config)
+    print("INTERP_MAXXLAG 16", >> first_config)
+    print("INTERP_TYPE ALL", >> first_config)
 
-    print("\n#--------------------------- Experimental Stuff -----------------------------", >> cold_config)
+    print("\n#--------------------------- Experimental Stuff -----------------------------", >> first_config)
 
-    printf("\nPSF_NAME %s\n", psf_name, >> cold_config)
-    print("PSF_NMAX 1", >> cold_config)
-    print("PATTERN_TYPE RINGS-HARMONIC", >> cold_config)
+    printf("\nPSF_NAME %s\n", psf_name, >> first_config)
+    print("PSF_NMAX 1", >> first_config)
+    print("PATTERN_TYPE RINGS-HARMONIC", >> first_config)
 
-    print("\nSOM_NAME default.som", >> cold_config)
+    print("\nSOM_NAME default.som", >> first_config)
 
-    print("\n#------------------------------- Extraction ----------------------------------", >> cold_config)
+    print("\n#------------------------------- Extraction ----------------------------------", >> first_config)
 
-    print("\nDETECT_TYPE CCD", >> cold_config)
-    print("THRESH_TYPE RELATIVE", >> cold_config)
+    print("\nDETECT_TYPE CCD", >> first_config)
+    print("THRESH_TYPE RELATIVE", >> first_config)
 
-    # (TRASLADADO A OTROS .CL A DEFINIR) printf("\nDETECT_THRESH %s\n", dthresh_se, >> cold_config)
-    printf("ANALYSIS_THRESH %.4f\n", athresh_se, >> cold_config)
+    # (TRASLADADO A OTROS .CL A DEFINIR) printf("\nDETECT_THRESH %s\n", dthresh_se, >> first_config)
+    printf("ANALYSIS_THRESH %.4f\n", athresh_se, >> first_config)
 
     if(bfilter_se == yes){tmp_string = "Y"}else{tmp_string = "N"}
-    printf("\nFILTER %s\n", tmp_string, >> cold_config)
+    printf("\nFILTER %s\n", tmp_string, >> first_config)
 
-    print("FILTER_THRESH", >> cold_config)
+    print("FILTER_THRESH", >> first_config)
 
-    print("\nDEBLEND_NTHRESH 32", >> cold_config)
+    print("\nDEBLEND_NTHRESH 32", >> first_config)
 
     if(cleanspu_se == yes){tmp_string = "Y"}else{tmp_string = "N"}
-    printf("\nCLEAN %s\n", "Y", >> cold_config)
+    printf("\nCLEAN %s\n", "Y", >> first_config)
 
-    print("\nMASK_TYPE CORRECT", >> cold_config)
+    print("\nMASK_TYPE CORRECT", >> first_config)
 
-    print("\n#---------------------------- DIFERENCIA DE CONFIGURACION -------------------------------", >> cold_config)
+    print("\n#---------------------------- DIFERENCIA DE CONFIGURACION -------------------------------", >> first_config)
 
     # ******************************************************************************************************************
     # ********************* TO SAHPE INDEX  ****************************************************************************
     # ******************************************************************************************************************
-    copy(cold_config, "config/sextractor/my_shape.sex")
+    copy(first_config, "config/sextractor/my_shape.sex")
 
     # ******************************************************************************************************************
     # ********************* SECOND SEXTRACTION CONFIGURATION-FILE ******************************************************
     # ******************************************************************************************************************
 
-    hot_config = "config/sextractor/hot_default.sex"
-    copy(cold_config, hot_config)
+    second_config = "config/sextractor/second_default.sex"
+    copy(first_config, second_config)
 
-    print("\n#-------------------------------- Catalog ------------------------------------", >> hot_config)
+    print("\n#-------------------------------- Catalog ------------------------------------", >> second_config)
 
-    print("\nCATALOG_NAME data/results_sex/hot_test.cat", >> hot_config)
-    print("CATALOG_TYPE ASCII_HEAD", >> hot_config)
+    print("\nCATALOG_NAME data/results_sex/second_test.cat", >> second_config)
+    print("CATALOG_TYPE ASCII_HEAD", >> second_config)
 
-    print("\nPARAMETERS_NAME config/sextractor/default.param", >> hot_config)
+    print("\nPARAMETERS_NAME config/sextractor/default.param", >> second_config)
 
     #------------------------------- Extraction ----------------------------------
-    printf("FILTER_NAME config/sextractor/%s\n", namefilt_se, >> hot_config)
+    printf("FILTER_NAME config/sextractor/%s\n", namefilt_se, >> second_config)
 
-    printf("DETECT_MINAREA %d\n", ht_minarea_se, >> hot_config)
-    print("DETECT_MAXAREA 0", >> hot_config)
-    printf("\nDETECT_THRESH %.4f\n", ht_dthresh_se, >> hot_config)
-    printf("DEBLEND_MINCONT   %.6f\n", ht_dmincont_se, >> hot_config)
-    printf("CLEAN_PARAM %.3f\n", ht_cleanpar_se, >> hot_config)
+    printf("DETECT_MINAREA %d\n", sc_minarea_se, >> second_config)
+    print("DETECT_MAXAREA 0", >> second_config)
+    printf("\nDETECT_THRESH %.4f\n", sc_dthresh_se, >> second_config)
+    printf("DEBLEND_MINCONT   %.6f\n", sc_dmincont_se, >> second_config)
+    printf("CLEAN_PARAM %.3f\n", sc_cleanpar_se, >> second_config)
 
-    print("\n#------------------------------ Check Image ----------------------------------", >> hot_config)
+    print("\n#------------------------------ Check Image ----------------------------------", >> second_config)
 
-    print("\nCHECKIMAGE_TYPE SEGMENTATION", >> hot_config)
+    print("\nCHECKIMAGE_TYPE SEGMENTATION", >> second_config)
 
-    print("\nCHECKIMAGE_NAME data/results_sex/hot_seg.fits", >> hot_config)
+    print("\nCHECKIMAGE_NAME data/results_sex/second_seg.fits", >> second_config)
 
     # ******************************************************************************************************************
 
@@ -437,7 +437,7 @@ begin
     # ******************************************************************************************************************
 
     third_config = "config/sextractor/third_config.sex"
-    copy(cold_config, third_config)
+    copy(first_config, third_config)
 
     print("\n#-------------------------------- Catalog ------------------------------------", >> third_config)
 
@@ -467,27 +467,27 @@ begin
     # ********************** FIRST SEXTRACTION CONFIGURATION-FILE ******************************************************
     # ******************************************************************************************************************
 
-    print("\n#-------------------------------- Catalog ------------------------------------", >> cold_config)
+    print("\n#-------------------------------- Catalog ------------------------------------", >> first_config)
 
-    print("\nCATALOG_NAME data/results_sex/cold_test.cat", >> cold_config)
-    print("CATALOG_TYPE ASCII_HEAD", >> cold_config)
+    print("\nCATALOG_NAME data/results_sex/first_test.cat", >> first_config)
+    print("CATALOG_TYPE ASCII_HEAD", >> first_config)
 
-    print("\nPARAMETERS_NAME config/sextractor/default.param", >> cold_config)
+    print("\nPARAMETERS_NAME config/sextractor/default.param", >> first_config)
 
     #------------------------------- Extraction ----------------------------------
-    printf("FILTER_NAME config/sextractor/%s\n", namefilt_se, >> cold_config)
+    printf("FILTER_NAME config/sextractor/%s\n", namefilt_se, >> first_config)
 
-    printf("DETECT_MINAREA %d\n", minarea_se, >> cold_config)
-    printf("DETECT_MAXAREA %d\n", maxarea_se, >> cold_config)
-    printf("\nDETECT_THRESH %.4f\n", dthresh_se, >> cold_config)
-    printf("DEBLEND_MINCONT   %.6f\n", dmincont_se, >> cold_config)
-    printf("CLEAN_PARAM %.3f\n", cleanpar_se, >> cold_config)
+    printf("DETECT_MINAREA %d\n", minarea_se, >> first_config)
+    printf("DETECT_MAXAREA %d\n", maxarea_se, >> first_config)
+    printf("\nDETECT_THRESH %.4f\n", dthresh_se, >> first_config)
+    printf("DEBLEND_MINCONT   %.6f\n", dmincont_se, >> first_config)
+    printf("CLEAN_PARAM %.3f\n", cleanpar_se, >> first_config)
 
-    print("\n#------------------------------ Check Image ----------------------------------", >> cold_config)
+    print("\n#------------------------------ Check Image ----------------------------------", >> first_config)
 
-    print("\nCHECKIMAGE_TYPE SEGMENTATION", >> cold_config)
+    print("\nCHECKIMAGE_TYPE SEGMENTATION", >> first_config)
 
-    print("\nCHECKIMAGE_NAME data/data_images/segmentation/cold_segmen.fits", >> cold_config)
+    print("\nCHECKIMAGE_NAME data/data_images/segmentation/first_segmen.fits", >> first_config)
 
     # ejecutar find_objs:
     print(" - ejecutando find_objs...")

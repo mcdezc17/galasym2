@@ -31,7 +31,7 @@ begin
 
     # Declaracion de variables para pset 'sexpar'
     string key_run_se
-    # --- cold mode ---
+    # --- first mode ---
     int    minarea_se, maxarea_se
     real   dthresh_se, athresh_se
     bool   bfilter_se
@@ -42,11 +42,11 @@ begin
     string weightty_se, weightim_se
     int    backsize_se, bckfilsz_se
     string verbotyp_se
-    # --- hot mode ---
-    int    ht_minarea_se
-    real   ht_dthresh_se
-    real   ht_dmincont_se
-    real   ht_cleanpar_se
+    # --- second mode ---
+    int    sc_minarea_se
+    real   sc_dthresh_se
+    real   sc_dmincont_se
+    real   sc_cleanpar_se
 
     # Declaracion de variables para pset 'psfexp'
     string key_run_psf
@@ -235,11 +235,11 @@ begin
     backsize_se = sexpar.backsize
     bckfilsz_se = sexpar.bckfilsz
     verbotyp_se = sexpar.verbotyp
-    # --------- HOT MODE SEXTRACTIONS -----------
-    ht_minarea_se  = sexpar.ht_minarea
-    ht_dthresh_se  = sexpar.ht_dthresh
-    ht_dmincont_se = sexpar.ht_dmincont
-    ht_cleanpar_se = sexpar.ht_cleanpar
+    # --------- SECOND MODE SEXTRACTIONS -----------
+    sc_minarea_se  = sexpar.sc_minarea
+    sc_dthresh_se  = sexpar.sc_dthresh
+    sc_dmincont_se = sexpar.sc_dmincont
+    sc_cleanpar_se = sexpar.sc_cleanpar
 
     # Si la verificacion continua, imprime archivo full parametros:
     print("#------------------------------------------------------------", >> tmp_outfile)
@@ -262,11 +262,11 @@ begin
     # printf("WEIGHT_TYPE\t%s\n", weightty_se, >> tmp_outfile)
     # printf("WEIGHT_IMAGE\t%s\n", weightim_se, >> tmp_outfile)
 
-    # ------------- HOT MOE SEXTRACTIONS ---------------------
-    printf("HT_DETECT_MINAREA\t%d\n", ht_minarea_se, >> tmp_outfile)
-    printf("HT_DETECT_THRESH\t%.4f\n", ht_dthresh_se, >> tmp_outfile)
-    printf("HT_DEBLEND_MINCONT\t%.6f\n", ht_dmincont_se, >> tmp_outfile)
-    printf("HT_CLEAN_PARAM\t%.3f\n", ht_cleanpar_se, >> tmp_outfile)
+    # ------------- SECOND MOE SEXTRACTIONS ---------------------
+    printf("SC_DETECT_MINAREA\t%d\n", sc_minarea_se, >> tmp_outfile)
+    printf("SC_DETECT_THRESH\t%.4f\n", sc_dthresh_se, >> tmp_outfile)
+    printf("SC_DEBLEND_MINCONT\t%.6f\n", sc_dmincont_se, >> tmp_outfile)
+    printf("SC_CLEAN_PARAM\t%.3f\n", sc_cleanpar_se, >> tmp_outfile)
 
     # ================================================
     # OBTENER VALORES DE PSET: psfex
