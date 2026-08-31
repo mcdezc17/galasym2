@@ -8,7 +8,7 @@ import pandas as pd
 # del archivo fuente dentro de cada 'pawlik/pawlik_X.Y/', y nombre de salida
 # por defecto (dentro de 'pawlik/', igual que el resto de los productos del
 # pipeline; se conserva 'merged_asymmetry.csv' para As, tal como ya lo
-# esperan otros scripts como graph_As_colorsigma.py). Las rutas son
+# esperan otros scripts como graph_pawlik.py). Las rutas son
 # relativas al directorio desde el que se invoque el script (debe ser la
 # raíz del proyecto, donde vive 'pawlik/').
 CATALOGS = [

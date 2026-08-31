@@ -102,7 +102,7 @@ These are independent of the IRAF pipeline and are run directly with
   (`pawlik/merged_asymmetry.csv`, `merged_Rmax.csv`, `merged_SMAmax.csv`,
   `merged_ASTD.csv`), one column per sigma, keyed by object `ID`. Must be run
   from the project root (the directory containing `pawlik/`).
-- `graph_As_colorsigma.py` — diagnostic plotting of `A_S` vs. detection sigma
+- `graph_pawlik.py` — diagnostic plotting of `A_S` vs. detection sigma
   per object, classifying/coloring curves by shape (tidal-like vs. core-like)
   based on the initial monotonic run of the curve.
 
