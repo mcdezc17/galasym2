@@ -2,6 +2,9 @@ import argparse
 import subprocess
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+SHAPE_ASYMMETRY_PY = SCRIPT_DIR / "shape_asymmetry.py"
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
@@ -55,11 +58,11 @@ print("Valores:", valores)
 # -------------------------------------------
 
 for val in valores:
-    print(f"\n >> Ejecutando: config/src/shape_asymmetry.py --nsigma {val} --no-bg-refine --pixel-scale {args.pixel_scale}")
+    print(f"\n >> Ejecutando: {SHAPE_ASYMMETRY_PY} --nsigma {val} --no-bg-refine --pixel-scale {args.pixel_scale}")
 
     comando = [
         "python3",
-        "config/src/shape_asymmetry.py",
+        str(SHAPE_ASYMMETRY_PY),
         Path(args.catalog),
         "--nsigma",
         str(val),
