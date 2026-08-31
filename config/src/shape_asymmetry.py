@@ -42,6 +42,11 @@ Uso:
         --centers-id-col 1 --centers-x-col 2 --centers-y-col 3 \
         --output-dir ./resultados_pawlik
 
+    Barrido de varios umbrales en una sola corrida (--nsigma acepta uno o
+    más valores; exactamente tres se interpretan como inicio fin paso):
+    python pawlik_shape_asymmetry.py catalogo.csv --images-dir ./imagenes \
+        --nsigma 0.5 2.0 0.1 --output-dir ./resultados_pawlik
+
 Referencia:
     Pawlik, M. M., Wild, V., Verma, A., et al. 2016, MNRAS, 456, 3032.
 """
@@ -852,48 +857,49 @@ def process_galaxy(gal_id, images_dir, given_center_xy, args, masks_dir, resid_d
     except Exception:
         centre_ra, centre_dec = None, None
 
-    # --- Incrustar los productos (calculados sobre el recorte interno, por
-    # eficiencia) de vuelta en un lienzo del tamaño de la imagen ORIGINAL,
-    # de modo que 'binarymask'/'residual' caigan pixel a pixel sobre
-    # 'secondmask': ningún offset adicional es necesario para usarlos en
-    # conjunto (ni en DS9, ni en ningún análisis posterior). ---
-    full_shape = data0.shape
-    mask_full = embed_in_full_frame(mask_final.astype(np.uint8), full_shape, offset_xy, fill=0)
-    residual_full = embed_in_full_frame(residual, full_shape, offset_xy, fill=0)
-    asymm_residual_full = embed_in_full_frame(asymm_residual, full_shape, offset_xy, fill=0)
+    if args.save_shape_images:
+        # --- Incrustar los productos (calculados sobre el recorte interno,
+        # por eficiencia) de vuelta en un lienzo del tamaño de la imagen
+        # ORIGINAL, de modo que 'binarymask'/'residual' caigan pixel a pixel
+        # sobre 'secondmask': ningún offset adicional es necesario para
+        # usarlos en conjunto (ni en DS9, ni en ningún análisis posterior). ---
+        full_shape = data0.shape
+        mask_full = embed_in_full_frame(mask_final.astype(np.uint8), full_shape, offset_xy, fill=0)
+        residual_full = embed_in_full_frame(residual, full_shape, offset_xy, fill=0)
+        asymm_residual_full = embed_in_full_frame(asymm_residual, full_shape, offset_xy, fill=0)
 
-    # --- guardar FITS: máscara y residuo ---
-    # El header ya NO requiere ajustar CRPIX: al guardar el array
-    # incrustado en el tamaño y grilla de la imagen original, el header
-    # original (sin modificar) sigue siendo válido tal cual.
-    hdr_out = header0.copy()
-    hdr_out["RMAX"] = (Rmax_final, "Pawlik+2016 R_max [px]")
-    hdr_out["CENTRR"] = (row_orig, "row of rotation center [px, marco de imagen original]")
-    hdr_out["CENTRC"] = (col_orig, "col of rotation center [px, marco de imagen original]")
-    hdr_out["ELLA"] = (a_ell, "semi-major axis of elliptical aperture [px]")
-    hdr_out["ELLB"] = (b_ell, "semi-minor axis of elliptical aperture [px]")
-    hdr_out["ELLPA"] = (theta_deg, "position angle of major axis [deg]")
-    hdr_out["ASTD"] = (std_final, "background sigma used [counts]")
-    hdr_out["ASHAPE"] = (a_shape if np.isfinite(a_shape) else "NaN",
-                          "shape asymmetry index, Pawlik+2016")
-    if grid_used:
-        hdr_out["ASHAPE0"] = (a_shape_base if np.isfinite(a_shape_base) else "NaN",
-                               "A_shape at the given center, before grid search")
-        hdr_out["GRIDNTHK"] = (grid_n_used[0], "side of the coarse (thick) search grid [px]")
-        hdr_out["GRIDNTHN"] = (grid_n_used[1], "side of the fine (thin) search grid [px]")
-        hdr_out["GRIDSTK"] = (args.shape_grid_step_thick, "coarse grid step [px]")
-        hdr_out["GRIDSTN"] = (args.shape_grid_step_thin, "fine grid step [px]")
-        hdr_out["GRIDDR"] = (grid_offset[0], "row offset of best rotation center found [px]")
-        hdr_out["GRIDDC"] = (grid_offset[1], "col offset of best rotation center found [px]")
+        # --- guardar FITS: máscara y residuo ---
+        # El header ya NO requiere ajustar CRPIX: al guardar el array
+        # incrustado en el tamaño y grilla de la imagen original, el header
+        # original (sin modificar) sigue siendo válido tal cual.
+        hdr_out = header0.copy()
+        hdr_out["RMAX"] = (Rmax_final, "Pawlik+2016 R_max [px]")
+        hdr_out["CENTRR"] = (row_orig, "row of rotation center [px, marco de imagen original]")
+        hdr_out["CENTRC"] = (col_orig, "col of rotation center [px, marco de imagen original]")
+        hdr_out["ELLA"] = (a_ell, "semi-major axis of elliptical aperture [px]")
+        hdr_out["ELLB"] = (b_ell, "semi-minor axis of elliptical aperture [px]")
+        hdr_out["ELLPA"] = (theta_deg, "position angle of major axis [deg]")
+        hdr_out["ASTD"] = (std_final, "background sigma used [counts]")
+        hdr_out["ASHAPE"] = (a_shape if np.isfinite(a_shape) else "NaN",
+                              "shape asymmetry index, Pawlik+2016")
+        if grid_used:
+            hdr_out["ASHAPE0"] = (a_shape_base if np.isfinite(a_shape_base) else "NaN",
+                                   "A_shape at the given center, before grid search")
+            hdr_out["GRIDNTHK"] = (grid_n_used[0], "side of the coarse (thick) search grid [px]")
+            hdr_out["GRIDNTHN"] = (grid_n_used[1], "side of the fine (thin) search grid [px]")
+            hdr_out["GRIDSTK"] = (args.shape_grid_step_thick, "coarse grid step [px]")
+            hdr_out["GRIDSTN"] = (args.shape_grid_step_thin, "fine grid step [px]")
+            hdr_out["GRIDDR"] = (grid_offset[0], "row offset of best rotation center found [px]")
+            hdr_out["GRIDDC"] = (grid_offset[1], "col offset of best rotation center found [px]")
 
-    mask_path = masks_dir / f"{gal_id}_binarymask.fits"
-    fits.PrimaryHDU(data=mask_full, header=hdr_out).writeto(mask_path, overwrite=True)
+        mask_path = masks_dir / f"{gal_id}_binarymask.fits"
+        fits.PrimaryHDU(data=mask_full, header=hdr_out).writeto(mask_path, overwrite=True)
 
-    resid_path = resid_dir / f"{gal_id}_residual.fits"
-    fits.PrimaryHDU(data=residual_full, header=hdr_out).writeto(resid_path, overwrite=True)
+        resid_path = resid_dir / f"{gal_id}_residual.fits"
+        fits.PrimaryHDU(data=residual_full, header=hdr_out).writeto(resid_path, overwrite=True)
 
-    resid_path = resid_dir / f"{gal_id}_asymm_residual.fits"
-    fits.PrimaryHDU(data=asymm_residual_full, header=hdr_out).writeto(resid_path, overwrite=True)
+        resid_path = resid_dir / f"{gal_id}_asymm_residual.fits"
+        fits.PrimaryHDU(data=asymm_residual_full, header=hdr_out).writeto(resid_path, overwrite=True)
 
     return {
         "A_shape": a_shape,
@@ -1123,9 +1129,17 @@ def main():
 
     p.add_argument("--boxcar", type=int, default=3,
                     help="Tamaño del filtro boxcar (por defecto 3)")
-    p.add_argument("--nsigma", type=float, default=1.0,
-                    help="Umbral de detección en unidades de std del fondo "
-                         "(por defecto 1.0, valor óptimo de Pawlik et al.)")
+    p.add_argument("--nsigma", type=float, nargs="+", default=[1.0],
+                    help="Umbral(es) de detección en unidades de std del "
+                         "fondo (por defecto 1.0, valor óptimo de Pawlik et "
+                         "al.). Un solo valor corre una vez; dos o más "
+                         "valores (salvo el caso de tres, ver abajo) se "
+                         "toman como una lista explícita de umbrales, uno "
+                         "por corrida; exactamente TRES valores se "
+                         "interpretan como inicio fin paso de un barrido "
+                         "(p. ej. --nsigma 0.5 2.0 0.1). Cada corrida "
+                         "escribe sus resultados bajo su propio "
+                         "'pawlik_<nsigma>/', igual que antes.")
     p.add_argument("--sigma-clip", type=float, default=3.0,
                     help="Sigma para el sigma-clipping al estimar el fondo "
                          "(por defecto 3.0)")
@@ -1156,10 +1170,14 @@ def main():
                          "defecto sin límite (comportamiento original); se "
                          "recomienda fijarlo según el tamaño angular típico "
                          "esperado de las galaxias de la muestra.")
+    p.add_argument("--bg-refine", dest="bg_refine", action="store_true",
+                    help="Activa el refinamiento de fondo en dos pasadas "
+                         "(anillo 1x-2x R_max). Desactivado por defecto.")
     p.add_argument("--no-bg-refine", dest="bg_refine", action="store_false",
                     help="Desactiva el refinamiento de fondo en dos pasadas "
-                         "(anillo 1x-2x R_max). Activado por defecto.")
-    p.set_defaults(bg_refine=True)
+                         "(comportamiento por defecto; el flag se mantiene "
+                         "por compatibilidad, no hace falta pasarlo).")
+    p.set_defaults(bg_refine=False)
 
     p.add_argument("--pixel-scale", type=float, required=True,
                     help="Escala de placa en arcsec/pixel, usada para "
@@ -1172,21 +1190,28 @@ def main():
     p.add_argument("--output-dir", type=Path, default=Path("./pawlik"),
                     help="Directorio de salida (por defecto ./pawlik)")
 
+    p.add_argument("--save-shape-images", action="store_true", default=False,
+                    help="Guarda las imágenes FITS ID_binarymask, "
+                         "ID_residual e ID_asymm_residual por galaxia. "
+                         "Desactivado por defecto (no se guardan).")
+
     args = p.parse_args()
 
-    output_dir = Path(args.output_dir, f"pawlik_{args.nsigma:.1f}")
-
-    #output_dir = args.output_dir
-    masks_dir = output_dir / "binary_masks"
-    resid_dir = output_dir / "residuals"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    masks_dir.mkdir(parents=True, exist_ok=True)
-    resid_dir.mkdir(parents=True, exist_ok=True)
+    # Interpretación de --nsigma, igual que el extinto loop_pawlik.py:
+    # exactamente TRES valores -> inicio/fin/paso; cualquier otra cantidad
+    # (1, 2, 4+) -> lista explícita de umbrales, uno por corrida.
+    if len(args.nsigma) == 3:
+        inicio, fin, paso = args.nsigma
+        valores = []
+        valor = inicio
+        while valor <= fin:
+            valores.append(round(valor, 10))
+            valor += paso
+    else:
+        valores = args.nsigma
 
     df, colnames, fmt, id_colname = load_table(args.catalog, id_col=args.id_col)
     print(f"Catálogo cargado ({fmt}): {len(df)} galaxias, columna ID = '{id_colname}'")
-
-    index_name = f"As_{args.nsigma:.1f}"
 
     centers = {}
     if args.centers_list is not None:
@@ -1203,131 +1228,147 @@ def main():
         print(f"Aviso: no se generará el archivo .reg de DS9 ({e})")
         can_write_reg = False
 
-    a_shape_col = []
-    rmax_col = []
-    smamax_col = []
-    astd_col = []
-    reg_entries = []
-    centers_updates = {}
-    for i, row in df.iterrows():
-        gal_id = row[id_colname]
-        given_center = centers.get(gal_id, None)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = process_galaxy(gal_id, args.images_dir, given_center, args, masks_dir, resid_dir)
-        a_shape_col.append(result["A_shape"])
+    for run_i, nsigma_val in enumerate(valores, 1):
+        args.nsigma = nsigma_val
+        if len(valores) > 1:
+            print(f"\n=== [{run_i}/{len(valores)}] nsigma = {nsigma_val} ===")
 
-        # Rmax/SMAmax solo se reportan como válidos cuando A_shape TAMBIÉN
-        # lo es. A_shape es NaN en tres casos (imagen no encontrada, sin
-        # píxeles sobre el umbral, o área de la máscara fuera de
-        # [min_area, max_area]); en el caso de área inválida, Rmax/a_ell
-        # SÍ alcanzan a calcularse geométricamente (y quedan en el header
-        # del FITS de la máscara para diagnóstico), pero se fuerzan a NaN
-        # aquí para que las tres tablas de salida queden siempre alineadas
-        # fila a fila: un Rmax/SMAmax válido implica un A_shape válido.
-        if np.isfinite(result["A_shape"]):
-            rmax_col.append(result.get("Rmax", np.nan))
-            smamax_col.append(result.get("a_ell", np.nan))
-            astd_col.append(result.get("std", np.nan))
-        else:
-            rmax_col.append(np.nan)
-            smamax_col.append(np.nan)
-            astd_col.append(np.nan)
+        output_dir = Path(args.output_dir, f"pawlik_{args.nsigma:.1f}")
+        masks_dir = output_dir / "binary_masks"
+        resid_dir = output_dir / "residuals"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if args.save_shape_images:
+            masks_dir.mkdir(parents=True, exist_ok=True)
+            resid_dir.mkdir(parents=True, exist_ok=True)
 
-        msg = f"[{i+1}/{len(df)}] {gal_id}: A_S = {result['A_shape']}"
-        if result.get("status") != "ok":
-            msg += f"  ({result.get('status')})"
-        print(msg)
+        index_name = f"As_{args.nsigma:.1f}"
 
-        # Centro efectivamente usado, en coordenadas de la imagen ORIGINAL
-        # (no del recorte) — es lo que corresponde para actualizar la
-        # lista de centros de entrada con el mismo sistema de referencia.
-        if given_center is not None and result.get("centre_col_orig") is not None:
-            centers_updates[gal_id] = {
-                "x": result["centre_col_orig"],
-                "y": result["centre_row_orig"],
-                "ra": result.get("centre_ra"),
-                "dec": result.get("centre_dec"),
-            }
+        a_shape_col = []
+        rmax_col = []
+        smamax_col = []
+        astd_col = []
+        reg_entries = []
+        centers_updates = {}
+        for i, row in df.iterrows():
+            gal_id = row[id_colname]
+            given_center = centers.get(gal_id, None)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                result = process_galaxy(gal_id, args.images_dir, given_center, args, masks_dir, resid_dir)
+            a_shape_col.append(result["A_shape"])
 
-        if can_write_reg and np.isfinite(result["A_shape"]) and np.isfinite(result.get("a_ell", np.nan)):
-            ra_val = result.get("centre_ra")
-            dec_val = result.get("centre_dec")
-            if ra_val is None or dec_val is None:
-                # Respaldo: si no se pudo convertir el centro por WCS
-                # (p. ej. header sin astrometría válida), se usa la
-                # posición del catálogo de entrada como antes.
-                print(f"Aviso: no se pudo convertir el centro de rotación de "
-                      f"{gal_id} a RA/DEC (WCS no disponible); se usa la "
-                      f"posición del catálogo de entrada en el .reg.")
-                try:
-                    ra_val = float(row[ra_colname])
-                    dec_val = float(row[dec_colname])
-                except (ValueError, KeyError):
-                    continue
-            reg_entries.append({
-                "id": gal_id,
-                "ra": ra_val,
-                "dec": dec_val,
-                "a_arcsec": result["a_ell"] * args.pixel_scale,
-                "b_arcsec": result["b_ell"] * args.pixel_scale,
-                "theta_deg": result["theta_deg"],
-                "a_shape": result["A_shape"],
-            })
+            # Rmax/SMAmax solo se reportan como válidos cuando A_shape TAMBIÉN
+            # lo es. A_shape es NaN en tres casos (imagen no encontrada, sin
+            # píxeles sobre el umbral, o área de la máscara fuera de
+            # [min_area, max_area]); en el caso de área inválida, Rmax/a_ell
+            # SÍ alcanzan a calcularse geométricamente (y quedan en el header
+            # del FITS de la máscara para diagnóstico), pero se fuerzan a NaN
+            # aquí para que las tres tablas de salida queden siempre alineadas
+            # fila a fila: un Rmax/SMAmax válido implica un A_shape válido.
+            if np.isfinite(result["A_shape"]):
+                rmax_col.append(result.get("Rmax", np.nan))
+                smamax_col.append(result.get("a_ell", np.nan))
+                astd_col.append(result.get("std", np.nan))
+            else:
+                rmax_col.append(np.nan)
+                smamax_col.append(np.nan)
+                astd_col.append(np.nan)
 
-    ids_col = df[id_colname].tolist()
-    rmax_name = f"Rmax_{args.nsigma:.1f}"
-    smamax_name = f"SMAmax_{args.nsigma:.1f}"
-    astd_name = f"ASTD_{args.nsigma:.1f}"
+            msg = f"[{i+1}/{len(df)}] {gal_id}: A_S = {result['A_shape']}"
+            if result.get("status") != "ok":
+                msg += f"  ({result.get('status')})"
+            print(msg)
 
-    as_csv, as_ascii = write_index_table(
-        output_dir, "As_data", index_name, ids_col,
-        format_index_values(a_shape_col), write_ascii=True,
-    )
-    rmax_csv, _ = write_index_table(
-        output_dir, "Rmax_data", rmax_name, ids_col,
-        format_index_values(rmax_col), write_ascii=False,
-    )
-    smamax_csv, _ = write_index_table(
-        output_dir, "SMAmax_data", smamax_name, ids_col,
-        format_index_values(smamax_col), write_ascii=False,
-    )
-    astd_csv, _ = write_index_table(
-        output_dir, "ASTD_data", astd_name, ids_col,
-        format_index_values(astd_col), write_ascii=False,
-    )
+            # Centro efectivamente usado, en coordenadas de la imagen ORIGINAL
+            # (no del recorte) — es lo que corresponde para actualizar la
+            # lista de centros de entrada con el mismo sistema de referencia.
+            if given_center is not None and result.get("centre_col_orig") is not None:
+                centers_updates[gal_id] = {
+                    "x": result["centre_col_orig"],
+                    "y": result["centre_row_orig"],
+                    "ra": result.get("centre_ra"),
+                    "dec": result.get("centre_dec"),
+                }
 
-    print(f"\nTablas de resultados guardadas en:")
-    print(f"  {as_ascii}")
-    print(f"  {as_csv}")
-    print(f"  {rmax_csv}")
-    print(f"  {smamax_csv}")
-    print(f"  {astd_csv}")
-    print(f"Máscaras binarias en: {masks_dir}")
-    print(f"Residuos (mask - mask180) en: {resid_dir}")
+            if can_write_reg and np.isfinite(result["A_shape"]) and np.isfinite(result.get("a_ell", np.nan)):
+                ra_val = result.get("centre_ra")
+                dec_val = result.get("centre_dec")
+                if ra_val is None or dec_val is None:
+                    # Respaldo: si no se pudo convertir el centro por WCS
+                    # (p. ej. header sin astrometría válida), se usa la
+                    # posición del catálogo de entrada como antes.
+                    print(f"Aviso: no se pudo convertir el centro de rotación de "
+                          f"{gal_id} a RA/DEC (WCS no disponible); se usa la "
+                          f"posición del catálogo de entrada en el .reg.")
+                    try:
+                        ra_val = float(row[ra_colname])
+                        dec_val = float(row[dec_colname])
+                    except (ValueError, KeyError):
+                        continue
+                reg_entries.append({
+                    "id": gal_id,
+                    "ra": ra_val,
+                    "dec": dec_val,
+                    "a_arcsec": result["a_ell"] * args.pixel_scale,
+                    "b_arcsec": result["b_ell"] * args.pixel_scale,
+                    "theta_deg": result["theta_deg"],
+                    "a_shape": result["A_shape"],
+                })
 
-    if can_write_reg:
-        reg_path = output_dir / args.reg_name
-        write_ds9_region(reg_path, reg_entries)
-        print(f"Archivo de regiones DS9 guardado en: {reg_path} "
-              f"({len(reg_entries)}/{len(df)} galaxias incluidas)")
+        ids_col = df[id_colname].tolist()
+        rmax_name = f"Rmax_{args.nsigma:.1f}"
+        smamax_name = f"SMAmax_{args.nsigma:.1f}"
+        astd_name = f"ASTD_{args.nsigma:.1f}"
 
-    if args.centers_list is not None and args.save_updated_centers:
-        centers_fmt, centers_header, raw_rows = load_centers_raw(
-            args.centers_list, id_col=args.centers_id_col
+        as_csv, as_ascii = write_index_table(
+            output_dir, "As_data", index_name, ids_col,
+            format_index_values(a_shape_col), write_ascii=True,
         )
-        ra_col = args.centers_ra_col if args.centers_ra_col > 0 else None
-        dec_col = args.centers_dec_col if args.centers_dec_col > 0 else None
-        centers_stem = Path(args.centers_list).stem
-        centers_suffix = Path(args.centers_list).suffix or ".dat"
-        updated_path = output_dir / f"{centers_stem}_updated{centers_suffix}"
-        write_updated_centers_list(
-            updated_path, centers_fmt, centers_header, raw_rows, centers_updates,
-            x_col=args.centers_x_col, y_col=args.centers_y_col,
-            ra_col=ra_col, dec_col=dec_col,
+        rmax_csv, _ = write_index_table(
+            output_dir, "Rmax_data", rmax_name, ids_col,
+            format_index_values(rmax_col), write_ascii=False,
         )
-        print(f"Lista de centros actualizada guardada en: {updated_path} "
-              f"({len(centers_updates)}/{len(raw_rows)} filas actualizadas)")
+        smamax_csv, _ = write_index_table(
+            output_dir, "SMAmax_data", smamax_name, ids_col,
+            format_index_values(smamax_col), write_ascii=False,
+        )
+        astd_csv, _ = write_index_table(
+            output_dir, "ASTD_data", astd_name, ids_col,
+            format_index_values(astd_col), write_ascii=False,
+        )
+
+        print(f"\nTablas de resultados guardadas en:")
+        print(f"  {as_ascii}")
+        print(f"  {as_csv}")
+        print(f"  {rmax_csv}")
+        print(f"  {smamax_csv}")
+        print(f"  {astd_csv}")
+        if args.save_shape_images:
+            print(f"Máscaras binarias en: {masks_dir}")
+            print(f"Residuos (mask - mask180) en: {resid_dir}")
+
+        if can_write_reg:
+            reg_path = output_dir / args.reg_name
+            write_ds9_region(reg_path, reg_entries)
+            print(f"Archivo de regiones DS9 guardado en: {reg_path} "
+                  f"({len(reg_entries)}/{len(df)} galaxias incluidas)")
+
+        if args.centers_list is not None and args.save_updated_centers:
+            centers_fmt, centers_header, raw_rows = load_centers_raw(
+                args.centers_list, id_col=args.centers_id_col
+            )
+            ra_col = args.centers_ra_col if args.centers_ra_col > 0 else None
+            dec_col = args.centers_dec_col if args.centers_dec_col > 0 else None
+            centers_stem = Path(args.centers_list).stem
+            centers_suffix = Path(args.centers_list).suffix or ".dat"
+            updated_path = output_dir / f"{centers_stem}_updated{centers_suffix}"
+            write_updated_centers_list(
+                updated_path, centers_fmt, centers_header, raw_rows, centers_updates,
+                x_col=args.centers_x_col, y_col=args.centers_y_col,
+                ra_col=ra_col, dec_col=dec_col,
+            )
+            print(f"Lista de centros actualizada guardada en: {updated_path} "
+                  f"({len(centers_updates)}/{len(raw_rows)} filas actualizadas)")
 
 
 if __name__ == "__main__":

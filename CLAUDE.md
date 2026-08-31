@@ -93,12 +93,16 @@ These are independent of the IRAF pipeline and are run directly with
   Verma (2016, MNRAS 456, 3032) shape-asymmetry index `A_S`: boxcar smoothing,
   flood-fill detection mask, PCA-aligned elliptical aperture, 180° rotation
   residual. Takes a catalog + images dir, writes per-object results.
-- `loop_pawlik.py` — batch driver that invokes `shape_asymmetry.py` once per
-  detection-threshold (`--sigmas`, either an explicit list or a
-  start/stop/step triple) against one catalog, writing results under
-  `pawlik/pawlik_<sigma>/`.
+  `--nsigma` takes one or more detection thresholds: a single value runs
+  once, an explicit list of 1/2/4+ values runs once per value, and exactly
+  three values are interpreted as a start/stop/step sweep — each value gets
+  its own `pawlik/pawlik_<sigma>/` output tree, run in-process (no
+  subprocess). Per-object `ID_binarymask`/`ID_residual`/`ID_asymm_residual`
+  FITS diagnostics are opt-in via `--save-shape-images` (off by default).
+  `--bg-refine`/`--no-bg-refine` toggle the two-pass background refinement;
+  it is **off by default**.
 - `concat_pawlik.py` — merges the per-sigma `pawlik/pawlik_<sigma>/*.csv`
-  outputs from `loop_pawlik.py` into single wide CSVs
+  outputs from a `shape_asymmetry.py` sweep into single wide CSVs
   (`pawlik/merged_asymmetry.csv`, `merged_Rmax.csv`, `merged_SMAmax.csv`,
   `merged_ASTD.csv`), one column per sigma, keyed by object `ID`. Must be run
   from the project root (the directory containing `pawlik/`).
@@ -107,14 +111,20 @@ These are independent of the IRAF pipeline and are run directly with
   based on the initial monotonic run of the curve.
 
 These have real Python dependencies (`numpy`, `pandas`, `astropy`, `scipy`,
-`matplotlib`) — there's no `requirements.txt`/`pyproject.toml` in the repo,
-so check what's importable before assuming an environment is set up.
+`matplotlib`), declared in `config/src/pyproject.toml` (package
+`galasym2-pykage`, installed editable into the `myastro` conda env) — check
+what's importable before assuming an environment is set up if working
+outside that env.
 
 ### `config/src/.dont_src/`
 
 Older/superseded `.cl` tasks and Python scripts (e.g. `psf_model.cl`,
 `glxy_model.cl`, `sim_observation.py`) whose logic has been folded into
 `find_objs.cl` directly, plus one-off experiments (`graf.py`, `ejemplo.cl`).
+`loop_pawlik.py` also lives here — its batch-over-sigma logic was folded
+directly into `shape_asymmetry.py`'s `--nsigma` (see above), so the
+subprocess-driving wrapper is no longer needed and is not a
+`[project.scripts]` entry point in `pyproject.toml`.
 Nothing here is `task`-declared in `galasym2.cl` and nothing sources it — the
 directory name is a deliberate "don't source this" marker. Treat it as
 historical reference, not live code; don't wire it back into the package
@@ -137,7 +147,7 @@ data/
   results_sex/            per-object SExtractor .cat files, concatenated catalogs
   results_psfex/          PSFEx outputs (PSF model, check-plots, check-images)
 pawlik/
-  pawlik_<sigma>/         per-sigma outputs from loop_pawlik.py -> shape_asymmetry.py
+  pawlik_<sigma>/         per-sigma outputs from a shape_asymmetry.py run/sweep
   merged_*.csv            outputs of concat_pawlik.py
 ```
 Object identity threads through nearly every file name and catalog column as

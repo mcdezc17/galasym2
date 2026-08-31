@@ -1,5 +1,4 @@
 [console_scripts]
 concat_pawlik = concat_pawlik:main
 graph_pawlik = graph_pawlik:main
-loop_pawlik = loop_pawlik:main
 shape_asymmetry = shape_asymmetry:main

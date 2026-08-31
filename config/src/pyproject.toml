@@ -16,10 +16,9 @@ dependencies = [
 ]
 
 [project.scripts]
-loop_pawlik = "loop_pawlik:main"
 shape_asymmetry = "shape_asymmetry:main"
 concat_pawlik = "concat_pawlik:main"
 graph_pawlik = "graph_pawlik:main"
 
 [tool.setuptools]
-py-modules = ["loop_pawlik", "shape_asymmetry", "concat_pawlik", "graph_pawlik"]
+py-modules = ["shape_asymmetry", "concat_pawlik", "graph_pawlik"]

@@ -1,4 +1,3 @@
 concat_pawlik
 graph_pawlik
-loop_pawlik
 shape_asymmetry

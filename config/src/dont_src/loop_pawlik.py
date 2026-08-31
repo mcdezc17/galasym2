@@ -47,6 +47,15 @@ def main():
              "pasado tal cual a shape_asymmetry.py como su --output-dir"
     )
 
+    parser.add_argument(
+        "--save-shape-images",
+        action="store_true",
+        default=False,
+        help="Pasado tal cual a shape_asymmetry.py: guarda las imágenes "
+             "FITS ID_binarymask, ID_residual e ID_asymm_residual por "
+             "galaxia. Desactivado por defecto."
+    )
+
     args = parser.parse_args()
 
     if len(args.sigmas) == 3:
@@ -82,6 +91,9 @@ def main():
             "--output-dir",
             str(args.output_dir)
         ]
+
+        if args.save_shape_images:
+            comando.append("--save-shape-images")
 
         resultado = subprocess.run(
             comando,
