@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "galasym2-pawlik"
+version = "0.1.0"
+description = "Scripts Python standalone de galasym2 (flujo de asimetria de forma Pawlik+2016)"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+    "astropy",
+    "scipy",
+    "matplotlib",
+]
+
+[project.scripts]
+loop_pawlik = "loop_pawlik:main"
+shape_asymmetry = "shape_asymmetry:main"
+concat_pawlik = "concat_pawlik:main"
+graph_as_colorsigma = "graph_As_colorsigma:main"
+
+[tool.setuptools]
+py-modules = ["loop_pawlik", "shape_asymmetry", "concat_pawlik", "graph_As_colorsigma"]
