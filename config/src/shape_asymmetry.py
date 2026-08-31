@@ -1174,7 +1174,7 @@ def main():
 
     args = p.parse_args()
 
-    output_dir = Path("pawlik", f"{args.output_dir}_{args.nsigma:.1f}")
+    output_dir = Path(args.output_dir, f"pawlik_{args.nsigma:.1f}")
 
     #output_dir = args.output_dir
     masks_dir = output_dir / "binary_masks"

@@ -5,24 +5,24 @@ import pandas as pd
 
 
 # Cada catálogo Pawlik que se concatena: prefijo de columna/carpeta, nombre
-# del archivo fuente dentro de cada 'pawlik/pawlik_X.Y/', y nombre de salida
-# por defecto (dentro de 'pawlik/', igual que el resto de los productos del
-# pipeline; se conserva 'merged_asymmetry.csv' para As, tal como ya lo
-# esperan otros scripts como graph_pawlik.py). Las rutas son
-# relativas al directorio desde el que se invoque el script (debe ser la
-# raíz del proyecto, donde vive 'pawlik/').
+# del archivo fuente dentro de cada '<output-dir>/pawlik_X.Y/', y nombre de
+# archivo de salida por defecto (dentro de <output-dir>, igual que el resto
+# de los productos del pipeline; se conserva 'merged_asymmetry.csv' para As,
+# tal como ya lo esperan otros scripts como graph_pawlik.py). El árbol raíz
+# (<output-dir>) es configurable vía --output-dir (por defecto 'pawlik',
+# relativo al directorio desde el que se invoque el script).
 CATALOGS = [
-    {"label": "As", "data_file": "As_data.csv", "default_output": "pawlik/merged_asymmetry.csv"},
-    {"label": "Rmax", "data_file": "Rmax_data.csv", "default_output": "pawlik/merged_Rmax.csv"},
-    {"label": "SMAmax", "data_file": "SMAmax_data.csv", "default_output": "pawlik/merged_SMAmax.csv"},
-    {"label": "ASTD", "data_file": "ASTD_data.csv", "default_output": "pawlik/merged_ASTD.csv"},
+    {"label": "As", "data_file": "As_data.csv", "default_output_name": "merged_asymmetry.csv"},
+    {"label": "Rmax", "data_file": "Rmax_data.csv", "default_output_name": "merged_Rmax.csv"},
+    {"label": "SMAmax", "data_file": "SMAmax_data.csv", "default_output_name": "merged_SMAmax.csv"},
+    {"label": "ASTD", "data_file": "ASTD_data.csv", "default_output_name": "merged_ASTD.csv"},
 ]
 
 
-def concat_catalog(label, data_file, sigmas_ordenados):
+def concat_catalog(label, data_file, sigmas_ordenados, root_dir):
     """
     Concatena, en un solo DataFrame (columna 'ID' + una columna
-    '{label}_X.Y' por cada sigma), el catálogo 'pawlik/pawlik_X.Y/{data_file}'
+    '{label}_X.Y' por cada sigma), el catálogo '<root_dir>/pawlik_X.Y/{data_file}'
     de cada sigma en `sigmas_ordenados`. Devuelve None si ningún archivo
     resultó válido.
     """
@@ -31,7 +31,7 @@ def concat_catalog(label, data_file, sigmas_ordenados):
     for sigma in sigmas_ordenados:
         sigma_str = f"{sigma:.1f}"
         col_name = f"{label}_{sigma_str}"
-        file_path = Path("pawlik", f"pawlik_{sigma_str}") / data_file
+        file_path = Path(root_dir, f"pawlik_{sigma_str}") / data_file
 
         if not file_path.exists():
             print(f"⚠️ [{label}] Advertencia: No se encontró el archivo '{file_path}'. Se saltará este valor.")
@@ -73,9 +73,9 @@ def concat_catalog(label, data_file, sigmas_ordenados):
 def main():
     # 1. Configurar los argumentos de línea de comandos
     parser = argparse.ArgumentParser(
-        description="Une, para cada carpeta pawlik/pawlik_X.Y/, las columnas "
-        "de asimetría (As_data.csv), radio máximo (Rmax_data.csv) y semieje "
-        "mayor máximo (SMAmax_data.csv) en tres tablas consolidadas."
+        description="Une, para cada carpeta <output-dir>/pawlik_X.Y/, las "
+        "columnas de asimetría (As_data.csv), radio máximo (Rmax_data.csv) y "
+        "semieje mayor máximo (SMAmax_data.csv) en tres tablas consolidadas."
     )
     parser.add_argument(
         "--columns",
@@ -86,29 +86,40 @@ def main():
              "Con exactamente 3 valores, se interpretan como inicio fin paso.",
     )
     parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("pawlik"),
+        help="Directorio raíz del árbol donde buscar 'pawlik_X.Y/' y donde "
+             "se guardan por defecto los merged_*.csv (por defecto: pawlik)",
+    )
+    parser.add_argument(
         "--as-output",
         type=str,
-        default=CATALOGS[0]["default_output"],
-        help=f"Nombre del CSV de salida para As (por defecto: {CATALOGS[0]['default_output']})",
+        default=None,
+        help=f"Nombre del CSV de salida para As (por defecto: "
+             f"<output-dir>/{CATALOGS[0]['default_output_name']})",
     )
     parser.add_argument(
         "--rmax-output",
         type=str,
-        default=CATALOGS[1]["default_output"],
-        help=f"Nombre del CSV de salida para Rmax (por defecto: {CATALOGS[1]['default_output']})",
+        default=None,
+        help=f"Nombre del CSV de salida para Rmax (por defecto: "
+             f"<output-dir>/{CATALOGS[1]['default_output_name']})",
     )
     parser.add_argument(
         "--smamax-output",
         type=str,
-        default=CATALOGS[2]["default_output"],
-        help=f"Nombre del CSV de salida para SMAmax (por defecto: {CATALOGS[2]['default_output']})",
+        default=None,
+        help=f"Nombre del CSV de salida para SMAmax (por defecto: "
+             f"<output-dir>/{CATALOGS[2]['default_output_name']})",
     )
     parser.add_argument(
         "--astd-output",
         type=str,
-        default=CATALOGS[3]["default_output"],
+        default=None,
         help=f"Nombre del CSV de salida para ASTD (sigma de fondo local por "
-             f"objeto, en counts; por defecto: {CATALOGS[3]['default_output']})",
+             f"objeto, en counts; por defecto: "
+             f"<output-dir>/{CATALOGS[3]['default_output_name']})",
     )
     args = parser.parse_args()
 
@@ -126,10 +137,10 @@ def main():
 
     sigmas_ordenados = sorted(valores)
     outputs = {
-        "As": args.as_output,
-        "Rmax": args.rmax_output,
-        "SMAmax": args.smamax_output,
-        "ASTD": args.astd_output,
+        "As": args.as_output or str(args.output_dir / CATALOGS[0]["default_output_name"]),
+        "Rmax": args.rmax_output or str(args.output_dir / CATALOGS[1]["default_output_name"]),
+        "SMAmax": args.smamax_output or str(args.output_dir / CATALOGS[2]["default_output_name"]),
+        "ASTD": args.astd_output or str(args.output_dir / CATALOGS[3]["default_output_name"]),
     }
 
     print("Iniciando la búsqueda y unificación de archivos...")
@@ -138,7 +149,7 @@ def main():
     for catalog in CATALOGS:
         label = catalog["label"]
         print(f"\n=== {label} ===")
-        df_final = concat_catalog(label, catalog["data_file"], sigmas_ordenados)
+        df_final = concat_catalog(label, catalog["data_file"], sigmas_ordenados, args.output_dir)
         resultados[label] = df_final
 
         if df_final is not None:

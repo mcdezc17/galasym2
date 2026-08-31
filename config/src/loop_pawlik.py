@@ -39,6 +39,14 @@ def main():
         required=True
     )
 
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("./pawlik"),
+        help="Directorio raíz del árbol de salida (por defecto ./pawlik), "
+             "pasado tal cual a shape_asymmetry.py como su --output-dir"
+    )
+
     args = parser.parse_args()
 
     if len(args.sigmas) == 3:
@@ -60,7 +68,7 @@ def main():
     # -------------------------------------------
 
     for val in valores:
-        print(f"\n >> Ejecutando: {SHAPE_ASYMMETRY_PY} --nsigma {val} --no-bg-refine --pixel-scale {args.pixel_scale}")
+        print(f"\n >> Ejecutando: {SHAPE_ASYMMETRY_PY} --nsigma {val} --no-bg-refine --pixel-scale {args.pixel_scale} --output-dir {args.output_dir}")
 
         comando = [
             "python3",
@@ -70,7 +78,9 @@ def main():
             str(val),
             "--no-bg-refine",
             "--pixel-scale",
-            str(args.pixel_scale)
+            str(args.pixel_scale),
+            "--output-dir",
+            str(args.output_dir)
         ]
 
         resultado = subprocess.run(

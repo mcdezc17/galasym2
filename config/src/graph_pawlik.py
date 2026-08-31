@@ -71,10 +71,19 @@ def main():
         "coloreando cada punto con un gradiente según su sigma (As_%.1f)."
     )
     parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("pawlik"),
+        help="Directorio raíz del árbol (por defecto: pawlik). Determina los "
+             "valores por defecto de --input/--rmax-input/--smamax-input/"
+             "--astd-input y de los archivos que este script escribe "
+             "(perturbed_ids.txt, imagen del gráfico).",
+    )
+    parser.add_argument(
         "--input",
         type=str,
-        default="pawlik/merged_asymmetry.csv",
-        help="Archivo CSV de entrada (por defecto: pawlik/merged_asymmetry.csv)",
+        default=None,
+        help="Archivo CSV de entrada (por defecto: <output-dir>/merged_asymmetry.csv)",
     )
     parser.add_argument(
         "--nan-mode",
@@ -136,16 +145,16 @@ def main():
     parser.add_argument(
         "--rmax-input",
         type=str,
-        default="pawlik/merged_Rmax.csv",
+        default=None,
         help="CSV con columnas ID, Rmax_X.Y por objeto. Solo se usa con "
-             "--x-axis rmax (por defecto: pawlik/merged_Rmax.csv)",
+             "--x-axis rmax (por defecto: <output-dir>/merged_Rmax.csv)",
     )
     parser.add_argument(
         "--smamax-input",
         type=str,
-        default="pawlik/merged_SMAmax.csv",
+        default=None,
         help="CSV con columnas ID, SMAmax_X.Y por objeto. Solo se usa con "
-             "--x-axis smamax (por defecto: pawlik/merged_SMAmax.csv)",
+             "--x-axis smamax (por defecto: <output-dir>/merged_SMAmax.csv)",
     )
     parser.add_argument(
         "--sigma-units",
@@ -177,11 +186,11 @@ def main():
     parser.add_argument(
         "--astd-input",
         type=str,
-        default="pawlik/merged_ASTD.csv",
+        default=None,
         help="CSV con columnas ID, ASTD_X.Y por objeto (sigma de fondo "
              "LOCAL, en counts, ya calculado por shape_asymmetry.py por "
              "objeto y por nsigma). Solo se usa con --sigma-units mu "
-             "(por defecto: pawlik/merged_ASTD.csv)",
+             "(por defecto: <output-dir>/merged_ASTD.csv)",
     )
     parser.add_argument(
         "--astd-spread-warn",
@@ -198,6 +207,11 @@ def main():
              "--sigma-units mu.",
     )
     args = parser.parse_args()
+
+    args.input = args.input or str(args.output_dir / "merged_asymmetry.csv")
+    args.rmax_input = args.rmax_input or str(args.output_dir / "merged_Rmax.csv")
+    args.smamax_input = args.smamax_input or str(args.output_dir / "merged_SMAmax.csv")
+    args.astd_input = args.astd_input or str(args.output_dir / "merged_ASTD.csv")
 
     # 2. Cargar el archivo CSV
     file_path = Path(args.input)
@@ -487,7 +501,7 @@ def main():
 
     # 6. Guardar la clasificación (ID, perturbed) de todo lo no-normal:
     # tidal-like / core-like / dysk-like.
-    txt_output = "pawlik/perturbed_ids.txt"
+    txt_output = str(args.output_dir / "perturbed_ids.txt")
     clasificados = curvas_tidal + curvas_core + curvas_dysk
     if clasificados:
         print(f"\n - OBJETOS CLASIFICADOS (no normales):")
@@ -700,10 +714,11 @@ def main():
     # Guardar y mostrar imagen
     mu_suffix = "_colormu" if args.sigma_units == "mu" else ""
     if args.x_axis == "sigma":
-        output_img = f"pawlik/asymmetry_highlighted_colorsigma{mu_suffix}.png" if mu_suffix \
-            else "pawlik/asymmetry_highlighted_colorsigma.png"
+        img_name = f"asymmetry_highlighted_colorsigma{mu_suffix}.png" if mu_suffix \
+            else "asymmetry_highlighted_colorsigma.png"
     else:
-        output_img = f"pawlik/asymmetry_highlighted_colorlength_{args.x_axis}{mu_suffix}.png"
+        img_name = f"asymmetry_highlighted_colorlength_{args.x_axis}{mu_suffix}.png"
+    output_img = str(args.output_dir / img_name)
     plt.savefig(output_img, dpi=300)
     print(f"🎉 Gráfico guardado con éxito como '{output_img}'\n")
     plt.show()
