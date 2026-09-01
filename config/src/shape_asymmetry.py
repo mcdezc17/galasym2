@@ -31,7 +31,10 @@ Pawlik, Wild, Verma et al. (2016, MNRAS 456, 3032), incluyendo:
   6. Apertura elíptica alineada con los ejes principales (PCA) de la
      máscara, escalada para que la máscara quede exactamente inscrita.
   7. A_S = sum(|S - S_180|) / sum(2*S), calculado dentro de la apertura
-     elíptica, donde S_180 es la máscara rotada 180° respecto al centro.
+     elíptica, donde S_180 es la máscara rotada 180° respecto al centro
+     que minimiza A_S. La intersección S & S_180 (el "hueco" que el
+     numerador |S - S_180| siempre cancela) se guarda aparte como
+     *_avoidmask.fits.
 
 Uso:
     python pawlik_shape_asymmetry.py catalogo.csv --images-dir ./imagenes \
@@ -844,6 +847,13 @@ def process_galaxy(gal_id, images_dir, given_center_xy, args, masks_dir, resid_d
 
     asymm_residual = (residual > 0).astype(np.uint16)
 
+    # Intersección entre mask_ap y su rotación de 180° (mask180_ap): la
+    # región que a_shape SIEMPRE ignora, ya que su numerador es la
+    # diferencia simétrica |mask_ap - mask180_ap|; los píxeles comunes a
+    # ambas se cancelan y nunca contribuyen. Es el "hueco" que el índice
+    # evita al comparar máscara y rotación.
+    avoid_mask = (mask_ap & mask180_ap).astype(np.uint16)
+
     # --- RA/DEC del centro efectivamente usado para la rotación (no el de
     # la tabla de entrada): se convierte el píxel de `centre_rc` (en el
     # sistema de coordenadas del recorte) de vuelta al sistema de la imagen
@@ -867,6 +877,7 @@ def process_galaxy(gal_id, images_dir, given_center_xy, args, masks_dir, resid_d
         mask_full = embed_in_full_frame(mask_final.astype(np.uint8), full_shape, offset_xy, fill=0)
         residual_full = embed_in_full_frame(residual, full_shape, offset_xy, fill=0)
         asymm_residual_full = embed_in_full_frame(asymm_residual, full_shape, offset_xy, fill=0)
+        avoid_mask_full = embed_in_full_frame(avoid_mask, full_shape, offset_xy, fill=0)
 
         # --- guardar FITS: máscara y residuo ---
         # El header ya NO requiere ajustar CRPIX: al guardar el array
@@ -900,6 +911,9 @@ def process_galaxy(gal_id, images_dir, given_center_xy, args, masks_dir, resid_d
 
         resid_path = resid_dir / f"{gal_id}_asymm_residual.fits"
         fits.PrimaryHDU(data=asymm_residual_full, header=hdr_out).writeto(resid_path, overwrite=True)
+
+        avoid_path = masks_dir / f"{gal_id}_avoidmask.fits"
+        fits.PrimaryHDU(data=avoid_mask_full, header=hdr_out).writeto(avoid_path, overwrite=True)
 
     return {
         "A_shape": a_shape,
@@ -1192,8 +1206,9 @@ def main():
 
     p.add_argument("--save-shape-images", action="store_true", default=False,
                     help="Guarda las imágenes FITS ID_binarymask, "
-                         "ID_residual e ID_asymm_residual por galaxia. "
-                         "Desactivado por defecto (no se guardan).")
+                         "ID_residual, ID_asymm_residual e ID_avoidmask "
+                         "por galaxia. Desactivado por defecto (no se "
+                         "guardan).")
 
     args = p.parse_args()
 
@@ -1345,7 +1360,7 @@ def main():
         print(f"  {astd_csv}")
         if args.save_shape_images:
             print(f"Máscaras binarias en: {masks_dir}")
-            print(f"Residuos (mask - mask180) en: {resid_dir}")
+            print(f"Residuos (mask - mask180) y avoidmask (mask & mask180) en: {resid_dir}")
 
         if can_write_reg:
             reg_path = output_dir / args.reg_name
