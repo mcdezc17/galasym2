@@ -50,17 +50,19 @@ Typical session order:
    masking between passes.
 4. One or more index tasks, run against the object list `find_objs` produced:
    `alpha_index`, `outer_abs_index`, `outer_rms_index`, `outer_res_index`,
-   `a180_index`, `shape_index`, `snr_task`. Each is its own
-   pset-parameterized IRAF task computing a different 180°-rotation
-   residual / asymmetry statistic over elliptical apertures (via
-   `imexpr`/`imstat`) around each object's fitted center. `find_center`
-   (hidden) is the sub-pixel center-refinement routine several of these
-   tasks depend on. `outer_abs_index`/`outer_rms_index` take a `bulge_clip`
-   pset (sigma-clip that carves a hole around the bulge before measuring);
-   setting it to `"off"` disables the hole entirely, which is what the
-   retired `abs_index`/`rms_index` tasks (moved to `config/src/dont_src/`)
-   always did — `outer_abs_index`/`outer_rms_index` with `bulge_clip="off"`
-   are their direct replacement.
+   `a180_index`, `snr_task`. Each is its own pset-parameterized IRAF task
+   computing a different 180°-rotation residual / asymmetry statistic over
+   elliptical apertures (via `imexpr`/`imstat`) around each object's fitted
+   center. `find_center` (hidden) is the sub-pixel center-refinement routine
+   several of these tasks depend on. `outer_abs_index`/`outer_rms_index`
+   take a `bulge_clip` pset (sigma-clip that carves a hole around the bulge
+   before measuring); setting it to `"off"` disables the hole entirely,
+   which is what the retired `abs_index`/`rms_index` tasks (moved to
+   `config/src/dont_src/`) always did — `outer_abs_index`/`outer_rms_index`
+   with `bulge_clip="off"` are their direct replacement. `shape_index` is
+   likewise retired (moved to `config/src/dont_src/`) — it was an
+   exploratory IRAF-native attempt at the Pawlik shape-asymmetry metric,
+   superseded by the standalone `shape_asymmetry.py`.
 
 Because tasks read state back from files under `data/data_files/` and
 `data/results_sex/` rather than passing IRAF parameters directly, **task

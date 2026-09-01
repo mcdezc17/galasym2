@@ -3,6 +3,7 @@
 # Load necessary packages
 
 set direc = "/home/sloan/galasym2-master/config/src/"
+set gconf = "/home/sloan/galasym2-master/config/"
 
 package galasym2
 
@@ -22,7 +23,6 @@ task alpha_index     = "direc$alpha_index.cl"
 task outer_abs_index = "direc$outer_abs_index.cl"
 task outer_rms_index = "direc$outer_rms_index.cl"
 task a180_index      = "direc$a180_index.cl"
-task shape_index     = "direc$shape_index.cl"
 task snr_task        = "direc$snr_task.cl"
 
 # No visibles:

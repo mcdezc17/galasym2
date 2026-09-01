@@ -8,6 +8,7 @@ begin
     string tmp_infile, tmp_outfile
     string first_config, second_config, third_config
     string psf_name
+    string cfg
     real aperture_ref
 
     # temporal:
@@ -51,6 +52,8 @@ begin
     bool   defaultf_psf
     real   dthresh_psf, athresh_psf
     string img_name_psf
+
+    cfg = envget("gconf")
 
     # Lectura de parametros:
     list = "data/data_files/full_params.txt"
@@ -159,14 +162,14 @@ begin
     if(defaultf_psf == no){
 
         # DIRECTORO SALIDA DE PSFEX:
-        # if(!access("data")){mkdir("data")}
-        # if(!access("data/results_psfex")){mkdir("data/results_psfex")}
+        if(!access("data")){mkdir("data")}
+        if(!access("data/results_psfex")){mkdir("data/results_psfex")}
 
         # ==============================================================================================
         # SEXTRACTOR PRE-PSFEX CONFIG FILE
         # ==============================================================================================
 
-        tmp_outfile = "config/psfex/prepsfex/my_prepsfex.sex"
+        tmp_outfile = "data/results_psfex/my_prepsfex.sex"
 
         print("# Simple configuration file for SExtractor prior to PSFEx use", > tmp_outfile)
         print("# only non-default parameters are present.", >> tmp_outfile)
@@ -177,7 +180,7 @@ begin
 
         print("\nCATALOG_NAME    data/results_psfex/my_prepsfex.cat", >> tmp_outfile)
         print("CATALOG_TYPE     FITS_LDAC", >> tmp_outfile)
-        print("PARAMETERS_NAME  config/psfex/prepsfex/prepsfex.param", >> tmp_outfile)
+        print("PARAMETERS_NAME  "//cfg//"psfex/prepsfex/prepsfex.param", >> tmp_outfile)
 
         print("\n#------------------------------- Extraction ----------------------------------", >> tmp_outfile)
 
@@ -186,7 +189,7 @@ begin
         printf("ANALYSIS_THRESH  %s\n", athresh_psf, >> tmp_outfile)
 
         print("\nFILTER           Y", >> tmp_outfile)
-        print("FILTER_NAME      config/psfex/prepsfex/default.conv", >> tmp_outfile)
+        print("FILTER_NAME      "//cfg//"psfex/prepsfex/default.conv", >> tmp_outfile)
 
         print("\n#-------------------------------- WEIGHTing ----------------------------------", >> tmp_outfile)
         print("#-------------------------------- FLAGging -----------------------------------", >> tmp_outfile)
@@ -205,7 +208,7 @@ begin
         # ==============================================================================================
         # PSFEX CONFIG FILE
         # ==============================================================================================
-        tmp_outfile = "config/psfex/my_default.psfex"
+        tmp_outfile = "data/results_psfex/my_default.psfex"
 
         print("# Default configuration file for PSFEx 3.9.0", > tmp_outfile)
         printf("# FOR GALASYM ANALYSIS IMG: %s\n", pathname_data, >> tmp_outfile)
@@ -268,14 +271,17 @@ begin
     }else{
 
         # SI USA ('default.psf') PSF POR DEFECTO, ESCRIBIR EN SEXTRACTOR CONFIG FILE:
-        psf_name = "config/sextractor/default.psf"
+        psf_name = cfg//"sextractor/default.psf"
     }
 
     # ==============================================================================================
     # SEXTRACTOR CONFIG FILE
     # ==============================================================================================
 
-    first_config = "config/sextractor/first_default.sex"
+    if(!access("data")){mkdir("data")}
+    if(!access("data/results_sex")){mkdir("data/results_sex")}
+
+    first_config = "data/results_sex/first_default.sex"
 
     print("# Default configuration file for SExtractor 2.28.0", > first_config)
     printf("# FOR GALASYM ANALYSIS IMG: %s\n", pathname_data, >> first_config)
@@ -320,7 +326,7 @@ begin
     print("\n#------------------------- Star/Galaxy Separation ----------------------------", >> first_config)
 
     printf("\nSEEING_FWHM %s\n", seeingfw_phot, >> first_config)
-    print("STARNNW_NAME config/sextractor/default.nnw", >> first_config)
+    print("STARNNW_NAME "//cfg//"sextractor/default.nnw", >> first_config)
 
     print("\n#------------------------------ Background -----------------------------------", >> first_config)
 
@@ -397,15 +403,10 @@ begin
     print("\n#---------------------------- DIFERENCIA DE CONFIGURACION -------------------------------", >> first_config)
 
     # ******************************************************************************************************************
-    # ********************* TO SAHPE INDEX  ****************************************************************************
-    # ******************************************************************************************************************
-    copy(first_config, "config/sextractor/my_shape.sex")
-
-    # ******************************************************************************************************************
     # ********************* SECOND SEXTRACTION CONFIGURATION-FILE ******************************************************
     # ******************************************************************************************************************
 
-    second_config = "config/sextractor/second_default.sex"
+    second_config = "data/results_sex/second_default.sex"
     copy(first_config, second_config)
 
     print("\n#-------------------------------- Catalog ------------------------------------", >> second_config)
@@ -413,10 +414,10 @@ begin
     print("\nCATALOG_NAME data/results_sex/second_test.cat", >> second_config)
     print("CATALOG_TYPE ASCII_HEAD", >> second_config)
 
-    print("\nPARAMETERS_NAME config/sextractor/default.param", >> second_config)
+    print("\nPARAMETERS_NAME "//cfg//"sextractor/default.param", >> second_config)
 
     #------------------------------- Extraction ----------------------------------
-    printf("FILTER_NAME config/sextractor/%s\n", namefilt_se, >> second_config)
+    printf("FILTER_NAME %s\n", cfg//"sextractor/"//namefilt_se, >> second_config)
 
     printf("DETECT_MINAREA %d\n", sc_minarea_se, >> second_config)
     print("DETECT_MAXAREA 0", >> second_config)
@@ -436,7 +437,7 @@ begin
     # ********************** THIRD SEXTRACTION CONFIGURATION-FILE ******************************************************
     # ******************************************************************************************************************
 
-    third_config = "config/sextractor/third_config.sex"
+    third_config = "data/results_sex/third_config.sex"
     copy(first_config, third_config)
 
     print("\n#-------------------------------- Catalog ------------------------------------", >> third_config)
@@ -444,10 +445,10 @@ begin
     print("\nCATALOG_NAME data/results_sex/third_test.cat", >> third_config)
     print("CATALOG_TYPE ASCII_HEAD", >> third_config)
 
-    print("\nPARAMETERS_NAME config/sextractor/default.param", >> third_config)
+    print("\nPARAMETERS_NAME "//cfg//"sextractor/default.param", >> third_config)
 
     #------------------------------- Extraction ----------------------------------
-    printf("FILTER_NAME config/sextractor/%s\n", "gauss_4.0_7x7.conv", >> third_config)
+    printf("FILTER_NAME %s\n", cfg//"sextractor/gauss_4.0_7x7.conv", >> third_config)
 
     # printf("DETECT_MINAREA %d\n", 100, >> third_config)
     print("DETECT_MAXAREA 0", >> third_config)
@@ -472,10 +473,10 @@ begin
     print("\nCATALOG_NAME data/results_sex/first_test.cat", >> first_config)
     print("CATALOG_TYPE ASCII_HEAD", >> first_config)
 
-    print("\nPARAMETERS_NAME config/sextractor/default.param", >> first_config)
+    print("\nPARAMETERS_NAME "//cfg//"sextractor/default.param", >> first_config)
 
     #------------------------------- Extraction ----------------------------------
-    printf("FILTER_NAME config/sextractor/%s\n", namefilt_se, >> first_config)
+    printf("FILTER_NAME %s\n", cfg//"sextractor/"//namefilt_se, >> first_config)
 
     printf("DETECT_MINAREA %d\n", minarea_se, >> first_config)
     printf("DETECT_MAXAREA %d\n", maxarea_se, >> first_config)

@@ -193,7 +193,7 @@ begin
     # IDENTIFICAR OBJETOS SI LA IMAGEN DE ENTRADA ES UNA SOLA:
     if(single_data == yes){
         # Calcular el valor de escala kp/arcsec:
-        tmp_file = "config/src/"//"ned_calc.py"
+        tmp_file = envget("direc")//"ned_calc.py"
         printf("! %s %s %s\n", kw_python, tmp_file, cosmopar_data) | cl | scan(scale_kp_arsec)
 
         # Transformar coordenadas SKY a IMG de posiciones iniciales:
@@ -512,12 +512,12 @@ begin
             if(!access(tmp_infile)){
 
                 # Impossible to run PrePSFEx (SEx) prior to PSFEx if:
-                tmp_infile = "config/psfex/prepsfex/my_prepsfex.sex"
+                tmp_infile = "data/results_psfex/my_prepsfex.sex"
                 if(!access(tmp_infile)){
 
                     print("\n ERR: impossible runing pre-PSFEx!")
                     print("        SExtractor. Exists?: ")
-                    print("         - ./config/psfex/prepsfex/*.sex")
+                    print("         - ./data/results_psfex/*.sex")
                     print(" Verify and run again.")
                     print(" Abort task!")
                     bye
@@ -532,12 +532,12 @@ begin
             }
 
             # Impossible to run PSFEx if:
-            tmp_infile = "config/psfex/my_default.psfex"
+            tmp_infile = "data/results_psfex/my_default.psfex"
             if(!access(tmp_infile)){
 
                 print("\n ERR: imposible run PSFEx! The-")
                 print("        following files must exist: ")
-                print("\n        - *.sex (in ./config/psfex/)")
+                print("\n        - *.psfex (in ./data/results_psfex/)")
                 print(" Abort task!")
                 bye
 
@@ -593,7 +593,7 @@ begin
     # *****************************************************************************************************************
 
     # Archivo de configuracion modo frio:
-    myconfig_se = "config/sextractor/first_default.sex"
+    myconfig_se = "data/results_sex/first_default.sex"
 
     # Lista de recortes:
     list = "data/data_files/accepted_imgs.txt"
@@ -894,7 +894,7 @@ begin
     # delete(outsex_dir//"/second_res.fits", ver-, >& "dev$null")
 
     # Archivo de configuracion modo frio:
-    myconfig_se = "config/sextractor/second_default.sex"
+    myconfig_se = "data/results_sex/second_default.sex"
 
     for(i=1;i<=n_list;i+=1){
 
@@ -972,7 +972,7 @@ begin
     # Leer la lista de objetos second-sextracted para proceder a limpiar second-spurious:
     print("\n ------------------------------------------")
     print(" - Prepare to second-cleaning (identify)...")
-    tmp_file = "config/sextractor/obj"
+    tmp_file = outsex_dir//"/obj"
     if(!access(tmp_file)){mkdir(tmp_file)}
 
     list = outsex_dir//"/"//"second_sextracted.cat"
@@ -990,8 +990,8 @@ begin
 
             # Escribir el area de la galaxia en el configfile de SE (third_config.sex)
 
-            tmp_infile = "config/sextractor/third_config.sex"
-            tmp_outfile = "config/sextractor/obj/"//tmp_id_obj//"_third_config.sex"
+            tmp_infile = "data/results_sex/third_config.sex"
+            tmp_outfile = outsex_dir//"/obj/"//tmp_id_obj//"_third_config.sex"
             delete(tmp_outfile, ver-, >& "dev$null")
             copy(tmp_infile, tmp_outfile)
 
@@ -1153,7 +1153,7 @@ begin
     for(i=1;i<=n_list;i+=1){
 
         # Archivo de configuracion modo frio:
-        myconfig_se = "config/sextractor/obj/"//id_obj[i]//"_third_config.sex"
+        myconfig_se = outsex_dir//"/obj/"//id_obj[i]//"_third_config.sex"
 
         tmp_file = outsex_dir//"/"//id_obj[i]//"_third_sextracted.cat"
 

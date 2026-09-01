@@ -59,6 +59,7 @@ begin
     string cache_dir
     string observed_dir
     string segmen_dir
+    string cfg
 
     # ASIGNACIÓN DE VARIABLES -------------------------
     const_pi = 3.1415926535897932385
@@ -70,12 +71,12 @@ begin
     }
 
     # ASIGNACIÓN DE DIRECTORIOS -------------------------
-    # ./config/sextractor/results_sex
     outsex_dir = "data/results_sex"
     datafiles_dir = "data/data_files"
     cache_dir = "data/cache"
     observed_dir = "data/data_images/observed"
     segmen_dir = "data/data_images/segmentation"
+    cfg = envget("gconf")
 
     # carpeta de uso temporal para este tarea:
     if(!access(cache_dir)){mkdir(cache_dir)}
@@ -133,7 +134,7 @@ begin
     # ===================================================
 
     # Por ahoa obtener PIXEL_SCALE 'default.sex configuration' parametros:
-    list = "config/sextractor/default.sex"
+    list = cfg//"sextractor/default.sex"
     while(fscan(list,line) != EOF){
         if(line != "" && substr(line,1,1) != "#"){
 
