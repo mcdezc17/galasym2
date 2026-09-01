@@ -1,13 +1,14 @@
 procedure alpha_index()
 
-string   center_rot = "rms"   {prompt = "'abs' or 'rms' minimization"}
-real     low_sigma  = 2.0     {prompt = "low sigma clipping"}
-string   bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge"}
-string   disk_clip  = "10.0"  {prompt = "sigma-clip avoid disk"}
-bool     force      = yes     {prompt = "force measure with ds9 regions"}
-bool     min_corr   = yes     {prompt = "minimize the sky correction"}
+string   center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
+real     low_sigma  = 1.0     {prompt = "low sigma clipping"}
+string   bulge_clip = "off"  {prompt = "sigma-clip avoid bulge"}
+string   disk_clip  = "off"  {prompt = "sigma-clip avoid disk"}
+bool     force      = no     {prompt = "force measure with ds9 regions"}
+bool     min_corr   = no     {prompt = "minimize the sky correction"}
 string   res_filter = "boxcar"  {prompt = "residualfilter none, boxcar or gaussian"}
 bool     den_seg    = yes     {prompt = "Total area segmented(yes) or obs(no)"}
+bool     shape_in   = yes     {prompt = "compute alpha in region avoid for a_shape?"}
 bool     both_alpha = no      {prompt = "compute both alpha indices, old+rotational (yes) or rotational only (no, default)"}
 string   ctl_aper    = "2"  {prompt = "'all' (full loop, 1..36) or space-separated Rp list, e.g. '1 1.5 2'"}
 # Experimental stuff:
@@ -87,7 +88,7 @@ begin
     # carpetas prinicpales:
     string alpha_dir, cache_dir
     string alphaimg_dir, area_dir, asymm_area_dir, frames_dir
-    string files_dir, ds9_dir, residual_alpha_dir, rotation_alpha_dir
+    string alphafiles_dir, ds9_dir, residual_alpha_dir, rotation_alpha_dir
 
     # otras carpetas:
     string datafiles_dir
@@ -238,10 +239,10 @@ begin
     asymm_area_dir = alphaimg_dir//"/"//"asymm_area_pixels"
 
     # Catalogs:
-    files_dir = alpha_dir//"/"//"files"
-    ds9_dir = files_dir//"/"//"ds9_regions"
-    residual_alpha_dir = files_dir//"/"//"residual_area"
-    rotation_alpha_dir = files_dir//"/"//"residual_rotation_area"
+    alphafiles_dir = alpha_dir//"/"//"files"
+    ds9_dir = alphafiles_dir//"/"//"ds9_regions"
+    residual_alpha_dir = alphafiles_dir//"/"//"residual_area"
+    rotation_alpha_dir = alphafiles_dir//"/"//"residual_rotation_area"
 
     cache_dir = alpha_dir//"/"//"cache"
 
@@ -428,6 +429,9 @@ begin
         printf("_obs_area_%.1f_%.1f", low_sigma, hiblg_clip) | scan(obs_area)
     }
 
+    # Encabezado archivo: trimsection_mincenter.txt
+    printf("#%31s %20s", "ID", "trimsection\n", > datafiles_dir//"/trimsection_mincenter.txt")
+
     for(i=1;i<=n_list;i+=1){
 
         force_obj = "force_reg/force_"//id_obj[i]//".reg"
@@ -535,6 +539,7 @@ begin
 
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
+        printf("%32s $20s\n", id_obj[i], trimsection, >> datafiles_dir//"/trimsection_mincenter.txt")
 
         # BULBO GALACTIVO:
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
@@ -634,12 +639,36 @@ begin
         tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr("(a-b) > 0", tmp_outfile, tmp_infile, tmp_infile2, verb-)
-        # seguimiento:
-        tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels.fits"
-        tmp_infile2 = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
-        tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_negative_asymm_areapixels.fits"
-        imdelete(tmp_outfile, ver-, >& "dev$null")
-        imexpr("a-b", tmp_outfile, tmp_infile, tmp_infile2, verb-)
+        # eliminar imagen a 180°:
+        tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
+        imdelete(tmp_infile, ver-, >& "dev$null")
+
+        if(shape_in == yes){
+
+            tmp_infile = "pawlik/pawlik_1.0/binary_masks/"//id_obj[i]//"_avoidmask.fits"
+
+            while(!imaccess(tmp_infile)){
+                print("\n - Try search file: ", tmp_infile)
+                print(" - Input the name of pawlik folder and press enter\n")
+                scan(tmp_infile2)
+                tmp_infile = tmp_infile2//"/pawlik_1.0/binary_masks/"//id_obj[i]//"_avoidmask.fits"
+            }
+
+            tmp_infile = tmp_infile//trimsection
+            tmp_infile2 = asymm_area_dir//"/"//id_obj[i]//"_avoidmask.fits"
+            imcopy(tmp_infile, tmp_infile2, ver-)
+
+            tmp_infile3 = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"
+            tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_asymmpix_shapein.fits"
+            imexpr("a == 1 ? b : 0", tmp_outfile, tmp_infile2, tmp_infile3, ver-)
+        }
+
+        # # seguimiento:
+        # tmp_infile = area_dir//"/"//id_obj[i]//"_areapixels.fits"
+        # tmp_infile2 = area_dir//"/"//id_obj[i]//"_areapixels_rot180.fits"
+        # tmp_outfile = asymm_area_dir//"/"//id_obj[i]//"_negative_asymm_areapixels.fits"
+        # imdelete(tmp_outfile, ver-, >& "dev$null")
+        # imexpr("a-b", tmp_outfile, tmp_infile, tmp_infile2, verb-)
 
         # recorta tamaño optimo (BULBO a evitar):
         tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"//trimsection
@@ -675,7 +704,7 @@ begin
     # CATALOGS HEADER:
     # ===============================================================
 
-    if(!access(files_dir)){mkdir(files_dir)}
+    if(!access(alphafiles_dir)){mkdir(alphafiles_dir)}
     if(!access(residual_alpha_dir)){mkdir(residual_alpha_dir)}
     if(!access(rotation_alpha_dir)){mkdir(rotation_alpha_dir)}
     if(!access(ds9_dir)){mkdir(ds9_dir)}
@@ -806,7 +835,13 @@ begin
                 out_ds9_cat = ds9_dir//"/"
             # la segunda ejecucion es para el indice rotacional de residuo de area:
             }else{
-                measure_area_img = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"
+
+                if(shape_in == yes){
+                    measure_area_img = asymm_area_dir//"/"//id_obj[i]//"_asymmpix_shapein.fits"
+                }else{
+                    measure_area_img = asymm_area_dir//"/"//id_obj[i]//"_asymm_areapixels.fits"
+                }
+
                 out_cat = rotation_alpha_dir//"/"//"rot_"
                 out_ds9_cat = ds9_dir//"/"//"rot_"
             }
@@ -1038,23 +1073,32 @@ begin
                 delta_area_cum = (const_pi * (a_img[i] * b_img[i]) * (scale_r[30] * petro_r[i])**2) - bulge_area[i]
 
                 if(den_seg == yes){
-                    #n_ttl_cum = iso_areaf[i] - bulge_area[i]
 
-                    printf("pawlik_%.1f/binary_masks/%s_binarymask.fits", low_sigma, id_obj[i]) | scan(tmp_infile)
+                    if(shape_in == yes){
 
-                    if(!access(tmp_infile)){
-                        printf("\n\n - WRNNG: Doesn't exist pawlik seg %.1f sigma\n", low_sigma)
-                        print(" - pause...(press enter)")
-                        scan(tmp_wait)
-                        scan(tmp_wait)
-
-                        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                        n_ttl_cum =  (mean_val * n_pix) - bulge_area[i]
+                        tmp_infile = "pawlik/pawlik_1.0/binary_masks/"//id_obj[i]//"_avoidmask.fits"
+                        while(!imaccess(tmp_infile)){
+                            print("\n - Try search file: ", tmp_infile)
+                            print(" - Input the name of pawlik folder and press enter\n")
+                            scan(tmp_infile2)
+                            tmp_infile = tmp_infile2//"/pawlik_1.0/binary_masks/"//id_obj[i]//"_avoidmask.fits"
+                        }
 
                     }else{
-                        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                        n_ttl_cum =  (mean_val * n_pix) - bulge_area[i]
+
+                        tmp_infile = "pawlik/pawlik_1.0/binary_masks/"//id_obj[i]//"_binarymask.fits"
+
+                        while(!imaccess(tmp_infile)){
+                            print("\n - Try search file: ", tmp_infile)
+                            print(" - Input the name of pawlik folder and press enter\n")
+                            scan(tmp_infile2)
+                            tmp_infile = tmp_infile2//"/pawlik_1.0/binary_masks/"//id_obj[i]//"_binarymask.fits"
+                        }
+
                     }
+
+                    imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+                    n_ttl_cum =  (mean_val * n_pix) - bulge_area[i]
 
                 }else{
                     n_ttl_cum = (cum_n_areattl[i] - (delta_area_cum * min_densitybg))
