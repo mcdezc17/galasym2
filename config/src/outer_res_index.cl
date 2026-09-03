@@ -361,26 +361,26 @@ begin
         imgets(tmp_infile, "naxis2")
         ylenght_data = int(imgets.value)
 
-        printf("\n - %d min's ID: %s\n", i, id_obj[i])
-
         if(px1 < 1){
-            print(" - se usa min x")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa min x1")
             px1 = 1
         }
         if(py1 < 1){
-            print(" - se usa min y")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa min y1")
             py1 = 1
         }
-
         if(px2 > xlenght_data){
-            print(" - se usa max x")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa max x2")
             px2 = xlenght_data
         }
         if(py2 > ylenght_data){
-            print(" - se usa max y")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa max y2")
             py2 = ylenght_data
         }
-        print("")
 
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"

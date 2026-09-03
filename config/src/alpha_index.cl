@@ -682,7 +682,6 @@ begin
             printf("#%31s", "ID_OBJ", > residual_alpha_dir//"/"//"cum_index_set.cat")
 
             # COMPACT: prefijo con posicion del objeto (ID_OBJ + coordenadas):
-            # printf("#%31s %11s %11s %11s %11s", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > residual_alpha_dir//"/"//"prfl_main_alpha.cat")
             printf("#%31s %11s %11s %11s %11s", "ID_OBJ", "X_IMG", "Y_IMG", "RAJ00", "DECJ00", > residual_alpha_dir//"/"//"cum_main_alpha.cat")
 
         }
@@ -703,7 +702,6 @@ begin
             printf(" alpha_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
 
             # COMPACT: ultima columna, con salto de linea:
-            # printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_main_alpha.cat")
             printf(" alpha_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"cum_main_alpha.cat")
 
         }else{
@@ -717,23 +715,9 @@ begin
             printf(" alpha_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"cum_index_set.cat")
 
             # COMPACT: columna intermedia, sin salto de linea:
-            # printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_main_alpha.cat")
             printf(" alpha_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"cum_main_alpha.cat")
 
         }
-
-        # # EXPERIMENTAL ---------------------------
-        # if(i%2==0 && i<36){
-        #     if(i==2){
-        #         printf("#%31s prfl_%4.2frp", "ID_OBJ", scale_r[i], > residual_alpha_dir//"/"//"prfl_index_set.cat")
-        #     }else if(i>2){
-        #         printf(" prfl_%4.2frp", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
-        #     }
-        # }else if(i==36){
-        #     printf(" prfl_%4.2frp\n", scale_r[i], >> residual_alpha_dir//"/"//"prfl_index_set.cat")
-        # }
-        # # END EXPERIME ...........................
-
 
     # END FOR: header catalogs
     }
@@ -741,15 +725,11 @@ begin
     # ROTATED ALPHA INDEX USE THE SAME HEADER:
     delete(rotation_alpha_dir//"/"//"rot_asymmpix_set.cat", >& "dev$null")
     delete(rotation_alpha_dir//"/"//"rot_noisepix_set.cat", >& "dev$null")
-    # delete(rotation_alpha_dir//"/"//"rot_prfl_index_set.cat", >& "dev$null")
     delete(rotation_alpha_dir//"/"//"rot_cum_index_set.cat", >& "dev$null")
-    # delete(rotation_alpha_dir//"/"//"rot_prfl_main_alpha.cat", >& "dev$null")
     delete(rotation_alpha_dir//"/"//"rot_cum_main_alpha.cat", >& "dev$null")
     copy(residual_alpha_dir//"/"//"asymmpix_set.cat", rotation_alpha_dir//"/"//"rot_asymmpix_set.cat")
     copy(residual_alpha_dir//"/"//"noisepix_set.cat", rotation_alpha_dir//"/"//"rot_noisepix_set.cat")
-    # copy(residual_alpha_dir//"/"//"prfl_index_set.cat", rotation_alpha_dir//"/"//"rot_prfl_index_set.cat")
     copy(residual_alpha_dir//"/"//"cum_index_set.cat", rotation_alpha_dir//"/"//"rot_cum_index_set.cat")
-    # copy(residual_alpha_dir//"/"//"prfl_main_alpha.cat", rotation_alpha_dir//"/"//"rot_prfl_main_alpha.cat")
     copy(residual_alpha_dir//"/"//"cum_main_alpha.cat", rotation_alpha_dir//"/"//"rot_cum_main_alpha.cat")
 
     # DENSITY NOISE CATALOG:
@@ -802,9 +782,6 @@ begin
                 out_cat = rotation_alpha_dir//"/"//"rot_"
                 out_ds9_cat = ds9_dir//"/"//"rot_"
             }
-
-
-
 
             # ESTIMACION DEL FONDO -----------------------------------------------------------
 
@@ -958,148 +935,14 @@ begin
                 imstat(cache_dir//"/"//"tmp_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
                 n_asymmpix = mean_val * n_pix
 
-                #   # =========== START EXPERIMENTAL STUFF PROFILE INDEX =====================
-                #   # Asymmetrical pixel image in annullus aperture scale_r[]
-                #   if(j % 2 == 0 && j < 36){
-                #
-                #       if(j==2){
-                #
-                #           # # NUMERATOR PROFILE:
-                #           num_prfl_index = n_asymmpix
-                #
-                #           # DENOMINATOR PROFILE:
-                #           imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
-                #           imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_ann_areattl", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], area_glxy_img, verb-)
-                #           # Area galaxy counting:
-                #           imstat(cache_dir//"/"//"tmp_ann_areattl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                #           den_prfl_index = mean_val * n_pix
-                #
-                #           # AREA CORRECCION:
-                #           delta_corr_prfl = const_pi * (scale_r[j] * petro_r[i])**2 * (a_img[i] * b_img[i])
-                #
-                #       }else if(j > 2){
-                #
-                #           # NUMERATOR PROFILE:
-                #           imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
-                #           expr = expre1//" && "//expre2//" ? h : 0"
-                #           imexpr(expr, cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], measure_area_img, verb-)
-                #           # Residual Area (rotated) pixels counting:
-                #           imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                #           num_prfl_index = mean_val * n_pix
-                #
-                #           # DENOMINATOR PROFILE:
-                #           imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
-                #           expr = expre1//" && "//expre2//" ? h : 0"
-                #           imexpr(expr, cache_dir//"/"//"tmp_ann_areattl", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], area_glxy_img, verb-)
-                #           # Area galaxy counting:
-                #           imstat(cache_dir//"/"//"tmp_ann_areattl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                #           den_prfl_index = mean_val * n_pix
-                #
-                #           # AREA CORRECCION:
-                #           delta_corr_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-2]**2))
-                #
-                #       }
-                #
-                #   }else if(j == 36){
-                #
-                #       # NUMERATOR PROFILE:
-                #       imdelete(cache_dir//"/"//"tmp_ann_asymmpix_ap", >& "dev$null")
-                #       expr = expre1//" && "//expre2//" ? h : 0"
-                #       imexpr(expr, cache_dir//"/"//"tmp_ann_asymmpix_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], measure_area_img, verb-)
-                #       # Residual Area (rotated) pixels counting:
-                #       imstat(cache_dir//"/"//"tmp_ann_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                #       num_prfl_index = mean_val * n_pix
-                #
-                #       # DENOMINATOR PROFILE:
-                #       imdelete(cache_dir//"/"//"tmp_ann_areattl", >& "dev$null")
-                #       expr = expre1//" && "//expre2//" ? h : 0"
-                #       imexpr(expr, cache_dir//"/"//"tmp_ann_areattl", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], scale_r[j-2] * petro_r[i] * a_img[i], scale_r[j-2] * petro_r[i] * b_img[i], area_glxy_img, verb-)
-                #       # Area galaxy counting:
-                #       imstat(cache_dir//"/"//"tmp_ann_areattl", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                #       den_prfl_index = mean_val * n_pix
-                #
-                #       # AREA CORRECCION:
-                #       delta_corr_prfl = const_pi * (petro_r[i]**2) * (a_img[i] * b_img[i]) * ((scale_r[j]**2) - (scale_r[j-2]**2))
-                #
-                #   }
-                #   # =========== END EXPERIMENTAL STUFF PROFILE INDEX =====================
-
-                #  # aper. Total pixels (N_tot) alpha = n_asymmpix / N_tot(in aperture)
-                #  imdelete(cache_dir//"/"//"tmp_areattl_ap", >& "dev$null")
-                #  imexpr(expre1//" ? f : 0", cache_dir//"/"//"tmp_areattl_ap", real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[j] * petro_r[i] * a_img[i], scale_r[j] * petro_r[i] * b_img[i], theta_rad[i], area_glxy_img, verb-)
-                #  # Area galaxy counting:
-                #  imstat(cache_dir//"/"//"tmp_areattl_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
-                #  ap_n_areattl = mean_val * n_pix
-
                 # ECUACION DEL INDICE ALPHA: ==========================================
-
                 # Denominador del indice alpha (calculado en recrte de imagenes)
-                # es igual a "totalarea_mask - bulge_area":
+                # es igual a "cum_n_areattl = totalarea_mask - bulge_area":
                 n_ttl_cum = cum_n_areattl[i]
-
-                #   # Si utiliza '<= 3.0' asegurese de que las lineas despues de '##estas#' esten comentadas:
-                #   # Si utiliza '<= 0.0' entonces descomente las lineas despues de '##estas#'
-                #   if(scale_r[j] * petro_r[i] <= 3.0){
-                #
-                #       delta_area = 0
-                #
-                #       #   # ---- ESTA SECCION ERA ANTIGUO PROFILE INDICE DE PERFIL ACUMULATIVO, NO POR ANILLOS --------
-                #       #   if(ap_n_areattl <= 0){
-                #       #       prfl_index_alpha = 0
-                #       #   }else{
-                #       #       prfl_index_alpha = n_asymmpix / ap_n_areattl
-                #       #   }
-                #       #   # --------------------------------------------------------------------------------------------
-                #
-                #       cum_index_alpha = n_asymmpix / n_ttl_cum
-                #   }else{
-                #
-                #       # *** ESTAS LINEAS NO SE BORRAN, SON CONDICIONES DE CALCULO ********************
-                #       # delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2) - bulge_area[i]
-                #       #
-                #       # if(delta_area <= 0){ delta_area = 0 }
-                #       # ******************************************************************************
-                #
-                #       # Comentar la siguiente linea SI Y SOLO SI las lineas que preceden a '##estas#' fueron descomentadas:
-                #       delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2 - 9.0)
-                #
-                #       #   # ---- ESTA SECCION ERA ANTIGUO PROFILE INDICE DE PERFIL ACUMULATIVO, NO POR ANILLOS --------
-                #       #   if(ap_n_areattl <= 0){
-                #       #       prfl_index_alpha = 0
-                #       #   }else{
-                #       #       prfl_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / (ap_n_areattl - (delta_area * min_densitybg))
-                #       #   }
-                #       #   # --------------------------------------------------------------------------------------------
-                #
-                #       cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / n_ttl_cum
-                #   }
 
                 delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2 - bulge_area[i])
                 if(delta_area <= 0){ delta_area = 0 }
                 cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / n_ttl_cum
-
-                #   # ======== START EXPERIMENTAL STUFF PROFILE INDEX ==========================================
-                #   if(j%2==0){
-                #
-                #       if(scale_r[j] * petro_r[i] <= 3.0){
-                #           if(den_prfl_index <= 0){
-                #               prfl_index_alpha = 0
-                #           }else{
-                #               prfl_index_alpha = num_prfl_index / (den_prfl_index - (delta_corr_prfl * min_densitybg))
-                #           }
-                #       }else{
-                #           if(den_prfl_index <= 0){
-                #               prfl_index_alpha = 0
-                #           }else{
-                #               prfl_index_alpha = (num_prfl_index - (delta_corr_prfl * min_densitybg)) / (den_prfl_index - (delta_corr_prfl * min_densitybg))
-                #           }
-                #       }
-                #   }
-                #
-                #   if(prfl_index_alpha < 0){
-                #       prfl_index_alpha = 0
-                #   }
-                #   # ======== END EXPERIMENTAL STUFF PROFILE INDEX ==========================================
 
                 # ====================================================================================
                 # PRINT CATALOGS
@@ -1143,17 +986,6 @@ begin
                     printf(" %12.4f", cum_index_alpha, >> out_cat//"cum_index_set.cat")
                 }
 
-                #   # EXPERIMENTAL ---------------------------
-                #   if(j%2==0 && j<36){
-                #       if(j==2){
-                #           printf("%32s %11.4f", id_obj[i], prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
-                #       }else if(j>2){
-                #           printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
-                #       }
-                #   }else if(j==36){
-                #       printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_index_set.cat")
-                #   }
-                #   # END EXPERIME ...........................
 
                 # ====================================================================================
                 # PRINT CATALOGS: main_alpha (ID_OBJ + coordenadas + una columna por apertura)
@@ -1161,20 +993,14 @@ begin
 
                 # Prefijo (ID_OBJ + coordenadas): solo en la primer apertura de la lista.
                 if(count == 1){
-                    # printf("%32s %11.4f %11.4f %11.8f %11.8f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], >> out_cat//"prfl_main_alpha.cat")
-
                     printf("%32s %11.4f %11.4f %11.8f %11.8f", id_obj[i], x0_rot[i], y0_rot[i], ra_rot[i], dec_rot[i], >> out_cat//"cum_main_alpha.cat")
                 }
 
                 # Valor de ESTA apertura (con o sin salto de linea segun sea la ultima o no,
                 # independiente de 'count==1' para que ambas ramas corran si n_aper==1):
                 if(count == n_aper){
-                    # printf(" %11.4f\n", prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
-
                     printf(" %12.4f\n", cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
                 }else{
-                    # printf(" %11.4f", prfl_index_alpha, >> out_cat//"prfl_main_alpha.cat")
-
                     printf(" %12.4f", cum_index_alpha, >> out_cat//"cum_main_alpha.cat")
                 }
 

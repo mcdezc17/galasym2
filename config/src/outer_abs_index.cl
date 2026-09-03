@@ -2,8 +2,8 @@ procedure outer_abs_index()
 
 string center_rot = "abs"   {prompt = "'abs' or 'rms' minimization"}
 string bulge_clip = "10.0"  {prompt = "sigma-clip avoid bulge ('off' to disable)"}
-bool   force      = yes      {prompt = "force measure with ds9 regions"}
-string ctl_aper    = "2"  {prompt = "'all' (full loop, 1..36) or space-separated Rp list, e.g. '1 1.5 2'"}
+bool   force      = no      {prompt = "force measure with ds9 regions"}
+string ctl_aper   = "2"  {prompt = "'all' (full loop, 1..36) or space-separated Rp list, e.g. '1 1.5 2'"}
 
 struct *list
 
@@ -365,26 +365,26 @@ begin
         imgets(tmp_infile, "naxis2")
         ylenght_data = int(imgets.value)
 
-        printf("\n - %d min's ID: %s\n", i, id_obj[i])
-
         if(px1 < 1){
-            print(" - se usa min x")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa min x1")
             px1 = 1
         }
         if(py1 < 1){
-            print(" - se usa min y")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa min y1")
             py1 = 1
         }
-
         if(px2 > xlenght_data){
-            print(" - se usa max x")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa max x2")
             px2 = xlenght_data
         }
         if(py2 > ylenght_data){
-            print(" - se usa max y")
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa max y2")
             py2 = ylenght_data
         }
-        print("")
 
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"

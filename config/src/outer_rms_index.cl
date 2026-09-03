@@ -27,6 +27,7 @@ begin
     int sp_pos
     real tmp_rp
     string expr, expre1, expre2, ellip_expr
+    int xlenght_data, ylenght_data
 
     # PSET: datapar
     string pathname_data
@@ -361,13 +362,42 @@ begin
         px2 = x0_rot[i] + int((xlen_min[i] - 1) / 2)
         py1 = y0_rot[i] - int((ylen_min[i] - 1) / 2)
         py2 = y0_rot[i] + int((ylen_min[i] - 1) / 2)
+
+        tmp_infile = observed_dir//"/"//id_obj[i]//".fits"
+
+        imgets(tmp_infile, "naxis1")
+        xlenght_data = int(imgets.value)
+        imgets(tmp_infile, "naxis2")
+        ylenght_data = int(imgets.value)
+
+        if(px1 < 1){
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa min x1")
+            px1 = 1
+        }
+        if(py1 < 1){
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa min y1")
+            py1 = 1
+        }
+        if(px2 > xlenght_data){
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa max x2")
+            px2 = xlenght_data
+        }
+        if(py2 > ylenght_data){
+            printf("\n - %d / %s: supera límites de recorte \n", i, id_obj[i])
+            print(" - se usa max y2")
+            py2 = ylenght_data
+        }
+
         # Seccion a recortar:
         trimsection = "["//str(px1)//":"//str(px2)//","//str(py1)//":"//str(py2)//"]"
 
         # BULBO GALACTIVO:
         tmp_infile = model_dir//"/"//id_obj[i]//"_mod.fits"
         tmp_infile2 = bckgrnd_dir//"/"//id_obj[i]//"_bgrms.fits"
-        tmp_infile3 = segmen_dir//"/"//id_obj[i]//"_segmen.fits"
+        tmp_infile3 = segmen_dir//"/"//id_obj[i]//"_third_seg.fits"
         imstat(tmp_infile2, fields="midpt", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(local_rms)
         tmp_outfile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
@@ -379,21 +409,21 @@ begin
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # recorta tamaño optimo (OBSSERVED OUTER SETMASK):
-        tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_setmask.fits"//trimsection
-        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        tmp_infile = observed_dir//"/"//id_obj[i]//"_obs_secondmask.fits"//trimsection
+        tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imcopy(tmp_infile, tmp_outfile, ver-)
 
         # Apertura maxima para indice acumulativo:
         tmp_infile = cache_dir//"/"//id_obj[i]//"_avoid_bulgemodel.fits"
-        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
-        tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_setmask.fits"
+        tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
+        tmp_outfile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_secondmask.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr(expre1//" && f == 0 ? g**2 : 0", tmp_outfile, real(xlen_min[i])/2, real(ylen_min[i])/2, scale_r[30] * petro_r[i] * a_img[i], scale_r[30] * petro_r[i] * b_img[i], theta_rad[i], tmp_infile, tmp_infile2, verb-)
 
         # MINIMUM RESIDUAL (SET MASK) 180° rotation:
         # transposicion = rotar 90 grados:
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"//"[*,-*]"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_secondmask.fits"//"[*,-*]"
         tmp_outfile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imtranspose(tmp_infile, tmp_outfile)
@@ -406,7 +436,7 @@ begin
         tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot90.fits"
         imdelete(tmp_infile, ver-, >& "dev$null")
         # Residuo asimetrico de area (N-N_180):
-        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_setmask.fits"
+        tmp_infile = frames_dir//"/"//id_obj[i]//"_obs_secondmask.fits"
         tmp_infile2 = frames_dir//"/"//id_obj[i]//"_obs_setmask_rot180.fits"
         tmp_outfile = residualimg_dir//"/"//id_obj[i]//"_min_rms_residual.fits"
         imdelete(tmp_outfile, ver-, >& "dev$null")
@@ -484,22 +514,12 @@ begin
     # END FOR: header catalogs
     }
 
-    #   # DS9 HEADER ACATALOG INDEX VALUE (PROFILE CURVE):
-    #   print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"prfl_index.reg")
-    #   print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> ds9_dir//"/"//"prfl_index.reg")
-    #   print("fk5", >> ds9_dir//"/"//"prfl_index.reg")
-    #   # copy rotational
-    #   delete(ds9_dir//"/"//"rot_prfl_index.reg",  >& "dev$null")
-    #   copy(ds9_dir//"/"//"prfl_index.reg", ds9_dir//"/"//"rot_prfl_index.reg")
 
-    #   # DS9 HEADER ACATALOG INDEX VALUE (CUMMULATIVE CURVE):
-    #   delete(ds9_dir//"/"//"cum_index.reg",  >& "dev$null")
-    #   print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"cum_index.reg")
-    #   print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> ds9_dir//"/"//"cum_index.reg")
-    #   print("fk5", >> ds9_dir//"/"//"cum_index.reg")
-    #   # copy rotational
-    #   delete(ds9_dir//"/"//"rot_cum_index.reg",  >& "dev$null")
-    #   copy(ds9_dir//"/"//"cum_index.reg", ds9_dir//"/"//"rot_cum_index.reg")
+    # DS9 HEADER ACATALOG INDEX VALUE (CUMMULATIVE CURVE):
+    delete(ds9_dir//"/"//"cum_outer_rms.reg",  >& "dev$null")
+    print("# Region file format: DS9 version 4.1", > ds9_dir//"/"//"cum_outer_rms.reg")
+    print('global dashlist=8 3 width=1 font="helvetica 12 bold roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1', >> ds9_dir//"/"//"cum_outer_rms.reg")
+    print("fk5", >> ds9_dir//"/"//"cum_outer_rms.reg")
 
     # ===============================================================
     # INDEX COMPUTATION
@@ -515,7 +535,7 @@ begin
         bulge_area = mean_val * n_pix
 
         # DENOMINADOR DEL INDICE CUMULATIVO (const.):
-        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_setmask.fits"
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_secondmask.fits"
         imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
         # denominador de indice cumulativo:
         denominator_cumm = mean_val * n_pix
@@ -534,7 +554,7 @@ begin
         # numerador de sky correction:
         numerator_corr = mean_val * n_pix
         # Denominador del indice de correccion:
-        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_setmask.fits"
+        tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_secondmask.fits"
         tmp_outfile = cache_dir//"/"//"tmp_denominator_corr"
         expr = expre1//" && "//expre2//" ? h : 0"
         imdelete(tmp_outfile, >& "dev$null")
@@ -575,7 +595,7 @@ begin
                 numerator_prfl = numerator_cumm
 
                 # DENOMINADOR INDICE DE PERFIL (ELIPSE):
-                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_setmask.fits"
+                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_secondmask.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 expr = expre1//" ? f : 0"
@@ -600,7 +620,7 @@ begin
                 numerator_prfl = mean_val * n_pix
 
                 # DENOMINADOR INDICE PERFIL (ANILLOS):
-                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_setmask.fits"
+                tmp_infile = cache_dir//"/"//id_obj[i]//"_maxaper_out_sq_obs_secondmask.fits"
                 tmp_outfile = cache_dir//"/"//"tmp_denominator_prfl"
                 imdelete(tmp_outfile, >& "dev$null")
                 expr = expre1//" && "//expre2//" ? h : 0"
@@ -723,12 +743,9 @@ begin
                 printf(" %11.4f", rms_cumm_index, >> rmscat_dir//"/"//"cum_main_outer_rms.cat")
             }
 
-            #   # OUTER RMS INDEX DS9 REGION: una elipse por cada apertura seleccionada:
-            #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(scale_r[j] * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(scale_r[j] * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//' prfl_'//str(scale_r[j])//'rp: '//str(rms_prfl_index)//'}'
-            #   print(expr, >> ds9_dir//"/"//"prfl_index.reg")
-            #
-            #   expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(scale_r[j] * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(scale_r[j] * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//' cum_'//str(scale_r[j])//'rp: '//str(rms_cumm_index)//'}'
-            #   print(expr, >> ds9_dir//"/"//"cum_index.reg")
+            # OUTER RMS INDEX DS9 REGION: una elipse por cada apertura seleccionada:
+            expr = 'ellipse('//str(ra_rot[i])//','//str(dec_rot[i])//','//str(scale_r[j] * petro_r[i] * a_img[i] * pixel_scale)//'",'//str(scale_r[j] * petro_r[i] * b_img[i] * pixel_scale)//'",'//str(theta_img[i])//') # color=red dash=1 text={'//id_obj[i]//' out_'//str(scale_r[j])//'rp: '//str(rms_cumm_index)//'}'
+            print(expr, >> ds9_dir//"/"//"cum_outer_rms.reg")
 
             # END PRINT CATALOGS ===============================================================
 
