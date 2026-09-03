@@ -225,7 +225,9 @@ def pix_to_world(image_path, x0, y0):
     return float(ra), float(dec)
 
 
-GCONF_DEFAULT = "/home/sloan/galasym2-master/config/"
+# find_center.py vive en config/src/; su directorio padre-padre es config/,
+# el mismo directorio que 'set gconf' apunta en galasym2.cl.
+GCONF_DEFAULT = str(Path(__file__).resolve().parent.parent) + "/"
 
 
 def main(argv=None):
@@ -233,10 +235,9 @@ def main(argv=None):
     parser.add_argument("cfg", nargs="?", default=GCONF_DEFAULT,
                          help="Directorio de configuración (gconf de IRAF); "
                               "debe contener 'sextractor/default.sex'. "
-                              f"Por defecto: {GCONF_DEFAULT} (mismo valor fijo "
-                              "que 'set gconf' en galasym2.cl -- si el repo se "
-                              "reubica, hay que actualizar este default junto "
-                              "con galasym2.cl).")
+                              f"Por defecto: {GCONF_DEFAULT} (autodetectado "
+                              "como el directorio 'config/' que contiene a "
+                              "este script).")
     parser.add_argument("--data-dir", default="data",
                          help="Raíz del árbol de datos en tiempo de ejecución "
                               "(por defecto 'data', igual que find_center.cl).")

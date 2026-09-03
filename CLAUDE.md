@@ -12,8 +12,11 @@ project, and no automated test suite — this is a scientific data-reduction
 pipeline meant to be run interactively inside IRAF/PyRAF against real FITS
 images and object catalogs.
 
-Repo root only contains `config/`:
-- `config/src/` — all `.cl` task definitions and Python helper scripts (the "code").
+Repo root contains `galasym2.cl` and `galasym2.par` — the IRAF package's
+bootstrap files, which must live at the repo root (not nested) for IRAF's
+external-package auto-discovery to find them, see "Running the package"
+below — plus `config/`:
+- `config/src/` — all other `.cl` task definitions and Python helper scripts (the "code").
 - `config/sextractor/` — SExtractor config templates, convolution filters, NNW star/galaxy classifier.
 - `config/psfex/` — PSFEx config templates, plus `psfex/prepsfex/` for the pre-PSFEx SExtractor star-selection pass.
 
@@ -27,15 +30,32 @@ This requires a working IRAF v2.16+ / PyRAF install plus SExtractor, PSFEx,
 and STILTS (Starlink Tables Infrastructure Library Tool Set) on `$PATH`, and
 (for interactive masking steps) DS9.
 
-Load the package from an `cl`/PyRAF session, from the directory you want
-`data/` created in:
+The repo registers itself as an IRAF external package the same way `inaoe`
+and other packages under `iraf$extern/` do — via IRAF's auto-discovery
+(`extpkg.cl`, sourced by `clpackage.cl` at every `cl` startup), not by
+editing `login.cl`. That mechanism scans each top-level entry of
+`iraf$extern/` for a `<name>/<name>.cl` file (one level only, name must match
+exactly) and auto-declares a `<name>$` logical plus a `task <name>.pkg`. To
+register `galasym2`, make (or symlink) the repo appear as
+`iraf$extern/galasym2/`, e.g.:
 ```
-cl < /home/sloan/galasym2-master/config/src/galasym2.cl
+ln -s /path/to/this/repo iraf$extern/galasym2
 ```
-`galasym2.cl` hard-codes `direc = "/home/sloan/galasym2-master/config/src/"`
-(config/src/galasym2.cl:5) — if this repo is ever relocated or cloned
-elsewhere, that line must be updated first or the package will fail to find
-its own tasks.
+(`git clone git@github.com:mcdezc17/galasym2.git` already produces a folder
+named `galasym2`, matching what's required). `galasym2.cl` at the repo root
+resolves `direc`/`gconf` from `envget("galasym2")` (the auto-defined logical,
+already an absolute path by the time `galasym2.cl` runs) into plain resolved
+absolute paths — **not** left as unresolved `name$...` logical syntax,
+because `direc`/`gconf` also get read via `envget()` and used outside IRAF's
+own filename resolution (shell escapes calling `ned_calc.py`; the SExtractor/
+PSFEx config files `config_files.cl` generates, since neither external tool
+understands IRAF's `$` logical syntax) — so no path needs editing regardless
+of where the repo/symlink actually lives, but don't revert this to a literal
+`"galasym2$..."` string. Then, from any `cl`/PyRAF session, from the
+directory you want `data/` created in:
+```
+cl> galasym2
+```
 
 Typical session order:
 1. `first_time` — prompts for the 5 psets (`datapar`, `photimg`, `sexpar`,

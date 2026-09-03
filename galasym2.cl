@@ -2,8 +2,14 @@
 
 # Load necessary packages
 
-set direc = "/home/sloan/galasym2-master/config/src/"
-set gconf = "/home/sloan/galasym2-master/config/"
+# 'galasym2$' ya lo define extpkg.cl como una ruta absoluta resuelta (via
+# osfn) antes de que este script corra -- pero un 'set' literal con "$" sin
+# resolver aqui rompe cualquier uso de direc/gconf fuera de la resolucion de
+# nombres propia de IRAF (shell escapes via '! ... | cl', o el contenido de
+# los .sex/.psfex generados para SExtractor/PSFEx, que no entienden "$" de
+# IRAF). Por eso se resuelve aqui mismo a una ruta absoluta llana.
+printf("reset direc = %sconfig/src/\nkeep\n", envget("galasym2")) | cl()
+printf("reset gconf = %sconfig/\nkeep\n", envget("galasym2")) | cl()
 
 package galasym2
 
@@ -55,17 +61,18 @@ hidetask uncertainty
 
 print(" ")
 print("    +------------------ GALASYM IRAF Package -------------------+")
-print("    |                  Version 2.0, Nov, 2025                   |")
+print("    |                       Version 2.0                         |")
 print("    |                                                           |")
 print("    |               Requires IRAF v2.16 or greater              |")
 print("    |        Tested with Ubuntu 24.04.3 LTS IRAF v2.16          |")
 print("    |         Universidad de Guanajuato, Gto., Mexico           |")
 print("    |     Please use GitHub site for submission of questions    |")
-print("    |           https://github.com/mcdezc17/galasym             |")
+print("    |           https://github.com/mcdezc17/galasym2            |")
 print("    +-----------------------------------------------------------+")
 print(" ")
-print("  WARNING - setting imtype=fits")
-print("          - required software: SExtractor, PSFExtractor & STILTS")
+print("  WARNING - In 'login.cl' file setting imtype=fits")
+print("          - Required software: SExtractor, PSFExtractor & STILTS")
+print("          - Python task")
 print(" ")
 
 clbye()
