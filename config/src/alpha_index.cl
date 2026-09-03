@@ -112,7 +112,7 @@ begin
     int min1_pos, min2_pos, min3_pos, min4_pos
     real tmp_current, min_densitybg
     string out_cat, out_ds9_cat
-    real n_asymmpix, ap_n_areattl
+    real n_asymmpix, area_aperture
     real n_ttl_cum
     real delta_area, delta_area_cum
     real cum_n_areattl[999]
@@ -588,7 +588,7 @@ begin
         imdelete(tmp_outfile, ver-, >& "dev$null")
         imexpr("(a >= b*c) && (d == 1) ? 1 : 0", tmp_outfile, mod_img, hiblg_clip, local_rms, totalarea_mask, ver-)
         # Suma del área del bulbo (pixeles):
-        imstat(tmp_infile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
+        imstat(tmp_outfile, fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
         bulge_area[i] = int(mean_val * n_pix)
         # B-2.4 --------------------------------------------------------------------------------------------------
 
@@ -935,14 +935,23 @@ begin
                 imstat(cache_dir//"/"//"tmp_asymmpix_ap", fields="mean, npix", lower=INDEF, upper=INDEF, nclip=0, format-) | scan(mean_val, n_pix)
                 n_asymmpix = mean_val * n_pix
 
-                # ECUACION DEL INDICE ALPHA: ==========================================
-                # Denominador del indice alpha (calculado en recrte de imagenes)
+                # START ECUACION DEL INDICE ALPHA: ==========================================
+                # Denominador del indice alpha (calculado en recorte de imagenes)
                 # es igual a "cum_n_areattl = totalarea_mask - bulge_area":
                 n_ttl_cum = cum_n_areattl[i]
 
-                delta_area = const_pi * (a_img[i] * b_img[i]) * ((scale_r[j] * petro_r[i])**2 - bulge_area[i])
+                area_aperture = (const_pi * (a_img[i] * b_img[i]) * (scale_r[j] * petro_r[i])**2) - bulge_area[i]
+
+                if(area_aperture <= n_ttl_cum){
+                    delta_area = area_aperture
+                }else{
+                    delta_area = n_ttl_cum
+                }
+
                 if(delta_area <= 0){ delta_area = 0 }
+
                 cum_index_alpha = (n_asymmpix - (delta_area * min_densitybg)) / n_ttl_cum
+                # END ECUACION DEL INDICE ALPHA: ==========================================
 
                 # ====================================================================================
                 # PRINT CATALOGS
